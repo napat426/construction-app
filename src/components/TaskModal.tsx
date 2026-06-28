@@ -143,10 +143,13 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
                 id="duration"
                 name="duration"
                 type="number"
-                min="0"
+                min="1"
                 required
                 defaultValue={task?.duration || 1}
                 className={inputCls}
+                onFocus={(e) => { if (e.target.value === '0' || e.target.value === '1') e.target.value = '' }}
+                onBlur={(e) => { if (e.target.value === '') e.target.value = '1' }}
+                onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/^0+(?=\d)/, '') }}
               />
             </div>
           </div>
@@ -166,6 +169,9 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
                 defaultValue={task?.cost || 0}
                 placeholder="0"
                 className={inputCls}
+                onFocus={(e) => { if (e.target.value === '0') e.target.value = '' }}
+                onBlur={(e) => { if (e.target.value === '') e.target.value = '0' }}
+                onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/^0+(?=\d)/, '') }}
               />
             </div>
             
@@ -182,6 +188,9 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
                 max="100"
                 defaultValue={task?.actual_progress || 0}
                 className={inputCls}
+                onFocus={(e) => { if (e.target.value === '0') e.target.value = '' }}
+                onBlur={(e) => { if (e.target.value === '') e.target.value = '0' }}
+                onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/^0+(?=\d)/, '') }}
               />
             </div>
           </div>

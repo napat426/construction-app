@@ -14,25 +14,25 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
   const tabs = [
     {
       href: `/projects/${projectId}`,
-      label: 'แดชบอร์ดโครงการ',
+      label: 'Dashboard',
       icon: LayoutDashboard,
       active: pathname === `/projects/${projectId}`,
     },
     {
       href: `/projects/${projectId}/planning`,
-      label: 'แผนงานและความคืบหน้า (WBS / Gantt / S-Curve)',
+      label: 'Planning',
       icon: CalendarRange,
       active: pathname.startsWith(`/projects/${projectId}/planning`),
     },
     {
       href: `/projects/${projectId}/materials`,
-      label: 'การจัดการวัสดุ',
+      label: 'Materials',
       icon: Package,
       active: pathname.startsWith(`/projects/${projectId}/materials`),
     },
     {
       href: `/projects/${projectId}/reports`,
-      label: 'ตรวจงาน & รายงาน',
+      label: 'Reports',
       icon: FileText,
       active: pathname.startsWith(`/projects/${projectId}/reports`),
     },

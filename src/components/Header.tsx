@@ -31,6 +31,32 @@ export function Header({ breadcrumb, title, subtitle, actions }: HeaderProps) {
               {breadcrumb.map((crumb, i) => {
                 const isLast = i === breadcrumb.length - 1
                 
+                let displayCrumb = crumb
+                if (crumb === 'ระบบควบคุมงานก่อสร้าง') {
+                  displayCrumb = 'หน้าหลัก'
+                } else if (crumb === 'โครงการทั้งหมด') {
+                  displayCrumb = 'โครงการ'
+                } else if (
+                  crumb === 'แผนงานและความก้าวหน้าโครงการ' ||
+                  crumb === 'แผนงานและความคืบหน้าโครงการ' ||
+                  crumb === 'แผนงานและความคืบหน้า (WBS / Gantt / S-Curve)' ||
+                  crumb === 'แผนงานและความก้าวหน้า'
+                ) {
+                  displayCrumb = 'Planning'
+                }
+
+                // Truncate custom crumbs (like project name) longer than 15 chars
+                const isSystemCrumb =
+                  crumb === 'ระบบควบคุมงานก่อสร้าง' ||
+                  crumb === 'โครงการทั้งหมด' ||
+                  crumb === 'แผนงานและความก้าวหน้าโครงการ' ||
+                  crumb === 'แผนงานและความคืบหน้าโครงการ' ||
+                  crumb === 'แผนงานและความคืบหน้า (WBS / Gantt / S-Curve)' ||
+                  crumb === 'แผนงานและความก้าวหน้า'
+                if (!isSystemCrumb && displayCrumb.length > 15) {
+                  displayCrumb = displayCrumb.slice(0, 15) + '...'
+                }
+
                 // Determine destination URL dynamically
                 let href = ''
                 if (!isLast) {
@@ -39,7 +65,6 @@ export function Header({ breadcrumb, title, subtitle, actions }: HeaderProps) {
                   } else if (crumb === 'โครงการทั้งหมด' || crumb === 'โครงการ') {
                     href = '/projects'
                   } else if (projectId) {
-                    // It's the project name, linking to the project dashboard page
                     href = `/projects/${projectId}`
                   }
                 }
@@ -51,11 +76,11 @@ export function Header({ breadcrumb, title, subtitle, actions }: HeaderProps) {
                         href={href}
                         className="text-[11px] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:underline transition-all font-medium"
                       >
-                        {crumb}
+                        {displayCrumb}
                       </Link>
                     ) : (
                       <span className={`text-[11px] ${isLast ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-400 dark:text-slate-500 font-medium'}`}>
-                        {crumb}
+                        {displayCrumb}
                       </span>
                     )}
                     {i < breadcrumb.length - 1 && (
@@ -67,10 +92,10 @@ export function Header({ breadcrumb, title, subtitle, actions }: HeaderProps) {
             </div>
           )}
           <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">
-            {title}
+            {title === 'แผนงานและความก้าวหน้าโครงการ' || title === 'แผนงานและความคืบหน้าโครงการ' ? 'แผนงาน & WBS' : title}
           </h2>
           {subtitle && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 page-subtitle">{subtitle}</p>
           )}
         </div>
 
@@ -89,7 +114,7 @@ export function Header({ breadcrumb, title, subtitle, actions }: HeaderProps) {
             className="px-3 h-9 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center gap-2 justify-center text-slate-500 dark:text-slate-400 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200"
           >
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            <span className="text-xs font-bold">{theme === 'dark' ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
+            <span className="text-xs font-bold theme-label">{theme === 'dark' ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
           </button>
         </div>
       </div>

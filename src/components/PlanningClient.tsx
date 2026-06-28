@@ -70,11 +70,11 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
   // Local states for inputs in editing mode
   const [inputWbsNo, setInputWbsNo] = useState('')
   const [inputName, setInputName] = useState('')
-  const [inputDuration, setInputDuration] = useState(1)
+  const [inputDuration, setInputDuration] = useState<string | number>('')
   const [inputStartDate, setInputStartDate] = useState('')
   const [inputPredecessors, setInputPredecessors] = useState('')
-  const [inputCost, setInputCost] = useState(0)
-  const [inputProgress, setInputProgress] = useState(0)
+  const [inputCost, setInputCost] = useState<string | number>('')
+  const [inputProgress, setInputProgress] = useState<string | number>('')
   const [inputIsMilestone, setInputIsMilestone] = useState(false)
 
   // Sort tasks naturally by WBS No. and calculate dynamic schedule dates
@@ -383,11 +383,11 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
     setEditingTaskId('new')
     setInputWbsNo('')
     setInputName('')
-    setInputDuration(1)
+    setInputDuration('')
     setInputStartDate('')
     setInputPredecessors('')
-    setInputCost(0)
-    setInputProgress(0)
+    setInputCost('')
+    setInputProgress('')
     setInputIsMilestone(false)
   }
 
@@ -595,8 +595,9 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
                             <input
                               type="number"
                               className="input-base w-full px-1.5 py-1 text-xs"
-                              value={inputDuration}
-                              onChange={(e) => setInputDuration(parseInt(e.target.value) || 0)}
+                              value={inputDuration || ''}
+                              onChange={(e) => setInputDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              placeholder="0"
                             />
                           </td>
                           <td className="py-2 px-2">
@@ -629,8 +630,9 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
                             <input
                               type="number"
                               className="input-base w-full px-1.5 py-1 text-xs text-right"
-                              value={inputCost}
-                              onChange={(e) => setInputCost(parseFloat(e.target.value) || 0)}
+                              value={inputCost || ''}
+                              onChange={(e) => setInputCost(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              placeholder="0"
                             />
                           </td>
                           <td className="py-2 px-2 text-right font-mono text-slate-400">
@@ -642,12 +644,13 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
                               min="0"
                               max="100"
                               className="input-base w-full px-1.5 py-1 text-xs"
-                              value={inputProgress}
-                              onChange={(e) => setInputProgress(parseInt(e.target.value) || 0)}
+                              value={inputProgress || ''}
+                              onChange={(e) => setInputProgress(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              placeholder="0"
                             />
                           </td>
                           <td className="py-2 px-2 text-right font-mono text-slate-400">
-                            {(weight * inputProgress / 100).toFixed(1)}%
+                            {(weight * (Number(inputProgress) || 0) / 100).toFixed(1)}%
                           </td>
                           <td className="py-2 px-2">
                             <div className="flex items-center justify-center gap-1">
@@ -801,10 +804,10 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
                     <td className="py-2 px-2">
                       <input
                         type="number"
-                        placeholder="ระยะเวลา"
+                        placeholder="0"
                         className="input-base w-full px-1.5 py-1 text-xs"
-                        value={inputDuration}
-                        onChange={(e) => setInputDuration(parseInt(e.target.value) || 0)}
+                        value={inputDuration || ''}
+                        onChange={(e) => setInputDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
                       />
                     </td>
                     <td className="py-2 px-2">
@@ -834,10 +837,10 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
                     <td className="py-2 px-2">
                       <input
                         type="number"
-                        placeholder="งบประมาณ"
+                        placeholder="0"
                         className="input-base w-full px-1.5 py-1 text-xs text-right"
-                        value={inputCost}
-                        onChange={(e) => setInputCost(parseFloat(e.target.value) || 0)}
+                        value={inputCost || ''}
+                        onChange={(e) => setInputCost(e.target.value.replace(/^0+(?=\d)/, ''))}
                       />
                     </td>
                     <td className="py-2 px-2 text-right font-mono text-slate-400">—</td>
@@ -846,9 +849,10 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
                         type="number"
                         min="0"
                         max="100"
+                        placeholder="0"
                         className="input-base w-full px-1.5 py-1 text-xs"
-                        value={inputProgress}
-                        onChange={(e) => setInputProgress(parseInt(e.target.value) || 0)}
+                        value={inputProgress || ''}
+                        onChange={(e) => setInputProgress(e.target.value.replace(/^0+(?=\d)/, ''))}
                       />
                     </td>
                     <td className="py-2 px-2 text-right font-mono text-slate-400">—</td>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useActionState } from 'react'
+import { useEffect, useRef, useActionState, useState } from 'react'
 import { X, Save, Plus, Loader2 } from 'lucide-react'
 import { createTask, updateTask } from '@/app/actions/tasks'
 import type { WBSTask, ActionState } from '@/lib/types'
@@ -23,6 +23,21 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
 
   const [state, formAction, pending] = useActionState(boundAction, INITIAL_STATE)
   const formRef = useRef<HTMLFormElement>(null)
+
+  const [duration, setDuration] = useState<string | number>(() => {
+    if (task) return task.duration ?? ''
+    return ''
+  })
+  
+  const [cost, setCost] = useState<string | number>(() => {
+    if (task) return task.cost ?? ''
+    return ''
+  })
+
+  const [actualProgress, setActualProgress] = useState<string | number>(() => {
+    if (task) return task.actual_progress ?? ''
+    return ''
+  })
 
   // Close modal on success
   useEffect(() => {
@@ -145,11 +160,10 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
                 type="number"
                 min="1"
                 required
-                defaultValue={task?.duration || 1}
+                value={duration || ''}
+                onChange={(e) => setDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
+                placeholder="0"
                 className={inputCls}
-                onFocus={(e) => { if (e.target.value === '0' || e.target.value === '1') e.target.value = '' }}
-                onBlur={(e) => { if (e.target.value === '') e.target.value = '1' }}
-                onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/^0+(?=\d)/, '') }}
               />
             </div>
           </div>
@@ -166,12 +180,10 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
                 type="number"
                 min="0"
                 step="1000"
-                defaultValue={task?.cost || 0}
+                value={cost || ''}
+                onChange={(e) => setCost(e.target.value.replace(/^0+(?=\d)/, ''))}
                 placeholder="0"
                 className={inputCls}
-                onFocus={(e) => { if (e.target.value === '0') e.target.value = '' }}
-                onBlur={(e) => { if (e.target.value === '') e.target.value = '0' }}
-                onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/^0+(?=\d)/, '') }}
               />
             </div>
             
@@ -186,11 +198,10 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
                 type="number"
                 min="0"
                 max="100"
-                defaultValue={task?.actual_progress || 0}
+                value={actualProgress || ''}
+                onChange={(e) => setActualProgress(e.target.value.replace(/^0+(?=\d)/, ''))}
+                placeholder="0"
                 className={inputCls}
-                onFocus={(e) => { if (e.target.value === '0') e.target.value = '' }}
-                onBlur={(e) => { if (e.target.value === '') e.target.value = '0' }}
-                onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/^0+(?=\d)/, '') }}
               />
             </div>
           </div>

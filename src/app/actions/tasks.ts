@@ -64,7 +64,7 @@ export async function createTask(
   }
 
   const costRaw = formData.get('cost') as string
-  const cost = costRaw ? parseFloat(costRaw) : 0
+  const cost = Number(costRaw) || 0
   let start_date = formData.get('start_date') as string
   const predecessors = (formData.get('predecessors') as string)?.trim() || null
   
@@ -78,10 +78,10 @@ export async function createTask(
   }
 
   const durationRaw = formData.get('duration') as string
-  const duration = durationRaw ? parseInt(durationRaw, 10) : 1
+  const duration = (Number(durationRaw) || 0) <= 0 ? 1 : Number(durationRaw)
   
   const progressRaw = formData.get('actual_progress') as string
-  const actual_progress = progressRaw ? Math.max(0, Math.min(100, parseInt(progressRaw, 10))) : 0
+  const actual_progress = Math.max(0, Math.min(100, Number(progressRaw) || 0))
   
   const is_milestone = formData.get('is_milestone') === 'true'
 
@@ -89,9 +89,9 @@ export async function createTask(
     project_id: projectId,
     wbs_no,
     name,
-    cost: isNaN(cost) ? 0 : cost,
+    cost,
     start_date,
-    duration: isNaN(duration) ? 1 : duration,
+    duration,
     predecessors,
     actual_progress,
     is_milestone,
@@ -123,7 +123,7 @@ export async function updateTask(
   }
 
   const costRaw = formData.get('cost') as string
-  const cost = costRaw ? parseFloat(costRaw) : 0
+  const cost = Number(costRaw) || 0
   let start_date = formData.get('start_date') as string
   const predecessors = (formData.get('predecessors') as string)?.trim() || null
   
@@ -137,10 +137,10 @@ export async function updateTask(
   }
   
   const durationRaw = formData.get('duration') as string
-  const duration = durationRaw ? parseInt(durationRaw, 10) : 1
+  const duration = (Number(durationRaw) || 0) <= 0 ? 1 : Number(durationRaw)
   
   const progressRaw = formData.get('actual_progress') as string
-  const actual_progress = progressRaw ? Math.max(0, Math.min(100, parseInt(progressRaw, 10))) : 0
+  const actual_progress = Math.max(0, Math.min(100, Number(progressRaw) || 0))
   
   const is_milestone = formData.get('is_milestone') === 'true'
 
@@ -149,9 +149,9 @@ export async function updateTask(
     .update({
       wbs_no,
       name,
-      cost: isNaN(cost) ? 0 : cost,
+      cost,
       start_date,
-      duration: isNaN(duration) ? 1 : duration,
+      duration,
       predecessors,
       actual_progress,
       is_milestone,

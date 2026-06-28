@@ -249,10 +249,12 @@ function InspectionForm({
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
-    const file = e.target.files[0]
+    const rawFile = e.target.files[0]
     setUploading(true)
     setError('')
     try {
+      const { compressImage } = await import('@/lib/image')
+      const file = await compressImage(rawFile)
       const res = await uploadReportPhoto(file)
       if (res.error) {
         setError(res.error)

@@ -189,9 +189,11 @@ function DailyReportForm({
       alert("เพิ่มรูปภาพได้สูงสุด 4 รูปเท่านั้น")
       return
     }
-    const file = e.target.files[0]
+    const rawFile = e.target.files[0]
     setUploading(true)
     try {
+      const { compressImage } = await import('@/lib/image')
+      const file = await compressImage(rawFile)
       const res = await uploadReportPhoto(file)
       if (res.url) {
         setPhotos(prev => [...prev, { url: res.url!, caption: '' }].slice(0, 4))

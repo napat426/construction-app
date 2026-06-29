@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useMemo } from 'react'
 import Link from 'next/link'
 import { MapPin, User, Calendar, DollarSign, Trash2, AlertTriangle } from 'lucide-react'
 import { deleteProject } from '@/app/actions/projects'
-import type { Project } from '@/lib/types'
+import type { Project, WBSTask } from '@/lib/types'
+import { computeTaskDates } from '@/lib/scheduler'
 
 /* ─── Status config ─── */
 const STATUS_MAP = {
@@ -54,14 +55,102 @@ function formatDate(dateStr: string | null): string {
 
 interface ProjectCardProps {
   project: Project
+  tasks?: WBSTask[]
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, tasks = [] }: ProjectCardProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const status = STATUS_MAP[project.status] ?? STATUS_MAP['รอดำเนินการ']
   const progressClamped = Math.max(0, Math.min(100, project.progress ?? 0))
+
+  const svData = useMemo(() => {
+    if (!tasks || tasks.length === 0) return null
+    
+    const start = project.start_date ? new Date(project.start_date) : null
+    const end = project.end_date ? new Date(project.end_date) : null
+
+    if (!start || !end) return null
+
+    const today = new Date()
+    const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+    const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+
+    let totalDays = Math.ceil((endDateOnly.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24))
+    totalDays = Math.max(0, totalDays)
+
+    const scheduledTasks = computeTaskDates(tasks, project.start_date)
+    const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
+    
+    let pvCumulative = 0
+    let evCumulative = 0
+
+    if (totalWbsCost > 0) {
+      let totalWeightedPlanned = 0
+      let totalWeightedActual = 0
+
+      for (const t of scheduledTasks) {
+        const tStart = new Date(t.computedStartDate)
+        const tEnd = new Date(t.computedEndDate)
+        const tCost = Number(t.cost) || 0
+        const weight = tCost / totalWbsCost
+
+        let plannedProgress = 0
+        if (todayDateOnly >= tEnd) {
+          plannedProgress = 100
+        } else if (todayDateOnly < tStart) {
+          plannedProgress = 0
+        } else {
+          const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
+          const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
+          plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
+        }
+
+        totalWeightedPlanned += weight * plannedProgress
+        totalWeightedActual += weight * (t.actual_progress || 0)
+      }
+
+      pvCumulative = totalWeightedPlanned
+      evCumulative = totalWeightedActual
+    } else {
+      let totalPlanned = 0
+      let totalActual = 0
+      for (const t of scheduledTasks) {
+        const tStart = new Date(t.computedStartDate)
+        const tEnd = new Date(t.computedEndDate)
+        
+        let plannedProgress = 0
+        if (todayDateOnly >= tEnd) {
+          plannedProgress = 100
+        } else if (todayDateOnly < tStart) {
+          plannedProgress = 0
+        } else {
+          const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
+          const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
+          plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
+        }
+        totalPlanned += plannedProgress
+        totalActual += t.actual_progress || 0
+      }
+      if (scheduledTasks.length > 0) {
+        pvCumulative = totalPlanned / scheduledTasks.length
+        evCumulative = totalActual / scheduledTasks.length
+      }
+    }
+
+    const SV = evCumulative - pvCumulative
+    let svDays = 0
+    if (totalDays > 0) {
+      svDays = Math.round((SV / 100) * totalDays)
+    }
+
+    return {
+      sv: SV,
+      svDays
+    }
+  }, [project, tasks])
 
   const handleDelete = () => {
     startTransition(async () => {
@@ -123,6 +212,30 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <p className="text-[12px] text-slate-400 dark:text-slate-500 line-clamp-2 mb-4 leading-relaxed">
             {project.description}
           </p>
+        )}
+
+        {/* EVM / SV Status */}
+        {svData && (
+          <div className={`mb-4 p-2.5 rounded-xl border flex items-center justify-between text-[11px] font-bold ${
+            svData.sv > 0.005
+              ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+              : svData.sv < -0.005
+              ? 'border-red-500/20 bg-red-500/5 text-red-500 dark:text-red-400'
+              : 'border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a]/30 text-slate-500 dark:text-slate-400'
+          }`}>
+            <span>สถานะแผนงาน:</span>
+            <div className="flex items-center gap-1.5">
+              <span>{svData.sv > 0.005 ? `+${svData.sv.toFixed(1)}%` : svData.sv < -0.005 ? `${svData.sv.toFixed(1)}%` : '0.0%'}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
+              <span>
+                {svData.sv > 0.005
+                  ? `เร็วกว่าแผน ${Math.abs(svData.svDays)} วัน`
+                  : svData.sv < -0.005
+                  ? `ช้ากว่าแผน ${Math.abs(svData.svDays)} วัน`
+                  : 'ตรงตามแผน'}
+              </span>
+            </div>
+          </div>
         )}
 
         {/* Progress bar */}

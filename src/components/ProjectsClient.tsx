@@ -4,13 +4,14 @@ import { useState, useMemo } from 'react'
 import { Plus, Search, SlidersHorizontal, FolderOpen, Building2 } from 'lucide-react'
 import { ProjectCard } from './ProjectCard'
 import { CreateProjectModal } from './CreateProjectModal'
-import type { Project } from '@/lib/types'
+import type { Project, WBSTask } from '@/lib/types'
 
 interface ProjectsClientProps {
   initialProjects: Project[]
+  initialTasks: WBSTask[]
 }
 
-export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
+export function ProjectsClient({ initialProjects, initialTasks }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSupervisor, setSelectedSupervisor] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -163,7 +164,11 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              tasks={initialTasks.filter((t) => t.project_id === project.id)}
+            />
           ))}
         </div>
       ) : (

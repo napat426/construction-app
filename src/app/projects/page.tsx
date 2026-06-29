@@ -17,7 +17,12 @@ export default async function ProjectsPage() {
     .select('*')
     .order('created_at', { ascending: false })
 
+  const { data: tasksData } = await supabase
+    .from('tasks')
+    .select('*')
+
   const projects: Project[] = (data as Project[]) ?? []
+  const tasks = tasksData ?? []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -44,7 +49,7 @@ export default async function ProjectsPage() {
             </div>
           )}
 
-          <ProjectsClient initialProjects={projects} />
+          <ProjectsClient initialProjects={projects} initialTasks={tasks} />
         </main>
       </div>
     </div>

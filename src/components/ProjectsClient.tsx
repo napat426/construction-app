@@ -13,6 +13,7 @@ interface ProjectsClientProps {
 export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSupervisor, setSelectedSupervisor] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
   /* ── Derived data ── */
@@ -26,15 +27,17 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
     return initialProjects.filter((p) => {
       const matchSupervisor =
         selectedSupervisor === 'all' || p.supervisor === selectedSupervisor
+      const matchStatus =
+        selectedStatus === 'all' || p.status === selectedStatus
       const matchSearch =
         !q ||
         p.name.toLowerCase().includes(q) ||
         p.supervisor.toLowerCase().includes(q) ||
         p.location?.toLowerCase().includes(q) ||
         p.description?.toLowerCase().includes(q)
-      return matchSupervisor && matchSearch
+      return matchSupervisor && matchStatus && matchSearch
     })
-  }, [initialProjects, selectedSupervisor, searchQuery])
+  }, [initialProjects, selectedSupervisor, selectedStatus, searchQuery])
 
   const stats = useMemo(
     () => ({
@@ -112,6 +115,27 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
           </select>
         </div>
 
+        {/* Status filter */}
+        <div className="relative">
+          <SlidersHorizontal
+            size={14}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none"
+          />
+          <select
+            id="filter-status"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="input-base appearance-none cursor-pointer min-w-48 pr-8"
+            style={{ paddingLeft: "2.5rem" }}
+          >
+            <option value="all">สถานะทั้งหมด</option>
+            <option value="รอดำเนินการ">รอดำเนินการ</option>
+            <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+            <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+            <option value="ระงับ">ระงับ</option>
+          </select>
+        </div>
+
         {/* Create button */}
         <button
           id="create-project-btn"
@@ -124,7 +148,7 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
       </div>
 
       {/* ── Filter result count ── */}
-      {(searchQuery || selectedSupervisor !== 'all') && (
+      {(searchQuery || selectedSupervisor !== 'all' || selectedStatus !== 'all') && (
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
           แสดง{' '}
           <span className="font-bold text-primary-600 dark:text-primary-400">
@@ -145,23 +169,23 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
         /* Empty state */
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-20 h-20 rounded-2xl bg-primary-600/10 dark:bg-primary-600/15 flex items-center justify-center mb-5">
-            {searchQuery || selectedSupervisor !== 'all' ? (
+            {searchQuery || selectedSupervisor !== 'all' || selectedStatus !== 'all' ? (
               <Search size={36} className="text-primary-600 dark:text-primary-400 opacity-70" />
             ) : (
               <Building2 size={36} className="text-primary-600 dark:text-primary-400 opacity-70" />
             )}
           </div>
           <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-2">
-            {searchQuery || selectedSupervisor !== 'all'
+            {searchQuery || selectedSupervisor !== 'all' || selectedStatus !== 'all'
               ? 'ไม่พบโครงการที่ตรงเงื่อนไข'
               : 'ยังไม่มีโครงการในระบบ'}
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-6 leading-relaxed">
-            {searchQuery || selectedSupervisor !== 'all'
-              ? 'ลองเปลี่ยนคำค้นหาหรือเลือกผู้ควบคุมงานคนอื่น'
+            {searchQuery || selectedSupervisor !== 'all' || selectedStatus !== 'all'
+              ? 'ลองเปลี่ยนคำค้นหาหรือเลือกสถานะ/ผู้ควบคุมงานอื่น'
               : 'เริ่มต้นโดยการเพิ่มโครงการก่อสร้างโครงการแรกของคุณ'}
           </p>
-          {!searchQuery && selectedSupervisor === 'all' && (
+          {!searchQuery && selectedSupervisor === 'all' && selectedStatus === 'all' && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold text-white btn-primary"

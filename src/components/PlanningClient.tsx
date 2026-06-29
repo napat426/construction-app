@@ -131,6 +131,7 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
     return {
       totalCost: totalWBSCost,
       actualProgress: Math.round(cumulativeActualProgress),
+      actualProgressRaw: cumulativeActualProgress,
     }
   }, [scheduledTasks])
 
@@ -351,7 +352,7 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
       }
     }
     const plannedPercentAtToday = (plannedSum / totalWeightDenominator) * 100
-    return summary.actualProgress - plannedPercentAtToday
+    return summary.actualProgressRaw - plannedPercentAtToday
   }, [scheduledTasks, summary])
 
   // 4. Gantt Timeline columns (10 divisions)
@@ -462,7 +463,7 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
             <span className={labelCls}>ความก้าวหน้าถ่วงน้ำหนักรวม</span>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-xl font-black text-primary-600 dark:text-primary-400">
-                {summary.actualProgress}%
+                {summary.actualProgressRaw.toFixed(1)}%
               </p>
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
                 Auto Update to Project

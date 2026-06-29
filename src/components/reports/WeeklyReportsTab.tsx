@@ -791,10 +791,26 @@ function WeeklyReportForm({
     <>
       <style type="text/css" media="print">{`
         @page { size: A4 portrait; margin: 12mm 10mm; }
-        body, form, div, p, span, label, input, textarea {
-          font-size: 11px !important;
-          color: black !important;
+        
+        /* Force paper white background and black text */
+        html, body {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
         }
+        
+        div, form, section, main, article, table, tr, td, th {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
+          border-color: #cbd5e1 !important;
+        }
+
+        p, span, label, input, textarea, h1, h2, h3, h4, th, td, select {
+          font-size: 11px !important;
+          color: #0f172a !important;
+        }
+
         h1 { font-size: 16px !important; }
         h2 { font-size: 13px !important; }
         h3 { font-size: 12px !important; }
@@ -803,20 +819,49 @@ function WeeklyReportForm({
         .text-[9px] { font-size: 9px !important; }
         .text-[8px] { font-size: 8px !important; }
         textarea { max-height: 50px !important; overflow: hidden !important; }
+        
         .gantt-print-section {
           display: none !important;
         }
+        
         .weekly-report-container {
           display: block !important;
           width: 100% !important;
           height: auto !important;
           overflow: visible !important;
           border: none !important;
-          background: transparent !important;
+          background: white !important;
         }
+        
         .s-curve-container {
           height: 300px;
         }
+
+        /* Color classes override for printable clarity */
+        .text-slate-500, .dark\\:text-slate-400 {
+          color: #475569 !important;
+        }
+        .text-primary-600, .dark\\:text-primary-400 {
+          color: #a13c9d !important;
+        }
+        .text-amber-600, .dark\\:text-amber-400 {
+          color: #d97706 !important;
+        }
+        .text-emerald-600, .dark\\:text-emerald-400 {
+          color: #059669 !important;
+        }
+
+        /* EVM card and status color overrides */
+        .bg-emerald-100, .dark\\:bg-emerald-500\\/10 {
+          background-color: #ecfdf5 !important;
+        }
+        .bg-amber-100, .dark\\:bg-amber-500\\/10 {
+          background-color: #fef3c7 !important;
+        }
+        .bg-red-100, .dark\\:bg-red-500\\/10 {
+          background-color: #ffeeeb !important;
+        }
+
         @media print {
           .s-curve-container {
             height: 320px !important;
@@ -825,6 +870,19 @@ function WeeklyReportForm({
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+          }
+          /* Fix S-Curve line colors and dots */
+          text {
+            fill: #475569 !important;
+          }
+          line {
+            stroke: #cbd5e1 !important;
+          }
+          .stroke-primary-600, .dark\\:stroke-primary-400 {
+            stroke: #a13c9d !important;
+          }
+          .fill-primary-600, .dark\\:fill-primary-400 {
+            fill: #a13c9d !important;
           }
         }
       `}</style>

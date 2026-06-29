@@ -300,6 +300,26 @@ function InspectionForm({
     <>
       <style type="text/css" media="print">{`
         @page { size: portrait; margin: 0.8cm; }
+        
+        /* Force paper white background and black text */
+        html, body {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
+        }
+        
+        div, form, section, main, article, table, tr, td, th {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
+          border-color: #cbd5e1 !important;
+        }
+
+        p, span, label, input, textarea, h1, h2, h3, h4, th, td, select {
+          font-size: 11px !important;
+          color: #0f172a !important;
+        }
+
         header, nav, aside, footer, button, .print-hidden { display: none !important; }
         .print-layout { display: block !important; }
       `}</style>

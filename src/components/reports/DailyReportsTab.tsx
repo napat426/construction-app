@@ -236,6 +236,26 @@ function DailyReportForm({
     <>
       <style type="text/css" media="print">{`
         @page { size: portrait; margin: 0.6cm; }
+        
+        /* Force paper white background and black text */
+        html, body {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
+        }
+        
+        div, form, section, main, article, table, tr, td, th {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
+          border-color: #cbd5e1 !important;
+        }
+
+        p, span, label, input, textarea, h1, h2, h3, h4, th, td, select {
+          font-size: 11px !important;
+          color: #0f172a !important;
+        }
+
         form { font-size: 11px !important; }
         textarea { max-height: 60px !important; overflow: hidden !important; }
         h1 { font-size: 16px !important; }

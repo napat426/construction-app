@@ -53,13 +53,14 @@ export function ProjectsClient({ initialProjects }: ProjectsClientProps) {
   return (
     <>
       {/* ── Stats row ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {(
           [
             { label: 'ทั้งหมด',           value: stats.total,   color: 'text-primary-600 dark:text-primary-400',   dot: 'bg-primary-600' },
             { label: 'กำลังดำเนินการ',    value: stats.active,  color: 'text-amber-600   dark:text-amber-400',     dot: 'bg-amber-500'   },
             { label: 'เสร็จสิ้น',         value: stats.done,    color: 'text-emerald-600 dark:text-emerald-400',   dot: 'bg-emerald-500' },
-            { label: 'ระงับ / รอดำเนินการ', value: stats.paused + stats.pending, color: 'text-slate-500 dark:text-slate-400', dot: 'bg-slate-400' },
+            { label: 'รอดำเนินการ',      value: stats.pending, color: 'text-sky-600 dark:text-sky-400',           dot: 'bg-sky-500' },
+            { label: 'ระงับ',           value: stats.paused,  color: 'text-red-600 dark:text-red-400',           dot: 'bg-red-500' },
           ] as const
         ).map((s) => (
           <div key={s.label} className="stat-card rounded-xl px-4 py-3.5">

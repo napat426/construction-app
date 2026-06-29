@@ -160,22 +160,7 @@ export function CreateProjectModal({ onClose }: CreateProjectModalProps) {
             </div>
           </div>
 
-          {/* ความคืบหน้า */}
-          <div>
-            <label className={labelCls} htmlFor="progress">
-              ความคืบหน้า (%) <span className="normal-case tracking-normal text-slate-400 font-normal">0–100</span>
-            </label>
-            <input
-              id="progress"
-              name="progress"
-              type="number"
-              min="0"
-              max="100"
-              step="1"
-              defaultValue="0"
-              className={inputCls}
-            />
-          </div>
+
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">

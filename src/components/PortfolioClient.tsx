@@ -335,13 +335,13 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
           }
           
           /* PV bar (gray) */
-          .bg-slate-300 {
-            background-color: #cbd5e1 !important;
+          .bg-slate-400 {
+            background-color: #94a3b8 !important;
           }
           
           /* EV bar (purple) */
           .bg-purple-600 {
-            background-color: #9333ea !important;
+            background-color: #7e22ce !important;
           }
           
           /* Paid milestones progress fill */
@@ -633,15 +633,15 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
                       {/* Overlapping Progress Bar (PV and EV in single track) */}
                       <td className="py-4 px-3 pr-4">
                         <div className="flex items-center gap-3 w-full">
-                          <div className="relative flex-1 h-3.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]">
+                          <div className="relative flex-1 h-3.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-300/50 dark:border-[#252548]">
                             {/* PV bar (gray) */}
                             <div
-                              className="absolute top-0 bottom-0 left-0 bg-slate-300 dark:bg-slate-600 rounded-full"
+                              className="absolute top-0 bottom-0 left-0 bg-slate-400 dark:bg-slate-500 rounded-full"
                               style={{ width: `${Math.min(100, p.pvCumulative)}%` }}
                             />
                             {/* EV bar (purple) */}
                             <div
-                              className="absolute top-0 bottom-0 left-0 bg-purple-600 dark:bg-purple-400 rounded-full mix-blend-multiply dark:mix-blend-screen opacity-90"
+                              className="absolute top-0 bottom-0 left-0 bg-purple-600 dark:bg-purple-500 rounded-full"
                               style={{ width: `${Math.min(100, p.evCumulative)}%` }}
                             />
                           </div>

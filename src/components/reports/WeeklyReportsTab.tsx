@@ -536,17 +536,19 @@ function WeeklyReportForm({
   }, [dateRange]);
 
   const sCurveData = useMemo(() => {
-    if (item?.snapshot?.s_curve_data) {
-      return item.snapshot.s_curve_data;
-    }
-    const pointsCount = 12;
+    // 1 point per week (7 days), minimum of 4 points
+    const { start, durationDays } = dateRange;
+    const pointsCount = Math.max(4, Math.ceil(durationDays / 7));
     const list: {
       label: string;
       planned: number;
       actual: number | null;
       actualCost: number | null;
     }[] = [];
-    const { start, durationDays } = dateRange;
+
+    if (item?.snapshot?.s_curve_data) {
+      return item.snapshot.s_curve_data as typeof list;
+    }
 
     if (scheduledTasks.length === 0 || durationDays === 0) return [];
 
@@ -1182,7 +1184,8 @@ function WeeklyReportForm({
                     })}
                     {/* X Axis labels */}
                     {sCurveData.map((d, i) => {
-                      if (i % 2 !== 0 && i !== sCurveData.length - 1) return null;
+                      const labelStep = Math.max(1, Math.ceil(sCurveData.length / 8));
+                      if (i % labelStep !== 0 && i !== sCurveData.length - 1) return null;
                       const x = 40 + (i / (sCurveData.length - 1)) * 445;
                       return (
                         <text key={i} x={x} y="193" fill="#999" fontSize="7" fontWeight="bold" textAnchor="middle">

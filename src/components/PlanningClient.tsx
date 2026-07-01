@@ -175,9 +175,10 @@ export function PlanningClient({ project, tasks, payments, milestones, user }: P
 
   // 3. S-Curve Calculation Points (PV, EV, AC)
   const sCurveData = useMemo(() => {
-    const pointsCount = 12
-    const list: { label: string; planned: number; actual: number | null; actualCost: number | null }[] = []
     const { start, durationDays } = dateRange
+    // 1 point per week (7 days), minimum of 4 points
+    const pointsCount = Math.max(4, Math.ceil(durationDays / 7))
+    const list: { label: string; planned: number; actual: number | null; actualCost: number | null }[] = []
 
     if (scheduledTasks.length === 0 || durationDays === 0) return []
 
@@ -1161,9 +1162,10 @@ export function PlanningClient({ project, tasks, payments, milestones, user }: P
                     )
                   })}
 
-                  {/* X Axis Date labels (show every 2 points to avoid overlap) */}
+                  {/* X Axis Date labels (show dynamic steps to avoid overlap) */}
                   {sCurveData.map((d, i) => {
-                    if (i % 2 !== 0 && i !== sCurveData.length - 1) return null
+                    const labelStep = Math.max(1, Math.ceil(sCurveData.length / 8))
+                    if (i % labelStep !== 0 && i !== sCurveData.length - 1) return null
                     const x = 40 + (i / (sCurveData.length - 1)) * 445
                     return (
                       <text key={i} x={x} y="193" className="fill-slate-400 dark:fill-slate-600 font-bold text-[8px]" textAnchor="middle">

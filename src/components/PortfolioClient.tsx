@@ -22,7 +22,6 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     'กำลังดำเนินการ',
     'เสร็จสิ้น',
-    'ล่าช้า',
     'รอดำเนินการ',
     'ระงับ',
   ])
@@ -184,10 +183,7 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
   // 2. Filter projects
   const filteredProjects = useMemo(() => {
     return computedProjects.filter((p) => {
-      // Include if project matches any checked status checkbox OR (if 'ล่าช้า' checked) SV < 0
-      const matchesStatus = selectedStatuses.includes(p.status)
-      const matchesLate = selectedStatuses.includes('ล่าช้า') && p.SV < 0
-      return matchesStatus || matchesLate
+      return selectedStatuses.includes(p.status)
     })
   }, [computedProjects, selectedStatuses])
 
@@ -346,19 +342,7 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
               </span>
             </label>
 
-            {/* Delayed (ล่าช้า) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('ล่าช้า')}
-                onChange={() => handleToggleStatus('ล่าช้า')}
-                className="w-4 h-4 rounded text-red-600 focus:ring-red-500/20"
-              />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                ล่าช้ากว่าแผน ({filterCounts.late})
-              </span>
-            </label>
+
 
             {/* Pending (รอดำเนินการ) */}
             <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
@@ -392,7 +376,7 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setSelectedStatuses(['กำลังดำเนินการ', 'เสร็จสิ้น', 'ล่าช้า', 'รอดำเนินการ', 'ระงับ'])}
+            onClick={() => setSelectedStatuses(['กำลังดำเนินการ', 'เสร็จสิ้น', 'รอดำเนินการ', 'ระงับ'])}
             className="px-2.5 py-1.5 text-[10px] font-black rounded-lg border border-slate-200 dark:border-[#252548] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
           >
             เลือกทั้งหมด

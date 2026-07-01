@@ -709,6 +709,15 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
     return { total, open, progress, done, rejected, pct }
   }, [activeItems])
 
+  // Split active items into chunks of 4 for pagination (each page = 4 items + their photos)
+  const itemChunks = useMemo(() => {
+    const chunks: PunchItem[][] = []
+    for (let i = 0; i < activeItems.length; i += 4) {
+      chunks.push(activeItems.slice(i, i + 4))
+    }
+    return chunks
+  }, [activeItems])
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
       <style jsx global>{`
@@ -717,8 +726,9 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
           header, nav, aside, footer, .no-print, .btn-secondary, button {
             display: none !important;
           }
-          body {
+          html, body {
             background: white !important;
+            background-color: white !important;
             color: black !important;
             font-size: 10px !important;
             margin: 0 !important;
@@ -726,6 +736,15 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
           }
           .print-layout {
             display: block !important;
+            background: white !important;
+            background-color: white !important;
+          }
+          .print-page-container {
+            background: white !important;
+            background-color: white !important;
+            padding: 20px !important;
+            min-height: 100%;
+            box-sizing: border-box;
           }
           .print-header {
             border-bottom: 2px solid #000;
@@ -736,32 +755,41 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
             width: 100% !important;
             border-collapse: collapse !important;
             margin-bottom: 30px;
+            background: white !important;
+            background-color: white !important;
           }
           th, td {
             border: 1px solid #475569 !important;
             padding: 6px 4px !important;
             font-size: 9px !important;
+            background: white !important;
+            background-color: white !important;
           }
           .page-break {
             page-break-before: always !important;
+            break-before: page !important;
           }
           .photo-evidence-grid {
             display: grid !important;
             grid-template-columns: 1fr 1fr !important;
             gap: 15px !important;
             margin-top: 15px;
+            background: white !important;
           }
           .evidence-photo-box {
             border: 1px solid #cbd5e1 !important;
             padding: 8px !important;
             border-radius: 4px;
             page-break-inside: avoid;
+            background: white !important;
+            background-color: white !important;
           }
           .evidence-img-container {
             position: relative !important;
             width: 100% !important;
             height: 180px !important;
-            background: #f1f5f9;
+            background: white !important;
+            background-color: white !important;
             overflow: hidden;
           }
           /* Force colors on printed elements */
@@ -787,95 +815,100 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
 
       {/* --- PRINT ONLY A4 REPORT VIEW --- */}
       {selectedList && (
-        <div className="hidden print-layout w-full">
-          {/* Page 1: Metadata & Items Grid */}
-          <div className="print-header flex items-center justify-between">
-            <div>
-              <h1 className="text-sm font-black uppercase text-slate-800 tracking-wider">Punch List Report (รายงานข้อบกพร่องงาน)</h1>
-              <p className="text-xs text-slate-500 font-bold mt-0.5">โครงการ: {project.name}</p>
-            </div>
-            <div className="text-right text-xs font-mono">
-              <p className="font-bold">เลขที่เอกสาร: {headerPlNumber}</p>
-              <p className="text-slate-500">วันที่: {selectedList.created_at ? new Date(selectedList.created_at).toLocaleDateString('th-TH') : '-'}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-6 text-[10px]">
-            <div>
-              <p><strong>หัวข้อ:</strong> {headerTitle}</p>
-              <p><strong>ผู้ออกเอกสาร (Issued By):</strong> {headerIssuedBy || '-'}</p>
-              <p><strong>ผู้รับจ้าง/ผู้รับเหมา (Issued To):</strong> {headerIssuedTo || '-'}</p>
-            </div>
-            <div className="text-right">
-              <p><strong>กำหนดแล้วเสร็จ (Due Date):</strong> {headerDueDate ? new Date(headerDueDate).toLocaleDateString('th-TH') : '-'}</p>
-              <p><strong>สถานะรวม:</strong> {headerStatus === 'closed' ? '🟢 เสร็จสิ้นแล้ว (Closed)' : '🔴 ยังไม่แล้วเสร็จ (Open)'}</p>
-            </div>
-          </div>
-
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50 font-bold text-left">
-                <th className="w-10 text-center">ลำดับ</th>
-                <th className="w-28">ตำแหน่ง</th>
-                <th className="w-20">ประเภท</th>
-                <th>รายละเอียดข้อบกพร่อง</th>
-                <th className="w-24 text-center">วันที่บันทึกข้อมูล</th>
-                <th className="w-16 text-center">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {activeItems.map((item) => (
-                <tr key={item.id}>
-                  <td className="text-center font-mono">{item.sequence}</td>
-                  <td>{item.location}</td>
-                  <td>{item.category}</td>
-                  <td>{item.description}</td>
-                  <td className="text-center font-mono">{item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-'}</td>
-                  <td className="text-center font-bold">
-                    {STATUS_META[item.status]?.label || item.status}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Page 2+: Photo Evidence Layout (2x3 Grid per page) */}
-          {activeItems.some(i => i.photos && i.photos.length > 0) && (
-            <div className="page-break">
-              <h2 className="text-xs font-black uppercase text-slate-800 tracking-wider mb-4 border-b pb-1">ภาพประกอบหลักฐานข้อบกพร่อง (Evidence Photos)</h2>
-              
-              <div className="photo-evidence-grid">
-                {activeItems.flatMap((item) =>
-                  (item.photos || []).map((photo, pIdx) => (
-                    <div key={`${item.id}-${pIdx}`} className="evidence-photo-box">
-                      <div className="evidence-img-container">
-                        {/* Original photo */}
-                        <img
-                          src={photo.src}
-                          alt="evidence"
-                          className="absolute inset-0 w-full h-full object-contain"
-                        />
-                        {/* Annotation overlay */}
-                        {photo.markup_src && (
-                          <img
-                            src={photo.markup_src}
-                            alt="markup overlay"
-                            className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
-                          />
-                        )}
-                      </div>
-                      <div className="mt-2 text-[9px] font-bold text-slate-700">
-                        <p className="font-black">รายการที่ {item.sequence} — {item.location || 'ไม่ระบุตำแหน่ง'}</p>
-                        <p className="text-slate-500 font-normal mt-0.5">
-                          คำอธิบาย: {photo.caption || item.description || 'ไม่มีคำอธิบายเพิ่มเติม'}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
+        <div className="hidden print-layout w-full text-slate-800">
+          {itemChunks.map((pageChunk, chunkIdx) => (
+            <div key={chunkIdx} className={`print-page-container ${chunkIdx > 0 ? 'page-break' : ''}`}>
+              <div className="print-header flex items-center justify-between">
+                <div>
+                  <h1 className="text-sm font-black uppercase tracking-wider">Punch List Report (รายงานข้อบกพร่องงาน)</h1>
+                  <p className="text-xs text-slate-500 font-bold mt-0.5">โครงการ: {project.name}</p>
+                </div>
+                <div className="text-right text-xs font-mono">
+                  <p className="font-bold">เลขที่เอกสาร: {headerPlNumber} (หน้า {chunkIdx + 1} / {itemChunks.length})</p>
+                  <p className="text-slate-500">วันที่: {selectedList.created_at ? new Date(selectedList.created_at).toLocaleDateString('th-TH') : '-'}</p>
+                </div>
               </div>
+
+              {chunkIdx === 0 ? (
+                <div className="grid grid-cols-2 gap-4 mb-6 text-[10px]">
+                  <div>
+                    <p><strong>หัวข้อ:</strong> {headerTitle}</p>
+                    <p><strong>ผู้ออกเอกสาร (Issued By):</strong> {headerIssuedBy || '-'}</p>
+                    <p><strong>ผู้รับจ้าง/ผู้รับเหมา (Issued To):</strong> {headerIssuedTo || '-'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p><strong>กำหนดแล้วเสร็จ (Due Date):</strong> {headerDueDate ? new Date(headerDueDate).toLocaleDateString('th-TH') : '-'}</p>
+                    <p><strong>สถานะรวม:</strong> {headerStatus === 'closed' ? '🟢 เสร็จสิ้นแล้ว (Closed)' : '🔴 ยังไม่แล้วเสร็จ (Open)'}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-4 text-[10px] text-slate-500 italic">
+                  หัวข้อ: {headerTitle} | ผู้ออกเอกสาร: {headerIssuedBy || '-'} | ผู้รับจ้าง/ผู้รับเหมา: {headerIssuedTo || '-'}
+                </div>
+              )}
+
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 font-bold text-left">
+                    <th className="w-10 text-center">ลำดับ</th>
+                    <th className="w-28">ตำแหน่ง</th>
+                    <th className="w-20">ประเภท</th>
+                    <th>รายละเอียดข้อบกพร่อง</th>
+                    <th className="w-24 text-center">วันที่บันทึกข้อมูล</th>
+                    <th className="w-16 text-center">สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {pageChunk.map((item) => (
+                    <tr key={item.id}>
+                      <td className="text-center font-mono">{item.sequence}</td>
+                      <td>{item.location}</td>
+                      <td>{item.category}</td>
+                      <td>{item.description}</td>
+                      <td className="text-center font-mono">{item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-'}</td>
+                      <td className="text-center font-bold">
+                        {STATUS_META[item.status]?.label || item.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {pageChunk.some(i => i.photos && i.photos.length > 0) && (
+                <div className="mt-4">
+                  <h2 className="text-[10px] font-black uppercase tracking-wider mb-2 border-b pb-1">ภาพประกอบหลักฐานข้อบกพร่อง (Evidence Photos)</h2>
+                  <div className="photo-evidence-grid">
+                    {pageChunk.flatMap((item) =>
+                      (item.photos || []).map((photo, pIdx) => (
+                        <div key={`${item.id}-${pIdx}`} className="evidence-photo-box">
+                          <div className="evidence-img-container">
+                            <img
+                              src={photo.src}
+                              alt="evidence"
+                              className="absolute inset-0 w-full h-full object-contain"
+                            />
+                            {photo.markup_src && (
+                              <img
+                                src={photo.markup_src}
+                                alt="markup overlay"
+                                className="absolute inset-0 w-full h-full object-contain z-10 pointer-events-none"
+                              />
+                            )}
+                          </div>
+                          <div className="mt-1.5 text-[8px] font-bold text-slate-700 leading-tight">
+                            <p className="font-black">รายการที่ {item.sequence} — {item.location || 'ไม่ระบุตำแหน่ง'}</p>
+                            <p className="text-slate-500 font-normal mt-0.5">
+                              คำอธิบาย: {photo.caption || item.description || 'ไม่มีคำอธิบายเพิ่มเติม'}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          ))}
         </div>
       )}
 

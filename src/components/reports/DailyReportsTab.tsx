@@ -21,12 +21,15 @@ import {
 import type { Project, DailyReport, ResourceItem, ReportPhoto } from '@/lib/types'
 import { createDailyReport, updateDailyReport, deleteDailyReport, updateDailyReportsOrder, uploadReportPhoto } from '@/app/actions/reports'
 
+import type { UserSession } from '@/lib/auth'
+
 interface Props {
   project: Project
   data: DailyReport[]
+  user?: UserSession | null
 }
 
-export function DailyReportsTab({ project, data }: Props) {
+export function DailyReportsTab({ project, data, user }: Props) {
   const [items, setItems] = useState<DailyReport[]>(data)
   const [selectedId, setSelectedId] = useState<string | null>(data.length > 0 ? data[0].id : null)
   const [isPending, startTransition] = useTransition()
@@ -80,12 +83,14 @@ export function DailyReportsTab({ project, data }: Props) {
       <div className="w-1/3 min-w-[300px] flex flex-col gap-3 print:hidden">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-slate-900 dark:text-white">รายงานประจำวัน</h2>
-          <button
-            onClick={handleCreateNew}
-            className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/20"
-          >
-            <Plus size={16} />
-          </button>
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button
+              onClick={handleCreateNew}
+              className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/20 cursor-pointer"
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-2">
@@ -140,6 +145,7 @@ export function DailyReportsTab({ project, data }: Props) {
             onClose={() => setIsCreating(false)}
             onDelete={handleDelete}
             onPrint={handlePrint}
+            user={user}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 print:hidden">
@@ -158,13 +164,15 @@ function DailyReportForm({
   item, 
   onClose,
   onDelete,
-  onPrint
+  onPrint,
+  user
 }: { 
   project: Project
   item: DailyReport | null
   onClose: () => void
   onDelete: (id: string) => void
   onPrint: () => void
+  user?: UserSession | null
 }) {
   const [isPending, startTransition] = useTransition()
   
@@ -269,19 +277,21 @@ function DailyReportForm({
           {item ? 'แก้ไขรายงานประจำวัน' : 'สร้างรายงานประจำวันใหม่'}
         </h3>
         <div className="flex items-center gap-2">
-          {item && (
-            <>
-              <button type="button" onClick={onPrint} className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200">
-                <Printer size={14} /> พิมพ์รายงาน
-              </button>
-              <button type="button" onClick={() => onDelete(item.id)} disabled={isPending} className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-red-500 hover:bg-red-50 border-slate-200">
-                <Trash2 size={14} /> ลบ
-              </button>
-            </>
+          {item && user && (
+            <button type="button" onClick={onPrint} className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer">
+              <Printer size={14} /> พิมพ์รายงาน
+            </button>
           )}
-          <button type="submit" disabled={isPending || uploading} className="btn-primary px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5">
-            <CheckCircle2 size={14} /> บันทึก
-          </button>
+          {item && user && (user.role === 'admin' || user.role === 'editor') && (
+            <button type="button" onClick={() => onDelete(item.id)} disabled={isPending} className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-red-500 hover:bg-red-50 border-slate-200 cursor-pointer">
+              <Trash2 size={14} /> ลบ
+            </button>
+          )}
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button type="submit" disabled={isPending || uploading} className="btn-primary px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+              <CheckCircle2 size={14} /> บันทึก
+            </button>
+          )}
         </div>
       </div>
 
@@ -371,6 +381,9 @@ function DailyReportForm({
           <div className="grid grid-cols-2 gap-4 print:gap-2">
             {[0, 1, 2, 3].map((i) => {
               const photo = photos[i];
+              if (!photo && !(user && (user.role === 'admin' || user.role === 'editor'))) {
+                return null;
+              }
               return (
                 <div key={i} className="border border-slate-200 dark:border-[#252548] rounded-xl overflow-hidden print:border-black print:rounded-none flex flex-col aspect-video print:aspect-[4/3]">
                   {photo ? (
@@ -378,17 +391,20 @@ function DailyReportForm({
                       <div className="relative flex-1 bg-slate-100 dark:bg-[#1a1a32]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={photo.url} alt="work progress" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => {
-                          const n = [...photos];
-                          n.splice(i, 1);
-                          setPhotos(n);
-                        }} className="absolute top-2 right-2 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center print:hidden hover:bg-red-500 transition-colors">
-                          <X size={14} />
-                        </button>
+                        {user && (user.role === 'admin' || user.role === 'editor') && (
+                          <button type="button" onClick={() => {
+                            const n = [...photos];
+                            n.splice(i, 1);
+                            setPhotos(n);
+                          }} className="absolute top-2 right-2 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center print:hidden hover:bg-red-500 transition-colors cursor-pointer">
+                            <X size={14} />
+                          </button>
+                        )}
                       </div>
                       <div className="p-2 bg-white dark:bg-[#1e1e38] print:bg-transparent border-t border-slate-200 dark:border-[#252548] print:border-black">
                         <input 
                           value={photo.caption} 
+                          disabled={!(user && (user.role === 'admin' || user.role === 'editor'))}
                           onChange={e => { const n = [...photos]; n[i].caption = e.target.value; setPhotos(n); }} 
                           placeholder="คำบรรยายภาพ..." 
                           className="w-full text-xs outline-none bg-transparent dark:text-slate-200 placeholder:text-slate-400 print:text-black print:placeholder-transparent" 

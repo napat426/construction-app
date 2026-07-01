@@ -21,9 +21,12 @@ import {
 import type { Project, Inspection, InspectionStatus, ReportPhoto } from '@/lib/types'
 import { createInspection, updateInspection, deleteInspection, updateInspectionsOrder, uploadReportPhoto } from '@/app/actions/reports'
 
+import type { UserSession } from '@/lib/auth'
+
 interface Props {
   project: Project
   data: Inspection[]
+  user?: UserSession | null
 }
 
 const STATUS_META: Record<InspectionStatus, { label: string; badgeCls: string; iconCls: string }> = {
@@ -56,7 +59,7 @@ function StatusIcon({ status }: { status: InspectionStatus }) {
   return <Clock size={13} className="text-amber-500" />
 }
 
-export function InspectionsTab({ project, data }: Props) {
+export function InspectionsTab({ project, data, user }: Props) {
   const [items, setItems] = useState<Inspection[]>(data)
   const [selectedId, setSelectedId] = useState<string | null>(data.length > 0 ? data[0].id : null)
   const [isPending, startTransition] = useTransition()
@@ -112,12 +115,14 @@ export function InspectionsTab({ project, data }: Props) {
       <div className="w-1/3 min-w-[300px] flex flex-col gap-3 print:hidden">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-slate-900 dark:text-white">ใบขอตรวจสอบคุณภาพ</h2>
-          <button
-            onClick={handleCreateNew}
-            className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/20"
-          >
-            <Plus size={16} />
-          </button>
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button
+              onClick={handleCreateNew}
+              className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/20 cursor-pointer"
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-2">
@@ -204,6 +209,7 @@ export function InspectionsTab({ project, data }: Props) {
             onClose={() => setIsCreating(false)}
             onDelete={handleDelete}
             onPrint={handlePrint}
+            user={user}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 print:hidden">
@@ -223,12 +229,14 @@ function InspectionForm({
   onClose,
   onDelete,
   onPrint,
+  user,
 }: {
   project: Project
   item: Inspection | null
   onClose: () => void
   onDelete: (id: string) => void
   onPrint: () => void
+  user?: UserSession | null
 }) {
   const [isPending, startTransition] = useTransition()
   const [status, setStatus] = useState<InspectionStatus>(item?.status || 'submitted')
@@ -331,32 +339,34 @@ function InspectionForm({
             {item ? 'แก้ไขใบตรวจสอบคุณภาพ' : 'สร้างใบตรวจสอบคุณภาพใหม่'}
           </h3>
           <div className="flex items-center gap-2">
-            {item && (
-              <>
-                <button
-                  type="button"
-                  onClick={onPrint}
-                  className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200"
-                >
-                  <Printer size={14} /> พิมพ์ใบตรวจสอบ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(item.id)}
-                  disabled={isPending}
-                  className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-red-500 hover:bg-red-50 border-slate-200"
-                >
-                  <Trash2 size={14} /> ลบ
-                </button>
-              </>
+            {item && user && (
+              <button
+                type="button"
+                onClick={onPrint}
+                className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
+              >
+                <Printer size={14} /> พิมพ์ใบตรวจสอบ
+              </button>
             )}
-            <button
-              type="submit"
-              disabled={isPending || uploading}
-              className="btn-primary px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
-            >
-              <CheckCircle2 size={14} /> บันทึก
-            </button>
+            {item && user && (user.role === 'admin' || user.role === 'editor') && (
+              <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                disabled={isPending}
+                className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-red-500 hover:bg-red-50 border-slate-200 cursor-pointer"
+              >
+                <Trash2 size={14} /> ลบ
+              </button>
+            )}
+            {user && (user.role === 'admin' || user.role === 'editor') && (
+              <button
+                type="submit"
+                disabled={isPending || uploading}
+                className="btn-primary px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <CheckCircle2 size={14} /> บันทึก
+              </button>
+            )}
           </div>
         </div>
 
@@ -498,20 +508,22 @@ function InspectionForm({
             </div>
 
             {/* Photo Upload Trigger */}
-            <div className="border border-dashed border-slate-300 dark:border-[#252548] rounded-xl p-4 bg-slate-50 dark:bg-[#14142a]">
-              <label className={labelCls}>รูปภาพประกอบ (อัปโหลดผ่าน Supabase Storage)</label>
-              <label className="w-full h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-[#252548] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-colors text-slate-400 hover:text-primary-500">
-                {uploading ? (
-                  <span className="text-[10px] font-bold animate-pulse">กำลังอัปโหลด...</span>
-                ) : (
-                  <>
-                    <UploadCloud size={20} className="mb-1" />
-                    <span className="text-[9px] font-bold">+ เพิ่มรูปภาพประกอบ (ไม่จำกัดจำนวน)</span>
-                  </>
-                )}
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
-              </label>
-            </div>
+            {user && (user.role === 'admin' || user.role === 'editor') && (
+              <div className="border border-dashed border-slate-300 dark:border-[#252548] rounded-xl p-4 bg-slate-50 dark:bg-[#14142a]">
+                <label className={labelCls}>รูปภาพประกอบ (อัปโหลดผ่าน Supabase Storage)</label>
+                <label className="w-full h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-[#252548] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-colors text-slate-400 hover:text-primary-500">
+                  {uploading ? (
+                    <span className="text-[10px] font-bold animate-pulse">กำลังอัปโหลด...</span>
+                  ) : (
+                    <>
+                      <UploadCloud size={20} className="mb-1" />
+                      <span className="text-[9px] font-bold">+ เพิ่มรูปภาพประกอบ (ไม่จำกัดจำนวน)</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                </label>
+              </div>
+            )}
           </div>
 
           {/* --- PHOTOS GRID (Visible on Screen & Print Layout) --- */}
@@ -529,17 +541,20 @@ function InspectionForm({
                     <div className="relative flex-1">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photo.url} alt={`Inspection Photo ${idx + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                        className="absolute top-2 right-2 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center print:hidden hover:bg-red-500 transition-colors"
-                      >
-                        <X size={12} />
-                      </button>
+                      {user && (user.role === 'admin' || user.role === 'editor') && (
+                        <button
+                          type="button"
+                          onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                          className="absolute top-2 right-2 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center print:hidden hover:bg-red-500 transition-colors cursor-pointer"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
                     </div>
                     <div className="p-2 bg-white dark:bg-[#1e1e38] print:bg-transparent border-t border-slate-200 dark:border-[#252548] print:border-black">
                       <input
                         value={photo.caption}
+                        disabled={!(user && (user.role === 'admin' || user.role === 'editor'))}
                         onChange={(e) => {
                           const newPhotos = [...photos]
                           newPhotos[idx].caption = e.target.value

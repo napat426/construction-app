@@ -9,6 +9,8 @@ import { InspectionsTab } from './reports/InspectionsTab'
 import { DailyReportsTab } from './reports/DailyReportsTab'
 import { WeeklyReportsTab } from './reports/WeeklyReportsTab'
 
+import type { UserSession } from '@/lib/auth'
+
 interface Props {
   project: Project
   inspections: Inspection[]
@@ -17,6 +19,7 @@ interface Props {
   tasks: WBSTask[]
   payments: ProjectPayment[]
   milestones: ProjectMilestone[]
+  user?: UserSession | null
 }
 
 type TabType = 'inspections' | 'daily' | 'weekly'
@@ -29,6 +32,7 @@ export function ReportsClient({
   tasks,
   payments,
   milestones,
+  user,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('inspections')
 
@@ -65,8 +69,8 @@ export function ReportsClient({
 
       {/* ── Tab Content Areas ── */}
       <div className="print:m-0 print:p-0">
-        {activeTab === 'inspections' && <InspectionsTab project={project} data={inspections} />}
-        {activeTab === 'daily' && <DailyReportsTab project={project} data={dailyReports} />}
+        {activeTab === 'inspections' && <InspectionsTab project={project} data={inspections} user={user} />}
+        {activeTab === 'daily' && <DailyReportsTab project={project} data={dailyReports} user={user} />}
         {activeTab === 'weekly' && (
           <WeeklyReportsTab 
             project={project} 
@@ -74,6 +78,7 @@ export function ReportsClient({
             tasks={tasks}
             payments={payments}
             milestones={milestones}
+            user={user}
           />
         )}
       </div>

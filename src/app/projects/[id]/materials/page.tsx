@@ -19,8 +19,11 @@ export async function generateMetadata({ params }: MaterialsPageProps) {
   }
 }
 
+import { getCurrentUser } from '@/lib/auth'
+
 export default async function ProjectMaterialsPage({ params }: MaterialsPageProps) {
   const { id } = await params
+  const user = await getCurrentUser()
 
   const { data: projectData, error: projectError } = await supabase
     .from('projects')
@@ -51,10 +54,11 @@ export default async function ProjectMaterialsPage({ params }: MaterialsPageProp
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการทั้งหมด', project.name, 'การจัดการวัสดุ']}
           title="การจัดการวัสดุและการอนุมัติ"
           subtitle="ติดตามสถานะการขออนุมัติวัสดุก่อสร้างและบันทึกผลการพิจารณา"
+          user={user}
         />
         <main className="flex-1 p-6">
           <ProjectTabs projectId={project.id} />
-          <MaterialsClient project={project} materials={materials} />
+          <MaterialsClient project={project} materials={materials} user={user} />
         </main>
       </div>
     </div>

@@ -18,12 +18,14 @@ import {
 import { deleteTask } from '@/app/actions/tasks'
 import { computeTaskDates } from '@/lib/scheduler'
 import type { Project, WBSTask, ProjectPayment, ProjectMilestone } from '@/lib/types'
+import type { UserSession } from '@/lib/auth'
 
 interface PlanningClientProps {
   project: Project
   tasks: WBSTask[]
   payments: ProjectPayment[]
   milestones: ProjectMilestone[]
+  user?: UserSession | null
 }
 
 // Custom natural sort for WBS numbers (e.g., 1.2 comes before 1.10)
@@ -57,7 +59,7 @@ function formatDate(dateStr: string): string {
   })
 }
 
-export function PlanningClient({ project, tasks, payments, milestones }: PlanningClientProps) {
+export function PlanningClient({ project, tasks, payments, milestones, user }: PlanningClientProps) {
   const [activeTab, setActiveTab] = useState<'wbs' | 'gantt' | 'scurve'>('wbs')
   const [isPending, startTransition] = useTransition()
   
@@ -519,15 +521,17 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
           })}
         </div>
 
-        <button
-          id="add-task-wbs-btn"
-          onClick={handleNewInline}
-          disabled={editingTaskId === 'new'}
-          className="flex items-center gap-2 px-3.5 py-2 mb-2 rounded-lg text-xs font-bold text-white btn-primary flex-shrink-0 disabled:opacity-50"
-        >
-          <Plus size={14} />
-          เพิ่มงานย่อย WBS
-        </button>
+        {user && (user.role === 'admin' || user.role === 'editor') && (
+          <button
+            id="add-task-wbs-btn"
+            onClick={handleNewInline}
+            disabled={editingTaskId === 'new'}
+            className="flex items-center gap-2 px-3.5 py-2 mb-2 rounded-lg text-xs font-bold text-white btn-primary flex-shrink-0 disabled:opacity-50 cursor-pointer"
+          >
+            <Plus size={14} />
+            เพิ่มงานย่อย WBS
+          </button>
+        )}
       </div>
 
       {/* ── Tab Content Areas ── */}
@@ -736,25 +740,29 @@ export function PlanningClient({ project, tasks, payments, milestones }: Plannin
                           {weightedProgress.toFixed(1)}%
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              id={`edit-task-${t.id}`}
-                              onClick={() => handleEditInline(t)}
-                              title="แก้ไขงานย่อย"
-                              className="w-7 h-7 rounded border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                            >
-                              <Edit2 size={11} />
-                            </button>
-                            <button
-                              id={`delete-task-${t.id}`}
-                              onClick={() => handleDelete(t.id)}
-                              disabled={isPending}
-                              title="ลบงานย่อย"
-                              className="w-7 h-7 rounded border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 size={11} />
-                            </button>
-                          </div>
+                          {user && (user.role === 'admin' || user.role === 'editor') ? (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                id={`edit-task-${t.id}`}
+                                onClick={() => handleEditInline(t)}
+                                title="แก้ไขงานย่อย"
+                                className="w-7 h-7 rounded border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+                              >
+                                <Edit2 size={11} />
+                              </button>
+                              <button
+                                id={`delete-task-${t.id}`}
+                                onClick={() => handleDelete(t.id)}
+                                disabled={isPending}
+                                title="ลบงานย่อย"
+                                className="w-7 h-7 rounded border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center text-slate-400 font-bold">—</div>
+                          )}
                         </td>
                       </tr>
                     )

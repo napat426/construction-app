@@ -6,6 +6,7 @@ import { MapPin, User, Calendar, DollarSign, Trash2, AlertTriangle } from 'lucid
 import { deleteProject } from '@/app/actions/projects'
 import type { Project, WBSTask } from '@/lib/types'
 import { computeTaskDates } from '@/lib/scheduler'
+import type { UserSession } from '@/lib/auth'
 
 /* ─── Status config ─── */
 const STATUS_MAP = {
@@ -53,12 +54,15 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
+
+
 interface ProjectCardProps {
   project: Project
   tasks?: WBSTask[]
+  user?: UserSession | null
 }
 
-export function ProjectCard({ project, tasks = [] }: ProjectCardProps) {
+export function ProjectCard({ project, tasks = [], user }: ProjectCardProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -257,37 +261,39 @@ export function ProjectCard({ project, tasks = [] }: ProjectCardProps) {
         </div>
 
         {/* Delete button */}
-        {!showConfirm ? (
-          <button
-            id={`delete-${project.id}`}
-            onClick={() => setShowConfirm(true)}
-            disabled={isPending}
-            className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-600 border border-transparent hover:border-red-500/25 hover:text-red-500 hover:bg-red-500/5 transition-all duration-200 disabled:opacity-50"
-          >
-            <Trash2 size={13} />
-            ลบโครงการ
-          </button>
-        ) : (
-          <div className="flex gap-2">
+        {user && (user.role === 'admin' || user.role === 'editor') && (
+          !showConfirm ? (
             <button
-              onClick={() => setShowConfirm(false)}
-              className="flex-1 py-2 px-3 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-all"
-            >
-              ยกเลิก
-            </button>
-            <button
-              onClick={handleDelete}
+              id={`delete-${project.id}`}
+              onClick={() => setShowConfirm(true)}
               disabled={isPending}
-              className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70"
+              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-600 border border-transparent hover:border-red-500/25 hover:text-red-500 hover:bg-red-500/5 transition-all duration-200 disabled:opacity-50 cursor-pointer"
             >
-              {isPending ? (
-                <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <AlertTriangle size={13} />
-              )}
-              ยืนยันลบ
+              <Trash2 size={13} />
+              ลบโครงการ
             </button>
-          </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-2 px-3 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-all cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isPending}
+                className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-all disabled:opacity-70 cursor-pointer"
+              >
+                {isPending ? (
+                  <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <AlertTriangle size={13} />
+                )}
+                ยืนยันลบ
+              </button>
+            </div>
+          )
         )}
       </div>
     </div>

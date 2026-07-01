@@ -19,8 +19,11 @@ export async function generateMetadata({ params }: PlanningPageProps) {
   }
 }
 
+import { getCurrentUser } from '@/lib/auth'
+
 export default async function ProjectPlanningPage({ params }: PlanningPageProps) {
   const { id } = await params
+  const user = await getCurrentUser()
 
   // 1. Fetch project data
   const { data: projectData, error: projectError } = await supabase
@@ -67,11 +70,12 @@ export default async function ProjectPlanningPage({ params }: PlanningPageProps)
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการทั้งหมด', project.name, 'แผนงาน & WBS']}
           title="แผนงานและความก้าวหน้าโครงการ"
           subtitle="จัดการโครงสร้างงานย่อย (WBS) สรุปความก้าวหน้าถ่วงน้ำหนัก Gantt Chart และ S-Curve"
+          user={user}
         />
 
         <main className="flex-1 p-6">
           <ProjectTabs projectId={project.id} />
-          <PlanningClient project={project} tasks={tasks} payments={payments} milestones={milestones} />
+          <PlanningClient project={project} tasks={tasks} payments={payments} milestones={milestones} user={user} />
         </main>
       </div>
     </div>

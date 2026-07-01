@@ -25,12 +25,15 @@ import {
 } from "@/app/actions/reports";
 import { computeTaskDates } from "@/lib/scheduler";
 
+import type { UserSession } from "@/lib/auth";
+
 interface Props {
   project: Project;
   data: WeeklyReport[];
   tasks: WBSTask[];
   payments: ProjectPayment[];
   milestones: ProjectMilestone[];
+  user?: UserSession | null;
 }
 
 // Custom natural sort for WBS numbers
@@ -68,6 +71,7 @@ export function WeeklyReportsTab({
   tasks,
   payments,
   milestones,
+  user,
 }: Props) {
   const [items, setItems] = useState<WeeklyReport[]>(data);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -131,12 +135,14 @@ export function WeeklyReportsTab({
           <h2 className="text-lg font-black text-slate-900 dark:text-white">
             รายงานประจำสัปดาห์
           </h2>
-          <button
-            onClick={handleCreateNew}
-            className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/20"
-          >
-            <Plus size={16} />
-          </button>
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button
+              onClick={handleCreateNew}
+              className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/20 cursor-pointer"
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-2">
@@ -221,6 +227,7 @@ export function WeeklyReportsTab({
             onClose={() => setIsCreating(false)}
             onDelete={handleDelete}
             onPrint={handlePrint}
+            user={user}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 print:hidden">
@@ -241,6 +248,7 @@ function WeeklyReportForm({
   onClose,
   onDelete,
   onPrint,
+  user,
 }: {
   project: Project;
   item: WeeklyReport | null;
@@ -249,6 +257,7 @@ function WeeklyReportForm({
   onClose: () => void;
   onDelete: (id: string) => void;
   onPrint: () => void;
+  user?: UserSession | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(
@@ -896,32 +905,34 @@ function WeeklyReportForm({
             {item ? "แก้ไขรายงานประจำสัปดาห์" : "สร้างรายงานประจำสัปดาห์"}
           </h3>
           <div className="flex items-center gap-2">
-            {item && (
-              <>
-                <button
-                  type="button"
-                  onClick={onPrint}
-                  className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200"
-                >
-                  <Printer size={14} /> พิมพ์รายงาน (รวมกราฟ)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(item.id)}
-                  disabled={isPending}
-                  className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-red-500 hover:bg-red-50 border-slate-200"
-                >
-                  <Trash2 size={14} /> ลบ
-                </button>
-              </>
+            {item && user && (
+              <button
+                type="button"
+                onClick={onPrint}
+                className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
+              >
+                <Printer size={14} /> พิมพ์รายงาน (รวมกราฟ)
+              </button>
             )}
-            <button
-              type="submit"
-              disabled={isPending}
-              className="btn-primary px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
-            >
-              <CheckCircle2 size={14} /> บันทึก
-            </button>
+            {item && user && (user.role === 'admin' || user.role === 'editor') && (
+              <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                disabled={isPending}
+                className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-red-500 hover:bg-red-50 border-slate-200 cursor-pointer"
+              >
+                <Trash2 size={14} /> ลบ
+              </button>
+            )}
+            {user && (user.role === 'admin' || user.role === 'editor') && (
+              <button
+                type="submit"
+                disabled={isPending}
+                className="btn-primary px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <CheckCircle2 size={14} /> บันทึก
+              </button>
+            )}
           </div>
         </div>
 

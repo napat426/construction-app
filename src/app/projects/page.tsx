@@ -11,7 +11,11 @@ export const metadata = {
   title: 'โครงการทั้งหมด | ระบบควบคุมงานก่อสร้าง',
 }
 
+import { getCurrentUser } from '@/lib/auth'
+
 export default async function ProjectsPage() {
+  const user = await getCurrentUser()
+
   const { data, error } = await supabase
     .from('projects')
     .select('*')
@@ -35,6 +39,7 @@ export default async function ProjectsPage() {
               ? `${projects.length} โครงการในระบบ`
               : 'ยังไม่มีโครงการ'
           }
+          user={user}
         />
 
         <main className="flex-1 p-6">
@@ -49,7 +54,7 @@ export default async function ProjectsPage() {
             </div>
           )}
 
-          <ProjectsClient initialProjects={projects} initialTasks={tasks} />
+          <ProjectsClient initialProjects={projects} initialTasks={tasks} user={user} />
         </main>
       </div>
     </div>

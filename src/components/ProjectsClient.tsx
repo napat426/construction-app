@@ -5,13 +5,15 @@ import { Plus, Search, SlidersHorizontal, FolderOpen, Building2 } from 'lucide-r
 import { ProjectCard } from './ProjectCard'
 import { CreateProjectModal } from './CreateProjectModal'
 import type { Project, WBSTask } from '@/lib/types'
+import type { UserSession } from '@/lib/auth'
 
 interface ProjectsClientProps {
   initialProjects: Project[]
   initialTasks: WBSTask[]
+  user?: UserSession | null
 }
 
-export function ProjectsClient({ initialProjects, initialTasks }: ProjectsClientProps) {
+export function ProjectsClient({ initialProjects, initialTasks, user }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSupervisor, setSelectedSupervisor] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -139,14 +141,16 @@ export function ProjectsClient({ initialProjects, initialTasks }: ProjectsClient
         </div>
 
         {/* Create button */}
-        <button
-          id="create-project-btn"
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white btn-primary flex-shrink-0"
-        >
-          <Plus size={16} />
-          สร้างโครงการใหม่
-        </button>
+        {user && (user.role === 'admin' || user.role === 'editor') && (
+          <button
+            id="create-project-btn"
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white btn-primary flex-shrink-0 cursor-pointer"
+          >
+            <Plus size={16} />
+            สร้างโครงการใหม่
+          </button>
+        )}
       </div>
 
       {/* ── Filter result count ── */}
@@ -168,6 +172,7 @@ export function ProjectsClient({ initialProjects, initialTasks }: ProjectsClient
               key={project.id}
               project={project}
               tasks={initialTasks.filter((t) => t.project_id === project.id)}
+              user={user}
             />
           ))}
         </div>
@@ -191,10 +196,10 @@ export function ProjectsClient({ initialProjects, initialTasks }: ProjectsClient
               ? 'ลองเปลี่ยนคำค้นหาหรือเลือกสถานะ/ผู้ควบคุมงานอื่น'
               : 'เริ่มต้นโดยการเพิ่มโครงการก่อสร้างโครงการแรกของคุณ'}
           </p>
-          {!searchQuery && selectedSupervisor === 'all' && selectedStatus === 'all' && (
+          {!searchQuery && selectedSupervisor === 'all' && selectedStatus === 'all' && user && (user.role === 'admin' || user.role === 'editor') && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold text-white btn-primary"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold text-white btn-primary cursor-pointer"
             >
               <Plus size={15} />
               สร้างโครงการแรก

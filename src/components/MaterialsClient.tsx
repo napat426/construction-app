@@ -16,10 +16,12 @@ import {
 } from 'lucide-react'
 import type { Project, ProjectMaterial, MaterialStatus } from '@/lib/types'
 import { createMaterial, updateMaterial, deleteMaterial } from '@/app/actions/materials'
+import type { UserSession } from '@/lib/auth'
 
 interface Props {
   project: Project
   materials: ProjectMaterial[]
+  user?: UserSession | null
 }
 
 type FilterStatus = 'all' | MaterialStatus
@@ -268,7 +270,7 @@ const inputCls =
   'w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#14142a] text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all'
 
 /* ─── Main Component ─── */
-export function MaterialsClient({ project, materials }: Props) {
+export function MaterialsClient({ project, materials, user }: Props) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingMaterial, setEditingMaterial] = useState<ProjectMaterial | null>(null)
@@ -356,14 +358,16 @@ export function MaterialsClient({ project, materials }: Props) {
           </div>
 
           {/* Add button */}
-          <button
-            id="add-material-btn"
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0"
-          >
-            <Plus size={15} />
-            เพิ่มรายการวัสดุ
-          </button>
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button
+              id="add-material-btn"
+              onClick={() => setShowAddModal(true)}
+              className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
+            >
+              <Plus size={15} />
+              เพิ่มรายการวัสดุ
+            </button>
+          )}
         </div>
 
         {/* ── Table ── */}
@@ -447,23 +451,27 @@ export function MaterialsClient({ project, materials }: Props) {
                           {mat.note || '—'}
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              id={`edit-material-${mat.id}`}
-                              onClick={() => setEditingMaterial(mat)}
-                              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 transition-all"
-                            >
-                              <Pencil size={11} />
-                            </button>
-                            <button
-                              id={`delete-material-${mat.id}`}
-                              onClick={() => handleDelete(mat.id)}
-                              disabled={isPending}
-                              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-300 transition-all"
-                            >
-                              <Trash2 size={11} />
-                            </button>
-                          </div>
+                          {user && (user.role === 'admin' || user.role === 'editor') ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                id={`edit-material-${mat.id}`}
+                                onClick={() => setEditingMaterial(mat)}
+                                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 transition-all cursor-pointer"
+                              >
+                                <Pencil size={11} />
+                              </button>
+                              <button
+                                id={`delete-material-${mat.id}`}
+                                onClick={() => handleDelete(mat.id)}
+                                disabled={isPending}
+                                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-300 transition-all cursor-pointer"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="text-center text-slate-400 font-bold">—</div>
+                          )}
                         </td>
                       </tr>
                     )

@@ -27,8 +27,11 @@ export async function generateMetadata({ params }: ReportsPageProps) {
   }
 }
 
+import { getCurrentUser } from '@/lib/auth'
+
 export default async function ProjectReportsPage({ params }: ReportsPageProps) {
   const { id } = await params
+  const user = await getCurrentUser()
 
   // Fetch Project
   const { data: projectData, error: projectError } = await supabase
@@ -64,6 +67,7 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
             breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการทั้งหมด', projectData.name, 'ตรวจงาน & รายงาน']}
             title="ระบบตรวจงานและรายงานความก้าวหน้า"
             subtitle="จัดการขอตรวจคุณภาพงาน, รายงานประจำวัน และพิมพ์รายงานประจำสัปดาห์ (พร้อม Gantt/S-Curve)"
+            user={user}
           />
         </div>
         
@@ -80,6 +84,7 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
             tasks={(tasksData as WBSTask[]) || []}
             payments={(paymentsData as ProjectPayment[]) || []}
             milestones={(milestonesData as ProjectMilestone[]) || []}
+            user={user}
           />
         </main>
       </div>

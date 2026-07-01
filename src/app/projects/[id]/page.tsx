@@ -20,8 +20,11 @@ export async function generateMetadata({ params }: ProjectPageProps) {
   }
 }
 
+import { getCurrentUser } from '@/lib/auth'
+
 export default async function ProjectDashboardPage({ params }: ProjectPageProps) {
   const { id } = await params
+  const user = await getCurrentUser()
 
   // 1. Fetch project data
   const { data: projectData, error: projectError } = await supabase
@@ -67,11 +70,12 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการทั้งหมด', project.name]}
           title="แดชบอร์ดควบคุมโครงการ"
           subtitle="การบริหารจัดการ ติดตามความก้าวหน้า และควบคุมทางการเงิน"
+          user={user}
         />
 
         <main className="flex-1 p-6">
           <ProjectTabs projectId={project.id} />
-          <DashboardClient project={project} tasks={tasks} payments={payments} milestones={milestones} />
+          <DashboardClient project={project} tasks={tasks} payments={payments} milestones={milestones} user={user} />
         </main>
       </div>
     </div>

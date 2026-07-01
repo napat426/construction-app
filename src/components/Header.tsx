@@ -6,14 +6,17 @@ import { Sun, Moon, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+import type { UserSession } from '@/lib/auth'
+
 interface HeaderProps {
   breadcrumb?: string[]
   title: string
   subtitle?: string
   actions?: ReactNode
+  user?: UserSession | null
 }
 
-export function Header({ breadcrumb, title, subtitle, actions }: HeaderProps) {
+export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderProps) {
   const { theme, toggleTheme } = useTheme()
   const pathname = usePathname()
 
@@ -125,23 +128,70 @@ export function Header({ breadcrumb, title, subtitle, actions }: HeaderProps) {
           )}
         </div>
 
-        {/* Right: actions + theme toggle */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Right: actions + theme toggle + user account controls */}
+        <div className="flex items-center gap-3 flex-shrink-0">
           {actions}
 
           <button
             type="button"
             id="theme-toggle"
             onClick={() => {
-              console.log('Theme toggle clicked! Current theme:', theme);
               toggleTheme();
             }}
             title={theme === 'dark' ? 'เปลี่ยนเป็น Light Mode' : 'เปลี่ยนเป็น Dark Mode'}
-            className="px-3 h-9 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center gap-2 justify-center text-slate-500 dark:text-slate-400 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200"
+            className="px-3 h-9 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center gap-2 justify-center text-slate-500 dark:text-slate-400 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 cursor-pointer"
           >
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             <span className="text-xs font-bold theme-label">{theme === 'dark' ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
           </button>
+
+          {/* User profiles controls */}
+          {user ? (
+            <div className="flex items-center gap-3 border-l border-slate-200 dark:border-[#252548] pl-3">
+              <div className="hidden md:block text-right">
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                  {user.display_name}
+                </p>
+                <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded leading-none ${
+                  user.role === 'admin'
+                    ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                    : user.role === 'editor'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : 'bg-slate-500/10 text-slate-600 dark:text-slate-400'
+                }`}>
+                  {user.role}
+                </span>
+              </div>
+              
+              {user.role === 'admin' && (
+                <Link
+                  href="/admin/users"
+                  className="px-3 h-9 rounded-lg border border-[#a13c9d]/30 text-[#a13c9d] hover:bg-[#a13c9d]/5 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  จัดการผู้ใช้
+                </Link>
+              )}
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const { logoutUser } = await import('@/app/actions/user')
+                  await logoutUser()
+                  window.location.href = '/'
+                }}
+                className="px-3 h-9 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold flex items-center justify-center transition-colors cursor-pointer"
+              >
+                ออกจากระบบ
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="px-4.5 h-9 rounded-lg btn-primary text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md shadow-primary-500/10"
+            >
+              เข้าสู่ระบบ
+            </Link>
+          )}
         </div>
       </div>
     </header>

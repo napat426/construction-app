@@ -22,12 +22,14 @@ import { EditBaselineModal } from './EditBaselineModal'
 import { computeTaskDates } from '@/lib/scheduler'
 import type { Project, WBSTask, ProjectPayment, ProjectMilestone } from '@/lib/types'
 import { addPayment, deletePayment } from '@/app/actions/payments'
+import type { UserSession } from '@/lib/auth'
 
 interface DashboardClientProps {
   project: Project
   tasks: WBSTask[]
   payments: ProjectPayment[]
   milestones: ProjectMilestone[]
+  user?: UserSession | null
 }
 
 function formatCurrency(amount: number | null): string {
@@ -48,7 +50,7 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function DashboardClient({ project, tasks, payments, milestones }: DashboardClientProps) {
+export function DashboardClient({ project, tasks, payments, milestones, user }: DashboardClientProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [paymentDate, setPaymentDate] = useState('')
@@ -269,14 +271,16 @@ export function DashboardClient({ project, tasks, payments, milestones }: Dashbo
             กลับไปหน้าโครงการทั้งหมด
           </Link>
 
-          <button
-            id="open-baseline-btn"
-            onClick={() => setShowEditModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white btn-primary flex-shrink-0"
-          >
-            <Settings size={15} />
-            แก้ไข Baseline / ค่าเริ่มต้น
-          </button>
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button
+              id="open-baseline-btn"
+              onClick={() => setShowEditModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white btn-primary flex-shrink-0 cursor-pointer"
+            >
+              <Settings size={15} />
+              แก้ไข Baseline / ค่าเริ่มต้น
+            </button>
+          )}
         </div>
 
         <div className="card rounded-2xl p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">

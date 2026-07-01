@@ -326,39 +326,32 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
             margin-bottom: 15px !important;
           }
           
-          /* --- PRESERVE COLORED COMPONENT BACKGROUNDS --- */
+          /* --- PRESERVE COLORED COMPONENT BACKGROUNDS (USING TAG NESTING FOR SPECIFFICITY) --- */
           
-          /* Progress bars containers (White background with border) */
-          .relative.flex-1.h-3\\.5, .w-full.h-1\\.5,
-          .bg-slate-200,
-          .dark\\:bg-slate-800,
-          .dark .dark\\:bg-slate-800 {
+          /* Progress track container - Force White background */
+          td div > div.relative,
+          td div > div.w-full {
             background-color: #ffffff !important;
             background: #ffffff !important;
-            border-color: #cbd5e1 !important;
+            border: 1px solid #cbd5e1 !important;
           }
           
-          /* PV bar (Light Gray so it's clean and not dark) */
-          .bg-slate-400,
-          .dark\\:bg-slate-500,
-          .dark .dark\\:bg-slate-500,
-          .dark\\:bg-slate-600,
-          .dark .dark\\:bg-slate-600 {
+          /* PV bar (Planned Value) - light gray */
+          td div > div.relative > div:first-child {
             background-color: #cbd5e1 !important;
             background: #cbd5e1 !important;
           }
           
-          /* EV bar (Solid bold Purple) */
-          .bg-purple-600,
-          .dark\\:bg-purple-500,
-          .dark .dark\\:bg-purple-500 {
+          /* EV bar (Earned Value) - solid purple */
+          td div > div.relative > div:last-child {
             background-color: #7e22ce !important;
             background: #7e22ce !important;
           }
           
-          /* Paid milestones progress fill */
-          .bg-emerald-500 {
+          /* Payment progress fill */
+          td div > div.w-full > div {
             background-color: #10b981 !important;
+            background: #10b981 !important;
           }
           
           /* Status Badges */

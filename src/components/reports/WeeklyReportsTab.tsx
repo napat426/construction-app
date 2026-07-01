@@ -990,11 +990,6 @@ function WeeklyReportForm({
                 <p className="text-base font-black text-slate-800 dark:text-white print:text-xs print:font-black mt-1">
                   {(project.budget || 0).toLocaleString()} ฿
                 </p>
-                {displayEvm.isSnapshot && displayEvm.savedAt && (
-                  <p className="text-[8px] text-slate-400 dark:text-slate-500 font-semibold mt-1 print:hidden">
-                    บันทึก ณ วันที่ {formatDateString(displayEvm.savedAt)}
-                  </p>
-                )}
               </div>
 
               <div className="border border-slate-200 dark:border-[#252548] print:border-black p-3 print:p-1.5 rounded-2xl print:rounded-none bg-slate-50/50 dark:bg-[#1a1a32]/20 print:bg-transparent">
@@ -1002,11 +997,6 @@ function WeeklyReportForm({
                 <p className="text-base font-black text-slate-800 dark:text-white print:text-xs print:font-black mt-1">
                   {displayEvm.pvCumulative.toFixed(1)}% ({displayEvm.PV.toLocaleString(undefined, { maximumFractionDigits: 0 })} ฿)
                 </p>
-                {displayEvm.isSnapshot && displayEvm.savedAt && (
-                  <p className="text-[8px] text-slate-400 dark:text-slate-500 font-semibold mt-1 print:hidden">
-                    บันทึก ณ วันที่ {formatDateString(displayEvm.savedAt)}
-                  </p>
-                )}
               </div>
 
               <div className="border border-slate-200 dark:border-[#252548] print:border-black p-3 print:p-1.5 rounded-2xl print:rounded-none bg-slate-50/50 dark:bg-[#1a1a32]/20 print:bg-transparent">
@@ -1014,11 +1004,6 @@ function WeeklyReportForm({
                 <p className="text-base font-black text-slate-800 dark:text-white print:text-xs print:font-black mt-1">
                   {displayEvm.evCumulative.toFixed(1)}% ({displayEvm.EV.toLocaleString(undefined, { maximumFractionDigits: 0 })} ฿)
                 </p>
-                {displayEvm.isSnapshot && displayEvm.savedAt && (
-                  <p className="text-[8px] text-slate-400 dark:text-slate-500 font-semibold mt-1 print:hidden">
-                    บันทึก ณ วันที่ {formatDateString(displayEvm.savedAt)}
-                  </p>
-                )}
               </div>
 
               <div className="border border-slate-200 dark:border-[#252548] print:border-black p-3 print:p-1.5 rounded-2xl print:rounded-none bg-slate-50/50 dark:bg-[#1a1a32]/20 print:bg-transparent">
@@ -1026,11 +1011,6 @@ function WeeklyReportForm({
                 <p className="text-base font-black text-slate-800 dark:text-white print:text-xs print:font-black mt-1">
                   {displayEvm.acPercent.toFixed(1)}% ({displayEvm.AC.toLocaleString(undefined, { maximumFractionDigits: 0 })} ฿)
                 </p>
-                {displayEvm.isSnapshot && displayEvm.savedAt && (
-                  <p className="text-[8px] text-slate-400 dark:text-slate-500 font-semibold mt-1 print:hidden">
-                    บันทึก ณ วันที่ {formatDateString(displayEvm.savedAt)}
-                  </p>
-                )}
               </div>
             </div>
 
@@ -1043,11 +1023,6 @@ function WeeklyReportForm({
                 <p className="text-[10px] mt-1 font-bold text-slate-600 dark:text-slate-300 print:text-[8px] print:font-bold">
                   {displayEvm.SV_percent >= 0 ? "✅ เร็วกว่าแผน" : "⚠️ ล่าช้ากว่าแผน"}
                 </p>
-                {displayEvm.isSnapshot && displayEvm.savedAt && (
-                  <p className="text-[8px] text-slate-400 dark:text-slate-500 font-semibold mt-1 print:hidden">
-                    บันทึก ณ วันที่ {formatDateString(displayEvm.savedAt)}
-                  </p>
-                )}
               </div>
 
               <div className="border border-slate-200 dark:border-[#252548] print:border-black p-3 print:p-1.5 rounded-2xl print:rounded-none bg-slate-50/50 dark:bg-[#1a1a32]/20 print:bg-transparent">
@@ -1058,11 +1033,6 @@ function WeeklyReportForm({
                 <p className="text-[10px] mt-1 font-bold text-slate-600 dark:text-slate-300 print:text-[8px] print:font-bold">
                   {(displayEvm.evCumulative - displayEvm.acPercent) >= 0 ? "✅ ต่ำกว่างบประมาณ" : "🔴 เกินงบประมาณ"}
                 </p>
-                {displayEvm.isSnapshot && displayEvm.savedAt && (
-                  <p className="text-[8px] text-slate-400 dark:text-slate-500 font-semibold mt-1 print:hidden">
-                    บันทึก ณ วันที่ {formatDateString(displayEvm.savedAt)}
-                  </p>
-                )}
               </div>
             </div>
           </div>

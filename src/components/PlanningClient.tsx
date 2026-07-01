@@ -176,8 +176,21 @@ export function PlanningClient({ project, tasks, payments, milestones, user }: P
   // 3. S-Curve Calculation Points (PV, EV, AC)
   const sCurveData = useMemo(() => {
     const { start, durationDays } = dateRange
-    // 1 point per week (7 days), minimum of 4 points
-    const pointsCount = Math.max(4, Math.ceil(durationDays / 7))
+    
+    // Dynamic interval based on project length to keep point count balanced (between 10 and 25 points)
+    let intervalDays = 7
+    if (durationDays <= 30) {
+      intervalDays = 3
+    } else if (durationDays <= 90) {
+      intervalDays = 7
+    } else if (durationDays <= 180) {
+      intervalDays = 10
+    } else if (durationDays <= 365) {
+      intervalDays = 15
+    } else {
+      intervalDays = 30
+    }
+    const pointsCount = Math.max(4, Math.ceil(durationDays / intervalDays))
     const list: { label: string; planned: number; actual: number | null; actualCost: number | null }[] = []
 
     if (scheduledTasks.length === 0 || durationDays === 0) return []

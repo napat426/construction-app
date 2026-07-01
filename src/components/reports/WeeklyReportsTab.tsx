@@ -536,9 +536,21 @@ function WeeklyReportForm({
   }, [dateRange]);
 
   const sCurveData = useMemo(() => {
-    // 1 point per week (7 days), minimum of 4 points
     const { start, durationDays } = dateRange;
-    const pointsCount = Math.max(4, Math.ceil(durationDays / 7));
+    // Dynamic interval based on project length to keep point count balanced (between 10 and 25 points)
+    let intervalDays = 7;
+    if (durationDays <= 30) {
+      intervalDays = 3;
+    } else if (durationDays <= 90) {
+      intervalDays = 7;
+    } else if (durationDays <= 180) {
+      intervalDays = 10;
+    } else if (durationDays <= 365) {
+      intervalDays = 15;
+    } else {
+      intervalDays = 30;
+    }
+    const pointsCount = Math.max(4, Math.ceil(durationDays / intervalDays));
     const list: {
       label: string;
       planned: number;

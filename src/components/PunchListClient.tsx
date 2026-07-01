@@ -753,7 +753,6 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
             background: white !important;
             background-color: white !important;
             padding: 20px !important;
-            min-height: 100%;
             box-sizing: border-box;
             page-break-inside: avoid;
             break-inside: avoid;
@@ -779,7 +778,6 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
           }
           .page-break {
             page-break-before: always !important;
-            break-before: page !important;
           }
           .photo-evidence-grid {
             display: grid !important;

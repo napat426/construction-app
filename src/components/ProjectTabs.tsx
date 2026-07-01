@@ -45,7 +45,7 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
   ]
 
   return (
-    <div className="flex border-b border-slate-200 dark:border-[#1c1c34] mb-6 gap-2">
+    <div className="flex border-b border-slate-200 dark:border-[#1c1c34] mb-6 gap-2 no-print">
       {tabs.map((tab) => {
         const Icon = tab.icon
         return (

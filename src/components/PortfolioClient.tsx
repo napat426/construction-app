@@ -328,20 +328,32 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
           
           /* --- PRESERVE COLORED COMPONENT BACKGROUNDS --- */
           
-          /* Progress bars containers */
-          .relative.flex-1.h-3\\.5, .w-full.h-1\\.5 {
-            background-color: #f1f5f9 !important;
+          /* Progress bars containers (White background with border) */
+          .relative.flex-1.h-3\\.5, .w-full.h-1\\.5,
+          .bg-slate-200,
+          .dark\\:bg-slate-800,
+          .dark .dark\\:bg-slate-800 {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
             border-color: #cbd5e1 !important;
           }
           
-          /* PV bar (gray) */
-          .bg-slate-400 {
-            background-color: #94a3b8 !important;
+          /* PV bar (Light Gray so it's clean and not dark) */
+          .bg-slate-400,
+          .dark\\:bg-slate-500,
+          .dark .dark\\:bg-slate-500,
+          .dark\\:bg-slate-600,
+          .dark .dark\\:bg-slate-600 {
+            background-color: #cbd5e1 !important;
+            background: #cbd5e1 !important;
           }
           
-          /* EV bar (purple) */
-          .bg-purple-600 {
+          /* EV bar (Solid bold Purple) */
+          .bg-purple-600,
+          .dark\\:bg-purple-500,
+          .dark .dark\\:bg-purple-500 {
             background-color: #7e22ce !important;
+            background: #7e22ce !important;
           }
           
           /* Paid milestones progress fill */
@@ -556,7 +568,18 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
                     วันคงเหลือ {sortBy === 'remaining' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
                   </th>
                   <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('ev')}>
-                    Progress (PV vs EV) {sortBy === 'ev' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span>Progress</span>
+                      <span className="text-[9px] font-normal text-slate-400 lowercase tracking-normal print:text-slate-600">
+                        (
+                        <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full inline-block align-middle mr-0.5"></span>
+                        PV แผน / 
+                        <span className="w-1.5 h-1.5 bg-purple-600 rounded-full inline-block align-middle ml-1 mr-0.5"></span>
+                        EV จริง
+                        )
+                      </span>
+                      {sortBy === 'ev' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1 flex-shrink-0" />}
+                    </div>
                   </th>
                   <th className="py-4 px-3 w-20 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('sv')}>
                     SV {sortBy === 'sv' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}

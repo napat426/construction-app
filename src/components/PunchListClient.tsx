@@ -726,11 +726,15 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
           header, nav, aside, footer, .no-print, .btn-secondary, button {
             display: none !important;
           }
-          html, body {
+          /* Reset parent layout containers for print to prevent clipping */
+          html, body, main, .flex, .flex-col, .min-h-screen, .overflow-hidden {
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
             background: white !important;
             background-color: white !important;
-            color: black !important;
-            font-size: 10px !important;
             margin: 0 !important;
             padding: 0 !important;
           }
@@ -739,12 +743,20 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
             background: white !important;
             background-color: white !important;
           }
+          .print-layout .flex {
+            display: flex !important;
+          }
+          .print-layout .grid {
+            display: grid !important;
+          }
           .print-page-container {
             background: white !important;
             background-color: white !important;
             padding: 20px !important;
             min-height: 100%;
             box-sizing: border-box;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           .print-header {
             border-bottom: 2px solid #000;

@@ -146,3 +146,42 @@ export interface WeeklyReport {
   created_at: string;
   snapshot?: WeeklyReportSnapshot | null;
 }
+
+export interface PunchList {
+  id: string
+  project_id: string
+  pl_number: string
+  title: string
+  issued_by: string
+  issued_to: string
+  due_date: string | null
+  status: 'open' | 'closed'
+  created_at: string
+}
+
+export type PunchItemCategory = 'โครงสร้าง' | 'สถาปัตย์' | 'งานระบบ' | 'ความปลอดภัย' | 'อื่นๆ'
+export type PunchItemStatus = 'open' | 'in_progress' | 'done' | 'rejected'
+
+export interface PunchPhoto {
+  src: string
+  caption?: string
+  markup_src?: string | null
+}
+
+export interface PunchItem {
+  id: string
+  punch_list_id: string
+  sequence: number
+  location: string
+  category: PunchItemCategory
+  description: string
+  photos: PunchPhoto[]
+  assignee: string | null
+  due_date: string | null
+  status: PunchItemStatus
+  closed_date: string | null
+  remark: string | null
+  contractor_response?: string | null
+  response_date?: string | null
+  created_at: string
+}

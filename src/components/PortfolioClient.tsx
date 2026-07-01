@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown } from 'lucide-react'
-import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
+import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck } from 'lucide-react'
+import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem } from '@/lib/types'
 import { computeTaskDates } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
@@ -11,13 +11,15 @@ interface Props {
   projects: Project[]
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
+  punchLists?: PunchList[]
+  punchItems?: PunchItem[]
   user?: UserSession | null
 }
 
 type SortField = 'name' | 'remaining' | 'ev' | 'sv'
 type SortDir = 'asc' | 'desc'
 
-export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
+export function PortfolioClient({ projects, tasks, milestones, punchLists = [], punchItems = [], user }: Props) {
   // Checkbox status filter states
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     'กำลังดำเนินการ',
@@ -29,6 +31,34 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
   // Sorting states
   const [sortBy, setBy] = useState<SortField>('sv')
   const [sortDir, setDir] = useState<SortDir>('asc') // Default SV ascending (most delayed first)
+
+  // Punch list overview filter state
+  const [punchFilter, setPunchFilter] = useState<'open' | 'overdue'>('open')
+
+  // 5. Calculate open/overdue punch items across all projects
+  const filteredPunchItems = useMemo(() => {
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+
+    return punchItems
+      .filter((item) => item.status !== 'done') // Only active/open items
+      .filter((item) => {
+        if (punchFilter === 'overdue') {
+          return item.due_date && item.due_date < todayStr
+        }
+        return true
+      })
+      .map((item) => {
+        const parentList = punchLists.find((pl) => pl.id === item.punch_list_id)
+        const parentProject = projects.find((p) => p.id === parentList?.project_id)
+        return {
+          ...item,
+          project_id: parentProject?.id || '',
+          projectName: parentProject?.name || 'ไม่ทราบโครงการ',
+          plNumber: parentList?.pl_number || 'PL-000',
+        }
+      })
+  }, [punchItems, punchLists, projects, punchFilter])
 
   // 1. Calculate project-level metrics for all projects (pre-filtering)
   const computedProjects = useMemo(() => {
@@ -727,6 +757,7 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
           </h4>
 
           <div className="space-y-4 max-w-4xl">
+
             {filteredProjects.map((p) => {
               // Bar color matches status
               let barColor = 'bg-slate-400 dark:bg-slate-600'
@@ -756,6 +787,126 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── PUNCH LIST OVERVIEW PANEL (No-print) ── */}
+      {punchItems.length > 0 && (
+        <div className="card rounded-2xl p-6 border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] no-print shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#252548] pb-4">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="text-primary-500" size={18} />
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                รายการข้อบกพร่องที่ยังค้างคา (ทุกโครงการ)
+              </h4>
+            </div>
+
+            {/* Punch list overview filter tabs */}
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1b1b36]/40 p-1 rounded-xl">
+              <button
+                onClick={() => setPunchFilter('open')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  punchFilter === 'open'
+                    ? 'bg-white dark:bg-[#252548] text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                รายการค้างคาทั้งหมด ({punchItems.filter(i => i.status !== 'done').length})
+              </button>
+              <button
+                onClick={() => setPunchFilter('overdue')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  punchFilter === 'overdue'
+                    ? 'bg-red-500 text-white shadow-sm'
+                    : 'text-red-500 hover:bg-red-500/10'
+                }`}
+              >
+                เฉพาะที่เลยกำหนดส่ง ({
+                  punchItems.filter(i => {
+                    const todayStr = new Date().toISOString().split('T')[0]
+                    return i.status !== 'done' && i.due_date && i.due_date < todayStr
+                  }).length
+                })
+              </button>
+            </div>
+          </div>
+
+          {filteredPunchItems.length === 0 ? (
+            <div className="text-center py-10 text-slate-400 text-xs font-bold">
+              ไม่มีรายการข้อบกพร่องตรงตามเงื่อนไขที่เลือก
+            </div>
+          ) : (
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse table-layout-auto">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                    <th className="py-3 px-2 w-32">โครงการ</th>
+                    <th className="py-3 px-2 w-24">เลขที่ Punch</th>
+                    <th className="py-3 px-2 w-28">ตำแหน่ง</th>
+                    <th className="py-3 px-2 w-24">ประเภท</th>
+                    <th className="py-3 px-2">รายละเอียดความชำรุด/ข้อบกพร่อง</th>
+                    <th className="py-3 px-2 w-28">ผู้รับผิดชอบ</th>
+                    <th className="py-3 px-2 w-28">กำหนดแก้เสร็จ</th>
+                    <th className="py-3 px-2 w-24 text-center">สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-[#1c1c34] text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {filteredPunchItems.map((item) => {
+                    const isOverdue = item.due_date && item.due_date < new Date().toISOString().split('T')[0]
+                    
+                    // Localized status color classes
+                    let statusCls = ''
+                    let statusLabel: string = item.status
+                    if (item.status === 'open') {
+                      statusCls = 'bg-red-500/10 text-red-600 border-red-500/20'
+                      statusLabel = 'Open'
+                    } else if (item.status === 'in_progress') {
+                      statusCls = 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                      statusLabel = 'In Progress'
+                    } else if (item.status === 'rejected') {
+                      statusCls = 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                      statusLabel = 'Rejected'
+                    } else if (item.status === 'done') {
+                      statusCls = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                      statusLabel = 'Done'
+                    }
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/10 transition-colors">
+                        <td className="py-3 px-2">
+                          <Link href={`/projects/${item.project_id}`} className="text-primary-600 dark:text-primary-400 hover:underline">
+                            {item.projectName}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-2 font-mono text-[10px] text-slate-500">
+                          <Link href={`/projects/${item.project_id}/punchlist`} className="hover:underline">
+                            {item.plNumber}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-2">{item.location}</td>
+                        <td className="py-3 px-2">{item.category}</td>
+                        <td className="py-3 px-2 max-w-[250px] truncate" title={item.description}>
+                          {item.description}
+                        </td>
+                        <td className="py-3 px-2 text-slate-500">{item.assignee || '-'}</td>
+                        <td className="py-3 px-2 font-mono">
+                          <span className={isOverdue ? 'text-red-500 font-bold' : ''}>
+                            {item.due_date ? new Date(item.due_date).toLocaleDateString('th-TH') : '-'}
+                            {isOverdue && ' (เลยกำหนด!)'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${statusCls}`}>
+                            {statusLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -25,20 +25,16 @@ export default async function ProjectMaterialsPage({ params }: MaterialsPageProp
   const { id } = await params
   const user = await getCurrentUser()
 
-  const { data: projectData, error: projectError } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const [projectRes, materialsRes] = await Promise.all([
+    supabase.from('projects').select('*').eq('id', id).single(),
+    supabase.from('materials').select('*').eq('project_id', id).order('status', { ascending: true }).order('created_at', { ascending: false }),
+  ])
 
+  const projectData = projectRes.data
+  const projectError = projectRes.error
   if (projectError || !projectData) notFound()
 
-  const { data: materialsData } = await supabase
-    .from('materials')
-    .select('*')
-    .eq('project_id', id)
-    .order('status', { ascending: true })   // pending first (p < a alphabetically)
-    .order('created_at', { ascending: false })
+  const materialsData = materialsRes.data
 
   const project = projectData as Project
   // Sort: pending first, then approved, then rejected

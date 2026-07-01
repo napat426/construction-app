@@ -16,17 +16,14 @@ import { getCurrentUser } from '@/lib/auth'
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const { data, error } = await supabase
-    .from('projects')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const [projectsRes, tasksRes] = await Promise.all([
+    supabase.from('projects').select('*').order('created_at', { ascending: false }),
+    supabase.from('tasks').select('*')
+  ])
 
-  const { data: tasksData } = await supabase
-    .from('tasks')
-    .select('*')
-
-  const projects: Project[] = (data as Project[]) ?? []
-  const tasks = tasksData ?? []
+  const projects: Project[] = (projectsRes.data as Project[]) ?? []
+  const error = projectsRes.error
+  const tasks = tasksRes.data ?? []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">

@@ -33,24 +33,17 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
   const { id } = await params
   const user = await getCurrentUser()
 
-  // Fetch Project
-  const { data: projectData, error: projectError } = await supabase
-    .from('projects')
-    .select('*')
-    .eq('id', id)
-    .single()
-
-  if (projectError || !projectData) notFound()
-
-  // Fetch all related data in parallel
+  // Fetch Project and all related data in parallel
   const [
-    { data: inspectionsData },
-    { data: dailyData },
-    { data: weeklyData },
-    { data: tasksData },
-    { data: paymentsData },
-    { data: milestonesData }
+    projectRes,
+    inspectionsRes,
+    dailyRes,
+    weeklyRes,
+    tasksRes,
+    paymentsRes,
+    milestonesRes
   ] = await Promise.all([
+    supabase.from('projects').select('*').eq('id', id).single(),
     supabase.from('inspections').select('*').eq('project_id', id).order('sort_order', { ascending: true }),
     supabase.from('daily_reports').select('*').eq('project_id', id).order('sort_order', { ascending: true }),
     supabase.from('weekly_reports').select('*').eq('project_id', id).order('sort_order', { ascending: true }),
@@ -58,6 +51,17 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
     supabase.from('project_payments').select('*').eq('project_id', id).order('payment_date', { ascending: true }),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
   ])
+
+  const projectData = projectRes.data
+  const projectError = projectRes.error
+  if (projectError || !projectData) notFound()
+
+  const inspectionsData = inspectionsRes.data
+  const dailyData = dailyRes.data
+  const weeklyData = weeklyRes.data
+  const tasksData = tasksRes.data
+  const paymentsData = paymentsRes.data
+  const milestonesData = milestonesRes.data
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">

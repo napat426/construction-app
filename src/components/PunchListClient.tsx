@@ -819,8 +819,7 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                 <th className="w-28">ตำแหน่ง</th>
                 <th className="w-20">ประเภท</th>
                 <th>รายละเอียดข้อบกพร่อง</th>
-                <th className="w-20">ผู้รับผิดชอบ</th>
-                <th className="w-20">กำหนดแก้</th>
+                <th className="w-24 text-center">วันที่บันทึกข้อมูล</th>
                 <th className="w-16 text-center">สถานะ</th>
               </tr>
             </thead>
@@ -830,14 +829,8 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                   <td className="text-center font-mono">{item.sequence}</td>
                   <td>{item.location}</td>
                   <td>{item.category}</td>
-                  <td>
-                    <p className="font-bold">{item.description}</p>
-                    {item.contractor_response && (
-                      <p className="text-[8px] text-slate-500 italic mt-0.5">ตอบกลับจากผู้รับเหมา: {item.contractor_response}</p>
-                    )}
-                  </td>
-                  <td>{item.assignee || '-'}</td>
-                  <td className="font-mono">{item.due_date ? new Date(item.due_date).toLocaleDateString('th-TH') : '-'}</td>
+                  <td>{item.description}</td>
+                  <td className="text-center font-mono">{item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-'}</td>
                   <td className="text-center font-bold">
                     {STATUS_META[item.status]?.label || item.status}
                   </td>
@@ -1144,7 +1137,7 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                 </div>
               ) : (
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left border-collapse min-w-[1000px] md:min-w-0 table-layout-auto">
+                  <table className="w-full text-left border-collapse table-layout-auto">
                     <thead>
                       <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[9px] font-black text-slate-400 uppercase tracking-wider">
                         <th className="py-3 px-2 w-10 text-center">ลาก</th>
@@ -1152,10 +1145,7 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                         <th className="py-3 px-2 w-32">ตำแหน่ง</th>
                         <th className="py-3 px-2 w-28">ประเภท</th>
                         <th className="py-3 px-2">รายละเอียดความผิดพลาด</th>
-                        <th className="py-3 px-2 w-36">ผู้ตอบกลับ (ผู้รับเหมา)</th>
-                        <th className="py-3 px-2 w-24">วันที่ตอบ</th>
-                        <th className="py-3 px-2 w-24">ผู้รับผิดชอบ</th>
-                        <th className="py-3 px-2 w-24">กำหนดเสร็จ</th>
+                        <th className="py-3 px-2 w-32 text-center">วันที่บันทึกข้อมูล</th>
                         <th className="py-3 px-2 w-28 text-center">สถานะ</th>
                         <th className="py-3 px-2 w-12 text-center">รูป</th>
                         <th className="py-3 px-2 w-10 text-center">ลบ</th>
@@ -1225,48 +1215,9 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                                 />
                               </td>
 
-                              {/* Contractor Response */}
-                              <td className="py-3 px-2">
-                                <input
-                                  type="text"
-                                  value={item.contractor_response || ''}
-                                  onChange={(e) => handleEditItemField(index, 'contractor_response', e.target.value)}
-                                  placeholder="ระบุคำโต้แย้ง/แนวทางการแก้"
-                                  className="input-text text-xs p-1 border-amber-300/40"
-                                />
-                              </td>
-
-                              {/* Response Date */}
-                              <td className="py-3 px-2">
-                                <input
-                                  type="date"
-                                  value={item.response_date || ''}
-                                  onChange={(e) => handleEditItemField(index, 'response_date', e.target.value)}
-                                  className="input-text text-xs p-1 font-mono border-amber-300/40"
-                                />
-                              </td>
-
-                              {/* Assignee */}
-                              <td className="py-3 px-2">
-                                <input
-                                  type="text"
-                                  value={item.assignee || ''}
-                                  onChange={(e) => handleEditItemField(index, 'assignee', e.target.value)}
-                                  placeholder="ผู้รับผิดชอบ"
-                                  className="input-text text-xs p-1"
-                                  disabled={!user || (user.role !== 'admin' && user.role !== 'editor')}
-                                />
-                              </td>
-
-                              {/* Due Date */}
-                              <td className="py-3 px-2">
-                                <input
-                                  type="date"
-                                  value={item.due_date || ''}
-                                  onChange={(e) => handleEditItemField(index, 'due_date', e.target.value)}
-                                  className="input-text text-xs p-1 font-mono"
-                                  disabled={!user || (user.role !== 'admin' && user.role !== 'editor')}
-                                />
+                              {/* Date Recorded */}
+                              <td className="py-3 px-2 font-mono text-slate-500 text-center">
+                                {item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-'}
                               </td>
 
                               {/* Status */}

@@ -845,15 +845,12 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
                     <th className="py-3 px-2 w-28">ตำแหน่ง</th>
                     <th className="py-3 px-2 w-24">ประเภท</th>
                     <th className="py-3 px-2">รายละเอียดความชำรุด/ข้อบกพร่อง</th>
-                    <th className="py-3 px-2 w-28">ผู้รับผิดชอบ</th>
-                    <th className="py-3 px-2 w-28">กำหนดแก้เสร็จ</th>
+                    <th className="py-3 px-2 w-32 text-center">วันที่บันทึกข้อมูล</th>
                     <th className="py-3 px-2 w-24 text-center">สถานะ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-[#1c1c34] text-xs font-bold text-slate-700 dark:text-slate-300">
                   {filteredPunchItems.map((item) => {
-                    const isOverdue = item.due_date && item.due_date < new Date().toISOString().split('T')[0]
-                    
                     // Localized status color classes
                     let statusCls = ''
                     let statusLabel: string = item.status
@@ -888,12 +885,8 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
                         <td className="py-3 px-2 max-w-[250px] truncate" title={item.description}>
                           {item.description}
                         </td>
-                        <td className="py-3 px-2 text-slate-500">{item.assignee || '-'}</td>
-                        <td className="py-3 px-2 font-mono">
-                          <span className={isOverdue ? 'text-red-500 font-bold' : ''}>
-                            {item.due_date ? new Date(item.due_date).toLocaleDateString('th-TH') : '-'}
-                            {isOverdue && ' (เลยกำหนด!)'}
-                          </span>
+                        <td className="py-3 px-2 font-mono text-slate-500 text-center">
+                          {item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : '-'}
                         </td>
                         <td className="py-3 px-2 text-center">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${statusCls}`}>

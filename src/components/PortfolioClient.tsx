@@ -264,12 +264,22 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
     <div className="space-y-6">
       <style jsx global>{`
         @media print {
+          @page {
+            size: landscape;
+            margin: 0.5cm;
+          }
           header, nav, aside, footer, .no-print {
             display: none !important;
           }
           body {
             background: white !important;
             color: black !important;
+            font-size: 9px !important;
+            font-family: 'Inter', sans-serif !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .print-layout {
             display: block !important;
@@ -278,25 +288,32 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
             width: 100% !important;
             max-width: 100% !important;
           }
-          .print-card {
+          .card {
             border: 1px solid #cbd5e1 !important;
             background: transparent !important;
             color: black !important;
             box-shadow: none !important;
+            border-radius: 8px !important;
+            padding: 10px !important;
           }
           table {
+            width: 100% !important;
+            min-width: 0 !important;
+            table-layout: auto !important;
             border-collapse: collapse !important;
           }
           th, td {
-            border: 1px solid #94a3b8 !important;
-            padding: 8px !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 6px 4px !important;
+            font-size: 8px !important;
+            word-break: break-word !important;
           }
           .print-title {
             display: block !important;
-            font-size: 16px !important;
+            font-size: 14px !important;
             font-weight: bold !important;
             text-align: center !important;
-            margin-bottom: 20px !important;
+            margin-bottom: 15px !important;
           }
         }
       `}</style>

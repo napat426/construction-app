@@ -271,9 +271,15 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
           header, nav, aside, footer, .no-print {
             display: none !important;
           }
-          body {
+          
+          /* Force white background and dark slate text on all structural containers */
+          html, body, main, table, tr, th, td, h2, h3, h4, p, span, a {
+            background-color: white !important;
             background: white !important;
-            color: black !important;
+            color: #0f172a !important;
+          }
+          
+          body {
             font-size: 9px !important;
             font-family: 'Inter', sans-serif !important;
           }
@@ -288,14 +294,18 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
             width: 100% !important;
             max-width: 100% !important;
           }
+          
+          /* Cards should be white background with thin borders */
           .card {
             border: 1px solid #cbd5e1 !important;
-            background: transparent !important;
-            color: black !important;
+            background-color: white !important;
+            background: white !important;
+            color: #0f172a !important;
             box-shadow: none !important;
             border-radius: 8px !important;
             padding: 10px !important;
           }
+          
           table {
             width: 100% !important;
             min-width: 0 !important;
@@ -314,6 +324,62 @@ export function PortfolioClient({ projects, tasks, milestones, user }: Props) {
             font-weight: bold !important;
             text-align: center !important;
             margin-bottom: 15px !important;
+          }
+          
+          /* --- PRESERVE COLORED COMPONENT BACKGROUNDS --- */
+          
+          /* Progress bars containers */
+          .relative.flex-1.h-3\\.5, .w-full.h-1\\.5 {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+          }
+          
+          /* PV bar (gray) */
+          .bg-slate-300 {
+            background-color: #cbd5e1 !important;
+          }
+          
+          /* EV bar (purple) */
+          .bg-purple-600 {
+            background-color: #9333ea !important;
+          }
+          
+          /* Paid milestones progress fill */
+          .bg-emerald-500 {
+            background-color: #10b981 !important;
+          }
+          
+          /* Status Badges */
+          .bg-blue-500\\/10 {
+            background-color: #eff6ff !important;
+            color: #2563eb !important;
+          }
+          .bg-emerald-500\\/10 {
+            background-color: #ecfdf5 !important;
+            color: #059669 !important;
+          }
+          .bg-amber-500\\/10 {
+            background-color: #fffbeb !important;
+            color: #d97706 !important;
+          }
+          .bg-slate-100 {
+            background-color: #f1f5f9 !important;
+            color: #475569 !important;
+          }
+          .text-red-600.bg-red-100 {
+            background-color: #fee2e2 !important;
+            color: #dc2626 !important;
+          }
+          
+          /* Traffic Light Indicators */
+          .w-3.h-3.rounded-full.bg-emerald-500 {
+            background-color: #10b981 !important;
+          }
+          .w-3.h-3.rounded-full.bg-red-500 {
+            background-color: #ef4444 !important;
+          }
+          .w-3.h-3.rounded-full.bg-amber-500 {
+            background-color: #f59e0b !important;
           }
         }
       `}</style>

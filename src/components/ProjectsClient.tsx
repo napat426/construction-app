@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, Search, SlidersHorizontal, FolderOpen, Building2 } from 'lucide-react'
+import { Plus, Search, SlidersHorizontal, FolderOpen, Building2, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 import { ProjectCard } from './ProjectCard'
 import { CreateProjectModal } from './CreateProjectModal'
 import type { Project, WBSTask } from '@/lib/types'
@@ -140,17 +141,27 @@ export function ProjectsClient({ initialProjects, initialTasks, user }: Projects
           </select>
         </div>
 
-        {/* Create button */}
-        {user && (user.role === 'admin' || user.role === 'editor') && (
-          <button
-            id="create-project-btn"
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white btn-primary flex-shrink-0 cursor-pointer"
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href="/portfolio"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#252548] transition-colors cursor-pointer"
           >
-            <Plus size={16} />
-            สร้างโครงการใหม่
-          </button>
-        )}
+            <TrendingUp size={16} className="text-primary-600 dark:text-primary-400" />
+            ภาพรวมทุกโครงการ
+          </Link>
+
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button
+              id="create-project-btn"
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white btn-primary flex-shrink-0 cursor-pointer"
+            >
+              <Plus size={16} />
+              สร้างโครงการใหม่
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Filter result count ── */}

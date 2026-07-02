@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts'
+import { computeTaskDates } from '@/lib/scheduler'
 
 interface Props {
   project: Project
@@ -20,91 +21,123 @@ interface Props {
 }
 
 export function SlideSCurve({ project, tasks }: Props) {
-  // Generate S-Curve Data from current tasks (Linear approximation)
+  // 1. Sort and Compute schedule exactly like PlanningClient
+  const scheduledTasks = useMemo(() => {
+    const sorted = [...tasks].sort((a, b) => {
+      const aParts = a.wbs_no.split('.').map(Number)
+      const bParts = b.wbs_no.split('.').map(Number)
+      for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+        const aVal = aParts[i] || 0
+        const bVal = bParts[i] || 0
+        if (aVal !== bVal) return aVal - bVal
+      }
+      return 0
+    })
+    return computeTaskDates(sorted, project.start_date)
+  }, [tasks, project.start_date])
+
+  // 2. Generate S-Curve Data perfectly matching PlanningClient
   const chartData = useMemo(() => {
-    if (!project.start_date || !project.end_date || tasks.length === 0) return []
+    if (scheduledTasks.length === 0 || !project.start_date) return []
 
     const start = new Date(project.start_date)
-    const end = new Date(project.end_date)
-    start.setHours(0,0,0,0)
-    end.setHours(0,0,0,0)
+    start.setHours(0, 0, 0, 0)
     
-    const today = new Date()
-    today.setHours(0,0,0,0)
-
-    const totalWbsCost = tasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
-    if (totalWbsCost === 0) return []
-
-    const data = []
-    
-    // Generate roughly 12-20 data points from start to end
-    const totalDays = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-    const intervalDays = Math.max(1, Math.floor(totalDays / 15))
-    
-    let currentDate = new Date(start)
-    while (currentDate <= end) {
-      let pvCumulative = 0
-      let evCumulative = 0
-
-      tasks.forEach(t => {
-        const w = (Number(t.cost) || 0) / totalWbsCost
-        const tStart = new Date(t.start_date)
-        const tEnd = new Date(tStart.getTime() + (t.duration - 1) * 24 * 60 * 60 * 1000)
-        tStart.setHours(0,0,0,0)
-        tEnd.setHours(0,0,0,0)
-
-        // PV at currentDate
-        let pvProgress = 0
-        if (currentDate >= tEnd) pvProgress = 100
-        else if (currentDate > tStart) {
-          pvProgress = ((currentDate.getTime() - tStart.getTime()) / Math.max(1, tEnd.getTime() - tStart.getTime())) * 100
-        }
-        pvCumulative += pvProgress * w
-
-        // EV (Only up to today)
-        if (currentDate <= today) {
-          // If task is in past and we only have current snapshot, assume linear EV up to current actual progress
-          let evProgress = 0
-          if (today >= tEnd) {
-             // If task is supposed to be done, actual progress is what it is
-             if (currentDate.getTime() === today.getTime()) evProgress = t.actual_progress || 0
-             else {
-               // Interpolate historical EV linearly... this is a rough estimation since no historical data is provided
-               evProgress = (pvProgress / 100) * (t.actual_progress || 0) 
-             }
-          } else {
-             // Task is currently active
-             if (currentDate > tStart) {
-               const expectedRatio = (currentDate.getTime() - tStart.getTime()) / (today.getTime() - tStart.getTime())
-               evProgress = Math.min(1, Math.max(0, expectedRatio)) * (t.actual_progress || 0)
-             }
-          }
-          evCumulative += evProgress * w
-        }
-      })
-
-      data.push({
-        date: currentDate.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' }),
-        timestamp: currentDate.getTime(),
-        PV: pvCumulative,
-        EV: currentDate <= today ? evCumulative : null
-      })
-      
-      currentDate = new Date(currentDate.getTime() + intervalDays * 24 * 60 * 60 * 1000)
+    // Find min and max computed dates for accurate timeline length
+    let minDate = new Date(scheduledTasks[0].computedStartDate)
+    let maxDate = new Date(scheduledTasks[0].computedEndDate)
+    for (const t of scheduledTasks) {
+      const sd = new Date(t.computedStartDate)
+      const ed = new Date(t.computedEndDate)
+      if (sd < minDate) minDate = sd
+      if (ed > maxDate) maxDate = ed
     }
     
-    // Ensure final date is included
-    if (data[data.length - 1].timestamp < end.getTime()) {
+    // Make sure timeline starts at least at project.start_date
+    if (start < minDate) minDate = start
+    
+    const durationDays = Math.max(0, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)))
+    if (durationDays === 0) return []
+    
+    let intervalDays = 7
+    if (durationDays <= 30) intervalDays = 3
+    else if (durationDays <= 90) intervalDays = 7
+    else if (durationDays <= 180) intervalDays = 10
+    else if (durationDays <= 365) intervalDays = 15
+    else intervalDays = 30
+    
+    const pointsCount = Math.max(4, Math.ceil(durationDays / intervalDays))
+
+    const todayDateOnly = new Date()
+    todayDateOnly.setHours(0, 0, 0, 0)
+
+    const totalCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
+    const totalWeightDenominator = totalCost > 0 ? totalCost : (scheduledTasks.length || 1)
+
+    const data = []
+
+    for (let i = 0; i <= pointsCount; i++) {
+      const fraction = i / pointsCount
+      const currTime = minDate.getTime() + fraction * durationDays * 24 * 60 * 60 * 1000
+      const currDate = new Date(currTime)
+      currDate.setHours(0, 0, 0, 0)
+
+      let plannedSum = 0
+      for (const t of scheduledTasks) {
+        const tStart = new Date(t.computedStartDate)
+        const tEnd = new Date(t.computedEndDate)
+        const taskWeightValue = totalCost > 0 ? (Number(t.cost) || 0) : 1
+        
+        if (currDate >= tEnd) {
+          plannedSum += taskWeightValue
+        } else if (currDate >= tStart) {
+          const elapsed = (currDate.getTime() - tStart.getTime()) / (24 * 60 * 60 * 1000)
+          plannedSum += taskWeightValue * (elapsed / t.duration)
+        }
+      }
+
+      let actualSum = 0
+      const showActual = currDate <= todayDateOnly || i === 0
+
+      if (showActual) {
+        for (const t of scheduledTasks) {
+          const tStart = new Date(t.computedStartDate)
+          const tEnd = new Date(t.computedEndDate)
+          const taskWeightValue = totalCost > 0 ? (Number(t.cost) || 0) : 1
+
+          let progressStart = tStart
+          let progressEnd = tEnd < todayDateOnly ? tEnd : todayDateOnly
+          if (tStart >= todayDateOnly && (t.actual_progress || 0) > 0) {
+            progressStart = minDate
+            progressEnd = todayDateOnly
+          }
+
+          if (currDate >= progressEnd) {
+            actualSum += taskWeightValue * ((t.actual_progress || 0) / 100)
+          } else if (currDate <= progressStart) {
+            // zero
+          } else {
+            const totalDur = progressEnd.getTime() - progressStart.getTime()
+            if (totalDur > 0) {
+              const elapsed = currDate.getTime() - progressStart.getTime()
+              const progressAtPoint = (t.actual_progress || 0) * (elapsed / totalDur)
+              actualSum += taskWeightValue * (progressAtPoint / 100)
+            } else {
+              actualSum += taskWeightValue * ((t.actual_progress || 0) / 100)
+            }
+          }
+        }
+      }
+
       data.push({
-        date: end.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' }),
-        timestamp: end.getTime(),
-        PV: 100,
-        EV: end <= today ? tasks.reduce((sum, t) => sum + ((t.actual_progress || 0) * ((Number(t.cost) || 0) / totalWbsCost)), 0) : null
+        date: currDate.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' }),
+        PV: (plannedSum / totalWeightDenominator) * 100,
+        EV: showActual ? (actualSum / totalWeightDenominator) * 100 : null
       })
     }
 
     return data
-  }, [project, tasks])
+  }, [scheduledTasks, project.start_date])
 
   const topWbs = useMemo(() => {
     // Level 1 WBS (no dot or single digit/letter usually, or just top 6 by cost)
@@ -154,17 +187,20 @@ export function SlideSCurve({ project, tasks }: Props) {
                   name="แผนงาน (PV)"
                   type="monotone" 
                   dataKey="PV" 
-                  stroke="#60a5fa" 
+                  stroke="#94a3b8" 
                   strokeWidth={4} 
-                  dot={false}
+                  strokeDasharray="8 8"
+                  dot={{ r: 6, fill: '#94a3b8' }}
+                  activeDot={{ r: 8 }}
                 />
                 <Line 
                   name="ความก้าวหน้าจริง (EV)"
                   type="monotone" 
                   dataKey="EV" 
-                  stroke="#34d399" 
+                  stroke="#a13c9d" 
                   strokeWidth={4} 
-                  dot={{ r: 4 }}
+                  dot={{ r: 6, fill: '#a13c9d' }}
+                  activeDot={{ r: 8 }}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -66,7 +66,7 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
       
       // Get latest 4 photos by default
       const projectInspections = initialInspections.filter(i => i.project_id === projectId)
-      const allPhotos = projectInspections.flatMap(i => i.photo_urls || [])
+      const allPhotos = projectInspections.flatMap(i => i.photo_urls || []).map(raw => raw.split('|||')[0])
       const latestPhotos = allPhotos.slice(0, 4)
 
       return [...prev, {
@@ -85,7 +85,7 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
       if (exists) return exists
       
       const projectInspections = initialInspections.filter(i => i.project_id === p.id)
-      const allPhotos = projectInspections.flatMap(i => i.photo_urls || [])
+      const allPhotos = projectInspections.flatMap(i => i.photo_urls || []).map(raw => raw.split('|||')[0])
       return {
         projectId: p.id,
         showOverview: true,

@@ -16,12 +16,13 @@ interface Props {
 
 export function PhotoManagerModal({ projectId, project, inspections, selectedUrls, onSave, onClose }: Props) {
   // Combine all photos from inspections
-  const [allPhotos, setAllPhotos] = useState<{ url: string, date: string, inspectionId: string }[]>(() => {
-    const list: { url: string, date: string, inspectionId: string }[] = []
+  const [allPhotos, setAllPhotos] = useState<{ url: string, rawUrl: string, date: string, inspectionId: string }[]>(() => {
+    const list: { url: string, rawUrl: string, date: string, inspectionId: string }[] = []
     inspections.forEach(i => {
       if (i.photo_urls) {
-        i.photo_urls.forEach(url => {
-          list.push({ url, date: i.created_at, inspectionId: i.id })
+        i.photo_urls.forEach(rawUrl => {
+          const url = rawUrl.split('|||')[0]
+          list.push({ url, rawUrl, date: i.created_at, inspectionId: i.id })
         })
       }
     })
@@ -56,7 +57,7 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
       // 2. Update database (remove from photo_urls array in that inspection)
       const inspection = inspections.find(i => i.id === inspectionId)
       if (inspection) {
-        const updatedUrls = (inspection.photo_urls || []).filter(u => u !== url)
+        const updatedUrls = (inspection.photo_urls || []).filter(u => u.split('|||')[0] !== url)
         await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', inspectionId)
       }
 
@@ -116,12 +117,13 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
       // Update DB
       const targetInsp = inspections.find(i => i.id === targetInspectionId)
       const currentUrls = targetInsp?.photo_urls || []
-      const updatedUrls = [...currentUrls, publicUrl]
+      const rawUrlToSave = `${publicUrl}|||`
+      const updatedUrls = [...currentUrls, rawUrlToSave]
       
       await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', targetInspectionId)
 
       // Update local state
-      setAllPhotos(prev => [{ url: publicUrl, date: new Date().toISOString(), inspectionId: targetInspectionId! }, ...prev])
+      setAllPhotos(prev => [{ url: publicUrl, rawUrl: rawUrlToSave, date: new Date().toISOString(), inspectionId: targetInspectionId! }, ...prev])
       setSelected(prev => new Set([...prev, publicUrl]))
       
     } catch (err) {

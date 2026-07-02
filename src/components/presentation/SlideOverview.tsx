@@ -83,7 +83,7 @@ export function SlideOverview({ project, tasks, theme = 'dark' }: Props) {
     let done = 0, delayed = 0, inProgress = 0
     scheduledTasks.forEach(t => {
       if (t.actual_progress === 100) done++
-      else if (t.computedStartDate <= todayDateOnly) {
+      else if (new Date(t.computedStartDate) <= todayDateOnly) {
         const tStart = new Date(t.computedStartDate)
         const tEnd = new Date(t.computedEndDate)
         let pp = 0

@@ -53,6 +53,47 @@ interface DrawItem {
   y?: number
 }
 
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+        
+        const MAX_WIDTH = 1280
+        const MAX_HEIGHT = 1280
+        
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width
+            width = MAX_WIDTH
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height
+            height = MAX_HEIGHT
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, width, height)
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6)
+        resolve(dataUrl)
+      }
+      img.onerror = (error) => reject(error)
+    }
+    reader.onerror = (error) => reject(error)
+  })
+}
+
 export function PunchListClient({ project, initialPunchLists, initialPunchItems, user }: Props) {
   const [punchLists, setPunchLists] = useState<PunchList[]>(initialPunchLists)
   const [punchItems, setPunchItems] = useState<PunchItem[]>(initialPunchItems)
@@ -328,25 +369,25 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
   }
 
   // Add photos locally to a punch item
-  const handleAddPhotos = (e: React.ChangeEvent<HTMLInputElement>, itemIndex: number) => {
+  const handleAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>, itemIndex: number) => {
     const files = e.target.files
     if (!files) return
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64 = reader.result as string
+    for (const file of Array.from(files)) {
+      try {
+        const compressedBase64 = await compressImage(file)
         setActiveItems((prev) => {
           const updated = [...prev]
           const item = updated[itemIndex]
           const existingPhotos = item.photos || []
-          item.photos = [...existingPhotos, { src: base64, caption: '', markup_src: null }]
+          item.photos = [...existingPhotos, { src: compressedBase64, caption: '', markup_src: null }]
           return updated
         })
         setIsDirty(true)
+      } catch (err) {
+        console.error('Failed to compress image:', err)
       }
-      reader.readAsDataURL(file)
-    })
+    }
   }
 
   // Remove photo from active item list
@@ -840,20 +881,12 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
               </div>
 
               {chunkIdx === 0 ? (
-                <div className="grid grid-cols-2 gap-4 mb-6 text-[10px]">
-                  <div>
-                    <p><strong>หัวข้อ:</strong> {headerTitle}</p>
-                    <p><strong>ผู้ออกเอกสาร (Issued By):</strong> {headerIssuedBy || '-'}</p>
-                    <p><strong>ผู้รับจ้าง/ผู้รับเหมา (Issued To):</strong> {headerIssuedTo || '-'}</p>
-                  </div>
-                  <div className="text-right">
-                    <p><strong>กำหนดแล้วเสร็จ (Due Date):</strong> {headerDueDate ? new Date(headerDueDate).toLocaleDateString('th-TH') : '-'}</p>
-                    <p><strong>สถานะรวม:</strong> {headerStatus === 'closed' ? '🟢 เสร็จสิ้นแล้ว (Closed)' : '🔴 ยังไม่แล้วเสร็จ (Open)'}</p>
-                  </div>
+                <div className="mb-6 text-[10px] border-b pb-2">
+                  <p><strong>หัวข้อ:</strong> {headerTitle}</p>
                 </div>
               ) : (
-                <div className="mb-4 text-[10px] text-slate-500 italic">
-                  หัวข้อ: {headerTitle} | ผู้ออกเอกสาร: {headerIssuedBy || '-'} | ผู้รับจ้าง/ผู้รับเหมา: {headerIssuedTo || '-'}
+                <div className="mb-4 text-[10px] text-slate-500 italic border-b pb-2">
+                  หัวข้อ: {headerTitle}
                 </div>
               )}
 
@@ -1047,7 +1080,7 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
               </div>
 
               {/* Grid Header Inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 {/* document number */}
                 <div className="space-y-1">
                   <label className="font-bold text-slate-400">เลขที่เอกสาร</label>
@@ -1075,66 +1108,6 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                     }}
                     className="input-text rounded-xl"
                     placeholder="เช่น ตรวจรับงานโครงสร้างงวด 1"
-                  />
-                </div>
-
-                {/* Status */}
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-400">สถานะเอกสาร</label>
-                  <select
-                    value={headerStatus}
-                    onChange={(e) => {
-                      setHeaderStatus(e.target.value as 'open' | 'closed')
-                      setIsDirty(true)
-                    }}
-                    className="input-text rounded-xl"
-                  >
-                    <option value="open">Open (กำลังดำเนินการ)</option>
-                    <option value="closed">Closed (ปิดเอกสารเรียบร้อย)</option>
-                  </select>
-                </div>
-
-                {/* issued by */}
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-400">ผู้ออกเอกสาร (Issued By)</label>
-                  <input
-                    type="text"
-                    value={headerIssuedBy}
-                    onChange={(e) => {
-                      setHeaderIssuedBy(e.target.value)
-                      setIsDirty(true)
-                    }}
-                    className="input-text rounded-xl"
-                    placeholder="เช่น ชื่อผู้ควบคุมงาน"
-                  />
-                </div>
-
-                {/* issued to */}
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-400">ผู้รับจ้าง/ผู้รับเหมา (Issued To)</label>
-                  <input
-                    type="text"
-                    value={headerIssuedTo}
-                    onChange={(e) => {
-                      setHeaderIssuedTo(e.target.value)
-                      setIsDirty(true)
-                    }}
-                    className="input-text rounded-xl"
-                    placeholder="เช่น ชื่อผู้รับเหมารับผิดชอบ"
-                  />
-                </div>
-
-                {/* due date */}
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-400">กำหนดแก้เสร็จ (Due Date)</label>
-                  <input
-                    type="date"
-                    value={headerDueDate}
-                    onChange={(e) => {
-                      setHeaderDueDate(e.target.value)
-                      setIsDirty(true)
-                    }}
-                    className="input-text rounded-xl"
                   />
                 </div>
               </div>

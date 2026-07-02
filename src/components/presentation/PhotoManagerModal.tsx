@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import type { Project, Inspection } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
+import { uploadReportPhoto } from '@/app/actions/reports'
 import { X, Upload, CheckCircle2, Image as ImageIcon, Loader2 } from 'lucide-react'
 
 interface Props {
@@ -49,9 +50,20 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
     try {
       // 1. Delete from Supabase Storage
       const urlObj = new URL(url)
-      const path = urlObj.pathname.split('/public/inspection-photos/')[1]
-      if (path) {
-        await supabase.storage.from('inspection-photos').remove([path])
+      
+      let bucket = ''
+      let path = ''
+      
+      if (urlObj.pathname.includes('/public/inspection-photos/')) {
+        bucket = 'inspection-photos'
+        path = urlObj.pathname.split('/public/inspection-photos/')[1]
+      } else if (urlObj.pathname.includes('/public/reports/')) {
+        bucket = 'reports'
+        path = urlObj.pathname.split('/public/reports/')[1]
+      }
+
+      if (bucket && path) {
+        await supabase.storage.from(bucket).remove([path])
       }
 
       // 2. Update database (remove from photo_urls array in that inspection)
@@ -102,17 +114,11 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
 
       if (!targetInspectionId) throw new Error("No inspection available")
 
-      const filePath = `${projectId}/${targetInspectionId}/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('inspection-photos')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('inspection-photos')
-        .getPublicUrl(filePath)
+      // Upload using server action
+      const res = await uploadReportPhoto(file)
+      if (res.error || !res.url) throw new Error(res.error || 'Upload failed')
+      
+      const publicUrl = res.url
 
       // Update DB
       const targetInsp = inspections.find(i => i.id === targetInspectionId)

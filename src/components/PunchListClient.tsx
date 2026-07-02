@@ -468,7 +468,7 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
   // Draw current path helper
   const drawAllElements = (ctx: CanvasRenderingContext2D, items: DrawItem[]) => {
     const canvas = canvasRef.current
-    if (!canvas || !markupItemIndex || !markupPhotoIndex) return
+    if (!canvas || markupItemIndex === null || markupPhotoIndex === null) return
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
     // Redraw image first

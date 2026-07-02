@@ -95,10 +95,17 @@ export function SlideGantt({ project, tasks, theme }: Props) {
           <div className="w-[120px] flex-shrink-0 px-2">WBS No.</div>
           <div className="w-[300px] flex-shrink-0 px-2">ชื่องาน</div>
           <div className="w-[80px] flex-shrink-0 text-center">% จริง</div>
-          <div className="flex-1 relative border-l border-white/10 ml-4">
-            <div className="absolute inset-0 flex justify-between px-2 text-xs">
-              <span>{minDate.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })}</span>
-              <span>{maxDate.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })}</span>
+          <div className={`flex-1 relative border-l ml-4 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
+            <div className="absolute inset-0 flex px-2 text-xs text-center justify-between">
+              {Array.from({ length: 11 }).map((_, i) => {
+                const ratio = i / 10
+                const date = new Date(minDate.getTime() + ratio * (maxDate.getTime() - minDate.getTime()))
+                return (
+                  <div key={i} className="absolute -translate-x-1/2" style={{ left: `${ratio * 100}%` }}>
+                    {date.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -114,12 +121,12 @@ export function SlideGantt({ project, tasks, theme }: Props) {
           {/* Today Line */}
           {today >= minDate && today <= maxDate && (
             <div 
-              className="absolute inset-y-0 border-l-2 border-yellow-500 border-dashed z-10 pointer-events-none"
+              className="absolute inset-y-0 border-l-2 border-yellow-500 border-dashed z-20 pointer-events-none"
               style={{
                 left: `calc(516px + ((100% - 516px) * ${(today.getTime() - minDate.getTime()) / (totalDays * 24 * 60 * 60 * 1000)}))`
               }}
             >
-              <div className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded -translate-x-1/2 -top-2 absolute">
+              <div className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded -translate-x-1/2 top-0 absolute">
                 วันนี้
               </div>
             </div>

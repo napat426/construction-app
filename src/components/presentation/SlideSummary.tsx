@@ -4,14 +4,17 @@ import { useMemo } from 'react'
 import type { Project, WBSTask } from '@/lib/types'
 import type { SelectedProjectSlide } from '../PresentationClient'
 import { HardHat } from 'lucide-react'
+import { computeTaskDates } from '@/lib/scheduler'
 
 interface Props {
   projects: Project[]
   tasks?: WBSTask[]
   selectedSlides: SelectedProjectSlide[]
+  theme?: 'dark' | 'light'
 }
 
-export function SlideSummary({ projects, tasks = [], selectedSlides }: Props) {
+export function SlideSummary({ projects, tasks = [], selectedSlides, theme = 'dark' }: Props) {
+  const isDark = theme === 'dark'
   const presentedProjects = selectedSlides.map(s => projects.find(p => p.id === s.projectId)).filter(Boolean) as Project[]
 
   const projectEVM = useMemo(() => {
@@ -34,11 +37,7 @@ export function SlideSummary({ projects, tasks = [], selectedSlides }: Props) {
         totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       }
 
-      const scheduledTasks = pTasks.map(t => {
-        let sd = new Date(t.start_date)
-        let ed = new Date(sd.getTime() + (t.duration - 1) * 24 * 60 * 60 * 1000)
-        return { ...t, computedStartDate: sd, computedEndDate: ed }
-      })
+      const scheduledTasks = computeTaskDates(pTasks, project.start_date)
 
       const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
       let pvCumulative = 0
@@ -84,19 +83,19 @@ export function SlideSummary({ projects, tasks = [], selectedSlides }: Props) {
   }
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center pt-8 bg-[#0d0f14] text-white">
+    <div className={`w-full h-full flex flex-col items-center justify-center pt-8 ${isDark ? 'bg-[#0d0f14] text-white' : 'bg-[#f0f2f5] text-slate-900'}`}>
       <div className="flex flex-col items-center mb-12">
         <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-[#a13c9d] to-purple-900 flex items-center justify-center shadow-2xl shadow-purple-900/50 mb-8">
           <HardHat size={64} className="text-white" />
         </div>
         <h1 className="text-5xl font-bold mb-4">สรุปภาพรวมทุกโครงการ</h1>
-        <p className="text-3xl text-white/60">ข้อมูล ณ วันที่ {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p className={`text-3xl ${isDark ? 'text-white/60' : 'text-slate-500'}`}>ข้อมูล ณ วันที่ {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
 
-      <div className="w-[90%] max-w-7xl bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+      <div className={`w-[90%] max-w-7xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-xl'} border rounded-3xl overflow-hidden`}>
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-white/10 text-white/70 text-xl uppercase tracking-wider">
+            <tr className={`${isDark ? 'bg-white/10 text-white/70' : 'bg-slate-50 text-slate-500'} text-xl uppercase tracking-wider`}>
               <th className="py-6 px-6 font-medium">ชื่อโครงการ</th>
               <th className="py-6 px-6 font-medium text-center">ความก้าวหน้า (EV)</th>
               <th className="py-6 px-6 font-medium text-center">Schedule Variance (SV)</th>
@@ -111,21 +110,21 @@ export function SlideSummary({ projects, tasks = [], selectedSlides }: Props) {
               const svPercent = evm.ev - evm.pv
               
               return (
-                <tr key={p.id} className={`border-t border-white/5 ${idx % 2 === 0 ? 'bg-white/[0.02]' : ''} hover:bg-white/5 transition-colors`}>
-                  <td className="py-6 px-6 font-bold leading-tight max-w-[300px] truncate" title={p.name}>{p.name}</td>
-                  <td className="py-6 px-6 text-center text-emerald-400 font-bold">{evm.ev.toFixed(1)}%</td>
+                <tr key={p.id} className={`border-t ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'} ${idx % 2 === 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/50') : ''} transition-colors`}>
+                  <td className={`py-6 px-6 font-bold leading-tight max-w-[300px] truncate ${isDark ? 'text-white' : 'text-slate-800'}`} title={p.name}>{p.name}</td>
+                  <td className={`py-6 px-6 text-center ${isDark ? 'text-emerald-400' : 'text-emerald-600'} font-bold`}>{evm.ev.toFixed(1)}%</td>
                   <td className="py-6 px-6 text-center font-bold">
-                    <div className={svPercent > 0 ? 'text-emerald-400' : svPercent < 0 ? 'text-red-400' : 'text-white'}>
+                    <div className={svPercent > 0 ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : svPercent < 0 ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-white' : 'text-slate-800')}>
                       {svPercent > 0 ? '+' : ''}{svPercent.toFixed(1)}%
                     </div>
                     <div className="text-sm font-normal mt-1 opacity-80">
                       {evm.svDays > 0 ? `เร็วกว่าแผน ${evm.svDays} วัน` : evm.svDays < 0 ? `ล่าช้า ${Math.abs(evm.svDays)} วัน` : 'ตรงตามแผน'}
                     </div>
                   </td>
-                  <td className="py-6 px-6 text-center font-mono text-white/80">
+                  <td className={`py-6 px-6 text-center font-mono ${isDark ? 'text-white/80' : 'text-slate-500'}`}>
                     {formatCurrency(p.budget || 0)}
                   </td>
-                  <td className="py-6 px-6 text-center font-mono text-emerald-400">
+                  <td className={`py-6 px-6 text-center font-mono ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
                     {formatCurrency(p.paid_amount || 0)}
                   </td>
                   <td className="py-6 px-6 text-center">

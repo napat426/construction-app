@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import type { Project, WBSTask } from '@/lib/types'
 import { Calendar, DollarSign, Clock, CheckCircle2, AlertCircle, PlayCircle } from 'lucide-react'
+import { computeTaskDates } from '@/lib/scheduler'
 
 interface Props {
   project: Project
@@ -41,11 +42,7 @@ export function SlideOverview({ project, tasks, theme = 'dark' }: Props) {
       }
     }
 
-    const scheduledTasks = tasks.map(t => {
-      let sd = new Date(t.start_date)
-      let ed = new Date(sd.getTime() + (t.duration - 1) * 24 * 60 * 60 * 1000)
-      return { ...t, computedStartDate: sd, computedEndDate: ed }
-    })
+    const scheduledTasks = computeTaskDates(tasks, project.start_date)
 
     const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
     let pvCumulative = 0

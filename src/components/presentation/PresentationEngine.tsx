@@ -97,7 +97,7 @@ export function PresentationEngine({ projects, tasks, inspections, payments, sel
     if (!slide) return null
 
     if (slide.type === 'summary') {
-      return <SlideSummary projects={projects} tasks={tasks} selectedSlides={selectedSlides} />
+      return <SlideSummary projects={projects} tasks={tasks} selectedSlides={selectedSlides} theme={theme} />
     }
 
     if (!slide.project) return null
@@ -113,6 +113,7 @@ export function PresentationEngine({ projects, tasks, inspections, payments, sel
         return <SlidePhotos 
           project={slide.project} 
           selectedPhotoUrls={slide.slideData?.selectedPhotoUrls || []} 
+          theme={theme}
         />
       default:
         return null

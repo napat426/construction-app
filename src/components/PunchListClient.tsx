@@ -1001,12 +1001,6 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleExportCSV}
-                    className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
-                  >
-                    <Download size={14} /> Export CSV
-                  </button>
-                  <button
                     onClick={handleTriggerPrint}
                     className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
                   >

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-
+import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { ProjectsClient } from '@/components/ProjectsClient'
 import type { Project } from '@/lib/types'
@@ -35,6 +35,14 @@ export default async function ProjectsPage() {
             projects.length > 0
               ? `${projects.length} โครงการในระบบ`
               : 'ยังไม่มีโครงการ'
+          }
+          actions={
+            <Link
+              href="/presentation"
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-md transition-colors"
+            >
+              📽 Presentation
+            </Link>
           }
           user={user}
         />

@@ -12,11 +12,12 @@ import {
   Settings,
   HardHat,
   ChevronRight,
-  Wifi,
+  MonitorPlay,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/projects',    icon: Building2,      label: 'โครงการทั้งหมด' },
+  { href: '/presentation', icon: MonitorPlay,    label: 'นำเสนองาน' },
 ]
 
 export function Sidebar() {

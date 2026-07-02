@@ -798,6 +798,9 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
             page-break-inside: avoid;
             break-inside: avoid;
           }
+          #project-tabs-nav {
+            display: none !important;
+          }
           .print-header {
             border-bottom: 2px solid #000;
             padding-bottom: 12px;

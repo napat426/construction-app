@@ -296,52 +296,6 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
     }
   }
 
-  // Excel/CSV Export
-  const handleExportCSV = () => {
-    if (activeItems.length === 0) {
-      showToast('ไม่มีรายการข้อบกพร่องให้ดาวน์โหลด', 'info')
-      return
-    }
-
-    const headers = [
-      'ลำดับ',
-      'ตำแหน่ง',
-      'ประเภท',
-      'คำอธิบาย',
-      'ผู้รับผิดชอบ',
-      'กำหนดเสร็จ',
-      'สถานะ',
-      'ความเห็นผู้รับเหมา',
-      'วันที่ตอบกลับ',
-      'หมายเหตุ',
-    ]
-
-    const rows = activeItems.map((item) => [
-      item.sequence,
-      item.location,
-      item.category,
-      item.description,
-      item.assignee || '',
-      item.due_date || '',
-      STATUS_META[item.status]?.label || item.status,
-      item.contractor_response || '',
-      item.response_date || '',
-      item.remark || '',
-    ])
-
-    const csvContent =
-      '\uFEFF' +
-      [headers.join(','), ...rows.map((row) => row.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download', `${headerPlNumber || 'punch_list'}_export.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
 
   // HTML5 Drag and Drop Sorting Handlers
   const handleDragStart = (e: React.DragEvent, index: number) => {

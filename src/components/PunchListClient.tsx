@@ -764,7 +764,7 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
       <style jsx global>{`
         @media print {
           /* Print Stylesheet conforming to A4 Portrait specs */
-          header, nav, aside, footer, .no-print, .btn-secondary, button {
+          header, nav, aside, footer, .no-print, .btn-secondary, button, .print\:hidden {
             display: none !important;
           }
           /* Reset parent layout containers for print to prevent clipping */

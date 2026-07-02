@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import type { Project, WBSTask, Inspection } from '@/lib/types'
+import type { Project, WBSTask, Inspection, ProjectPayment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
-import { Search, Filter, Play, CheckSquare, Square, X, GripVertical, Image as ImageIcon } from 'lucide-react'
+import { Search, Filter, Play, CheckSquare, Square, X, GripVertical, Image as ImageIcon, Moon, Sun, Save, Download, Trash2 } from 'lucide-react'
 import { PresentationEngine } from './presentation/PresentationEngine'
 import { PhotoManagerModal } from './presentation/PhotoManagerModal'
 
@@ -11,19 +11,35 @@ interface Props {
   initialProjects: Project[]
   initialTasks: WBSTask[]
   initialInspections: Inspection[]
+  initialPayments: ProjectPayment[]
   user?: UserSession | null
 }
 
 export type SelectedProjectSlide = {
   projectId: string
   showOverview: boolean
+  showGantt: boolean
   showSCurve: boolean
   showPhotos: boolean
   selectedPhotoUrls: string[] // User can choose which 4 photos to show
 }
 
-export function PresentationClient({ initialProjects, initialTasks, initialInspections, user }: Props) {
+type Preset = {
+  id: string
+  name: string
+  createdAt: string
+  updatedAt: string
+  selectedSlides: SelectedProjectSlide[]
+}
+
+export function PresentationClient({ initialProjects, initialTasks, initialInspections, initialPayments, user }: Props) {
   const [projects] = useState<Project[]>(initialProjects)
+  
+  // Theme state
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  
+  // Presets state
+  const [presets, setPresets] = useState<Preset[]>([])
   
   // Filtering states
   const [searchQuery, setSearchQuery] = useState('')
@@ -38,9 +54,82 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
   // Selection states
   const [selectedSlides, setSelectedSlides] = useState<SelectedProjectSlide[]>([])
   
+  // Global slide toggles (UI state only)
+  const [globalToggles, setGlobalToggles] = useState({
+    showOverview: true,
+    showGantt: true,
+    showSCurve: true,
+    showPhotos: true
+  })
+  
   // UI states
   const [isFullScreen, setIsFullScreen] = useState(false)
   const [managingPhotosFor, setManagingPhotosFor] = useState<string | null>(null) // projectId
+  
+  // Load stored preferences
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('presentation_theme')
+    if (savedTheme === 'light' || savedTheme === 'dark') setTheme(savedTheme)
+    
+    const savedPresets = localStorage.getItem('presentation_presets')
+    if (savedPresets) {
+      try {
+        setPresets(JSON.parse(savedPresets))
+      } catch (err) {}
+    }
+  }, [])
+  
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    localStorage.setItem('presentation_theme', next)
+  }
+
+  // Presets logic
+  const handleSavePreset = () => {
+    const existing = presets.find(p => p.selectedSlides.length === selectedSlides.length && p.selectedSlides.every((s, i) => s.projectId === selectedSlides[i]?.projectId))
+    
+    let defaultName = 'ชุดการนำเสนอใหม่'
+    if (existing) {
+      if (confirm(`คุณต้องการบันทึกทับชุดการนำเสนอ "${existing.name}" ใช่หรือไม่? (ยกเลิกเพื่อบันทึกเป็นชื่อใหม่)`)) {
+        const updated = presets.map(p => p.id === existing.id ? { ...p, selectedSlides, updatedAt: new Date().toISOString() } : p)
+        setPresets(updated)
+        localStorage.setItem('presentation_presets', JSON.stringify(updated))
+        alert('บันทึกทับเรียบร้อยแล้ว')
+        return
+      }
+    }
+    
+    const name = prompt('ตั้งชื่อชุดการนำเสนอ:', defaultName)
+    if (!name) return
+    
+    const newPreset: Preset = {
+      id: Date.now().toString(),
+      name,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      selectedSlides
+    }
+    const updated = [newPreset, ...presets]
+    setPresets(updated)
+    localStorage.setItem('presentation_presets', JSON.stringify(updated))
+    alert('บันทึกชุดการนำเสนอใหม่เรียบร้อยแล้ว')
+  }
+  
+  const handleLoadPreset = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value
+    if (!val) return
+    const p = presets.find(x => x.id === val)
+    if (p) setSelectedSlides(p.selectedSlides)
+    e.target.value = '' // reset dropdown
+  }
+  
+  const handleDeletePreset = (id: string, name: string) => {
+    if (!confirm(`ยืนยันการลบชุดนำเสนอ "${name}"?`)) return
+    const updated = presets.filter(p => p.id !== id)
+    setPresets(updated)
+    localStorage.setItem('presentation_presets', JSON.stringify(updated))
+  }
 
   // Derived filtered projects
   const filteredProjects = useMemo(() => {
@@ -59,21 +148,27 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
   }, [projects])
 
   // Handlers
+  const applyGlobalToggles = (key: keyof typeof globalToggles, val: boolean) => {
+    const nextToggles = { ...globalToggles, [key]: val }
+    setGlobalToggles(nextToggles)
+    setSelectedSlides(prev => prev.map(s => ({ ...s, [key]: val })))
+  }
+
   const toggleProjectSelection = (projectId: string) => {
     setSelectedSlides(prev => {
       const exists = prev.find(p => p.projectId === projectId)
       if (exists) return prev.filter(p => p.projectId !== projectId)
       
-      // Get latest 4 photos by default
       const projectInspections = initialInspections.filter(i => i.project_id === projectId)
       const allPhotos = projectInspections.flatMap(i => i.photo_urls || []).map(raw => raw.split('|||')[0])
       const latestPhotos = allPhotos.slice(0, 4)
 
       return [...prev, {
         projectId,
-        showOverview: true,
-        showSCurve: true,
-        showPhotos: true,
+        showOverview: globalToggles.showOverview,
+        showGantt: globalToggles.showGantt,
+        showSCurve: globalToggles.showSCurve,
+        showPhotos: globalToggles.showPhotos,
         selectedPhotoUrls: latestPhotos
       }]
     })
@@ -88,9 +183,10 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
       const allPhotos = projectInspections.flatMap(i => i.photo_urls || []).map(raw => raw.split('|||')[0])
       return {
         projectId: p.id,
-        showOverview: true,
-        showSCurve: true,
-        showPhotos: true,
+        showOverview: globalToggles.showOverview,
+        showGantt: globalToggles.showGantt,
+        showSCurve: globalToggles.showSCurve,
+        showPhotos: globalToggles.showPhotos,
         selectedPhotoUrls: allPhotos.slice(0, 4)
       }
     })
@@ -104,7 +200,7 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
     setSelectedSlides([])
   }
 
-  const toggleSlideOption = (projectId: string, option: 'showOverview' | 'showSCurve' | 'showPhotos') => {
+  const toggleSlideOption = (projectId: string, option: keyof Omit<SelectedProjectSlide, 'projectId' | 'selectedPhotoUrls'>) => {
     setSelectedSlides(prev => prev.map(s => {
       if (s.projectId === projectId) {
         return { ...s, [option]: !s[option] }
@@ -143,7 +239,9 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
         projects={projects}
         tasks={initialTasks}
         inspections={initialInspections}
+        payments={initialPayments}
         selectedSlides={selectedSlides}
+        theme={theme}
         onExit={() => setIsFullScreen(false)}
       />
     )
@@ -155,6 +253,48 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
       <div className="flex-1 flex flex-col bg-white dark:bg-[#14142a] rounded-2xl shadow-sm border border-slate-200 dark:border-[#1c1c34] overflow-hidden">
         {/* Filter Bar */}
         <div className="p-4 border-b border-slate-200 dark:border-[#1c1c34] space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="font-bold text-slate-800 dark:text-white">ตัวกรองโครงการ</h2>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <select
+                  className="px-3 py-1.5 bg-slate-50 dark:bg-[#0a0a14] border border-slate-200 dark:border-[#252548] rounded-lg text-xs outline-none max-w-[150px]"
+                  onChange={handleLoadPreset}
+                  defaultValue=""
+                >
+                  <option value="" disabled>📂 โหลดชุดนำเสนอ...</option>
+                  {presets.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                {presets.length > 0 && (
+                  <button 
+                    onClick={() => {
+                      const sel = document.querySelector('select[defaultValue=""]') as HTMLSelectElement
+                      if (sel && sel.value) handleDeletePreset(sel.value, sel.options[sel.selectedIndex].text)
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                    title="ลบชุดนำเสนอที่เลือก"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+              
+              <button 
+                onClick={handleSavePreset}
+                disabled={selectedSlides.length === 0}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-[#1c1c34] hover:bg-slate-200 dark:hover:bg-[#252548] disabled:opacity-50 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-colors"
+              >
+                <Save size={14} /> บันทึกชุดการนำเสนอ
+              </button>
+              
+              <button onClick={toggleTheme} className="p-2 rounded-lg bg-slate-100 dark:bg-[#1c1c34] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#252548]">
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            </div>
+          </div>
+          
           <div className="flex gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -228,8 +368,31 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
 
       {/* Right Panel: Selected Slides */}
       <div className="w-[400px] flex flex-col bg-white dark:bg-[#14142a] rounded-2xl shadow-sm border border-slate-200 dark:border-[#1c1c34] overflow-hidden">
-        <div className="p-4 border-b border-slate-200 dark:border-[#1c1c34] bg-slate-50 dark:bg-[#0a0a14]">
+        <div className="p-4 border-b border-slate-200 dark:border-[#1c1c34] bg-slate-50 dark:bg-[#0a0a14] flex justify-between items-center">
           <h2 className="font-bold text-slate-800 dark:text-white">ลำดับการนำเสนอ ({selectedSlides.length} โครงการ)</h2>
+        </div>
+        
+        {/* Global Slide Settings */}
+        <div className="p-3 mx-4 mt-4 bg-slate-50 dark:bg-[#0a0a14] border border-slate-200 dark:border-[#252548] rounded-xl text-xs">
+          <div className="font-bold text-slate-700 dark:text-slate-300 mb-2">เลือกประเภทสไลด์สำหรับทุกโครงการ</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={globalToggles.showOverview} onChange={(e) => applyGlobalToggles('showOverview', e.target.checked)} />
+              <span className="text-slate-600 dark:text-slate-400">ภาพรวม+EVM</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={globalToggles.showGantt} onChange={(e) => applyGlobalToggles('showGantt', e.target.checked)} />
+              <span className="text-slate-600 dark:text-slate-400">Gantt Chart</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={globalToggles.showSCurve} onChange={(e) => applyGlobalToggles('showSCurve', e.target.checked)} />
+              <span className="text-slate-600 dark:text-slate-400">S-Curve+WBS</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={globalToggles.showPhotos} onChange={(e) => applyGlobalToggles('showPhotos', e.target.checked)} />
+              <span className="text-slate-600 dark:text-slate-400">รูปหน้างาน</span>
+            </label>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -242,7 +405,7 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
               const proj = projects.find(p => p.id === slide.projectId)
               if (!proj) return null
               
-              const totalSlides = [slide.showOverview, slide.showSCurve, slide.showPhotos].filter(Boolean).length
+              const totalSlides = [slide.showOverview, slide.showGantt, slide.showSCurve, slide.showPhotos].filter(Boolean).length
               
               return (
                 <div 
@@ -251,7 +414,7 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
                   onDragStart={(e) => handleDragStart(e, idx)}
                   onDragOver={(e) => handleDragOver(e, idx)}
                   onDrop={(e) => handleDrop(e, idx)}
-                  className="p-3 bg-white dark:bg-[#1a1a32] border border-slate-200 dark:border-[#252548] rounded-xl cursor-move"
+                  className="p-3 bg-white dark:bg-[#1a1a32] border border-slate-200 dark:border-[#252548] rounded-xl cursor-move hover:shadow-md transition-shadow"
                 >
                   <div className="flex gap-3 mb-3">
                     <GripVertical className="text-slate-300 mt-1" size={16} />
@@ -267,29 +430,33 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
                     </button>
                   </div>
                   
-                  <div className="pl-7 space-y-2 text-xs">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                  <div className="pl-7 grid grid-cols-2 gap-y-2 text-[11px]">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
                       <input type="checkbox" checked={slide.showOverview} onChange={() => toggleSlideOption(proj.id, 'showOverview')} />
-                      <span>ภาพรวมโครงการ + EVM</span>
+                      <span>ภาพรวม + EVM</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input type="checkbox" checked={slide.showGantt} onChange={() => toggleSlideOption(proj.id, 'showGantt')} />
+                      <span>Gantt Chart</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
                       <input type="checkbox" checked={slide.showSCurve} onChange={() => toggleSlideOption(proj.id, 'showSCurve')} />
-                      <span>S-Curve + สรุปแผนงาน (WBS)</span>
+                      <span>S-Curve + WBS</span>
                     </label>
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
                         <input type="checkbox" checked={slide.showPhotos} onChange={() => toggleSlideOption(proj.id, 'showPhotos')} />
-                        <span>ภาพความก้าวหน้าหน้างาน</span>
-                      </div>
+                        <span>ภาพความก้าวหน้า</span>
+                      </label>
                       {slide.showPhotos && (
                         <button 
                           onClick={(e) => { e.preventDefault(); setManagingPhotosFor(proj.id) }}
-                          className="text-[10px] flex items-center gap-1 text-primary-600 bg-primary-50 dark:bg-primary-900/30 px-2 py-1 rounded-md hover:bg-primary-100"
+                          className="w-fit text-[9px] flex items-center gap-1 text-primary-600 bg-primary-50 dark:bg-primary-900/30 px-1.5 py-0.5 rounded hover:bg-primary-100 ml-4"
                         >
-                          <ImageIcon size={12} /> จัดการรูป
+                          <ImageIcon size={10} /> จัดการรูป
                         </button>
                       )}
-                    </label>
+                    </div>
                   </div>
                 </div>
               )

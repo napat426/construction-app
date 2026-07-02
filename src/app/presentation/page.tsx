@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { Header } from '@/components/Header'
 import { PresentationClient } from '@/components/PresentationClient'
 import { getCurrentUser } from '@/lib/auth'
-import type { Project, WBSTask, Inspection } from '@/lib/types'
+import type { Project, WBSTask, Inspection, ProjectPayment } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,15 +14,17 @@ export default async function PresentationPage() {
   const user = await getCurrentUser()
 
   // Fetch all necessary data for the presentation (memory caching via Client Component)
-  const [projectsRes, tasksRes, inspectionsRes] = await Promise.all([
+  const [projectsRes, tasksRes, inspectionsRes, paymentsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('inspections').select('*').order('created_at', { ascending: false }),
+    supabase.from('project_payments').select('*').order('payment_date', { ascending: true })
   ])
 
   const projects = (projectsRes.data as Project[]) ?? []
   const tasks = (tasksRes.data as WBSTask[]) ?? []
   const inspections = (inspectionsRes.data as Inspection[]) ?? []
+  const payments = (paymentsRes.data as ProjectPayment[]) ?? []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -38,6 +40,7 @@ export default async function PresentationPage() {
             initialProjects={projects} 
             initialTasks={tasks} 
             initialInspections={inspections}
+            initialPayments={payments}
             user={user}
           />
         </main>

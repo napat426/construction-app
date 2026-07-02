@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask } from '@/lib/types'
+import type { Project, WBSTask, ProjectPayment } from '@/lib/types'
 import {
   LineChart,
   Line,
@@ -18,10 +18,13 @@ import { computeTaskDates } from '@/lib/scheduler'
 interface Props {
   project: Project
   tasks: WBSTask[]
+  payments?: ProjectPayment[]
+  theme?: 'dark' | 'light'
 }
 
-export function SlideSCurve({ project, tasks }: Props) {
-  // 1. Sort and Compute schedule exactly like PlanningClient
+export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: Props) {
+  const isDark = theme === 'dark'
+
   const scheduledTasks = useMemo(() => {
     const sorted = [...tasks].sort((a, b) => {
       const aParts = a.wbs_no.split('.').map(Number)
@@ -36,14 +39,12 @@ export function SlideSCurve({ project, tasks }: Props) {
     return computeTaskDates(sorted, project.start_date)
   }, [tasks, project.start_date])
 
-  // 2. Generate S-Curve Data perfectly matching PlanningClient
   const chartData = useMemo(() => {
     if (scheduledTasks.length === 0 || !project.start_date) return []
 
     const start = new Date(project.start_date)
     start.setHours(0, 0, 0, 0)
     
-    // Find min and max computed dates for accurate timeline length
     let minDate = new Date(scheduledTasks[0].computedStartDate)
     let maxDate = new Date(scheduledTasks[0].computedEndDate)
     for (const t of scheduledTasks) {
@@ -53,7 +54,6 @@ export function SlideSCurve({ project, tasks }: Props) {
       if (ed > maxDate) maxDate = ed
     }
     
-    // Make sure timeline starts at least at project.start_date
     if (start < minDate) minDate = start
     
     const durationDays = Math.max(0, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)))
@@ -73,6 +73,18 @@ export function SlideSCurve({ project, tasks }: Props) {
 
     const totalCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
     const totalWeightDenominator = totalCost > 0 ? totalCost : (scheduledTasks.length || 1)
+
+    // Prepare payments (AC calculation)
+    const validPayments = payments.filter(p => p.payment_date).sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime())
+    const paymentPoints: { date: Date, cumulative: number }[] = []
+    let currentCumulative = 0
+    validPayments.forEach(p => {
+      currentCumulative += Number(p.amount) || 0
+      paymentPoints.push({
+        date: new Date(p.payment_date),
+        cumulative: currentCumulative
+      })
+    })
 
     const data = []
 
@@ -129,59 +141,126 @@ export function SlideSCurve({ project, tasks }: Props) {
         }
       }
 
+      // AC Calculation
+      let acVal: number | null = null
+      if (showActual) {
+        const pastPayments = paymentPoints.filter(p => p.date <= currDate)
+        const cumulativeAc = pastPayments.length > 0 ? pastPayments[pastPayments.length - 1].cumulative : 0
+        acVal = ((cumulativeAc) / (project.budget || 1)) * 100
+      }
+
       data.push({
         date: currDate.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' }),
         PV: (plannedSum / totalWeightDenominator) * 100,
-        EV: showActual ? (actualSum / totalWeightDenominator) * 100 : null
+        EV: showActual ? (actualSum / totalWeightDenominator) * 100 : null,
+        AC: showActual ? Math.min(100, Math.round(acVal || 0)) : null
       })
     }
 
     return data
-  }, [scheduledTasks, project.start_date])
+  }, [scheduledTasks, project.start_date, payments, project.budget])
 
   const topWbs = useMemo(() => {
-    // Level 1 WBS (no dot or single digit/letter usually, or just top 6 by cost)
-    // Here we just take top 6 by cost for the summary
-    return [...tasks].sort((a, b) => Number(b.cost) - Number(a.cost)).slice(0, 6)
-  }, [tasks])
+    return scheduledTasks
+      .filter(t => !t.wbs_no.includes('.'))
+      .slice(0, 10)
+  }, [scheduledTasks])
 
-  const totalCost = tasks.reduce((sum, t) => sum + Number(t.cost || 0), 0)
+  const gridColor = isDark ? '#ffffff10' : '#e0e3e9'
+  const textColor = isDark ? '#94a3b8' : '#333333'
 
   return (
-    <div className="w-full h-full flex flex-col pt-4">
-      <div className="mb-8">
-        <h2 className="text-4xl font-bold text-[#a13c9d]">S-Curve & แผนงานโครงการ</h2>
-        <p className="text-xl text-white/60">โครงการ: {project.name}</p>
+    <div className="w-full h-full flex flex-col pt-8">
+      <div className="flex justify-between items-start mb-10">
+        <div>
+          <h1 className={`text-6xl font-bold mb-4 ${isDark ? 'text-[#a13c9d]' : 'text-purple-700'}`}>แผนงานรวม (S-Curve & WBS)</h1>
+          <p className={`text-2xl ${isDark ? 'text-white/60' : 'text-slate-500'}`}>โครงการ: {project.name}</p>
+        </div>
       </div>
 
-      <div className="flex-1 flex gap-8">
-        {/* Left: Chart */}
-        <div className="w-[60%] bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-             <h3 className="text-2xl font-bold">กราฟ S-Curve</h3>
-             <span className="text-sm px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full">ประมาณการจากแผนงานปัจจุบัน</span>
+      <div className="flex-1 flex gap-8 min-h-0">
+        <div className={`w-1/3 flex flex-col rounded-3xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl p-6 overflow-hidden`}>
+          <h3 className={`text-2xl font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-800'}`}>งานหลัก (WBS)</h3>
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+            {topWbs.map((wbs, idx) => (
+              <div key={idx} className={`p-4 rounded-2xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} border flex flex-col gap-2`}>
+                <div className="flex justify-between items-start">
+                  <span className={`font-bold text-lg leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                    <span className="text-primary-500 mr-2">{wbs.wbs_no}</span>
+                    {wbs.name}
+                  </span>
+                  <span className={`text-sm whitespace-nowrap ml-4 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                    {wbs.duration} วัน
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>ทำได้: {wbs.actual_progress || 0}%</span>
+                  <span className={isDark ? 'text-white/60' : 'text-slate-500'}>
+                    {new Date(wbs.computedStartDate).toLocaleDateString('th-TH', {month:'short', year:'2-digit'})} 
+                    {' - '}
+                    {new Date(wbs.computedEndDate).toLocaleDateString('th-TH', {month:'short', year:'2-digit'})}
+                  </span>
+                </div>
+                <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-200'} h-1.5 rounded-full mt-1 overflow-hidden`}>
+                  <div className="bg-[#a13c9d] h-full" style={{width: `${wbs.actual_progress || 0}%`}} />
+                </div>
+              </div>
+            ))}
+            {tasks.length > topWbs.length && (
+              <div className={`text-center text-sm py-2 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                + อีก {tasks.length - topWbs.length} งานย่อย
+              </div>
+            )}
           </div>
-          <div className="flex-1 min-h-0">
+        </div>
+
+        <div className={`w-2/3 rounded-3xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl p-8 flex flex-col relative`}>
+          <div className="absolute top-8 right-8 flex gap-6 text-sm font-bold bg-white/5 backdrop-blur px-4 py-2 rounded-full border border-white/10 z-10">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-1 border-t-2 border-dashed border-[#94a3b8]"></div>
+              <span className={isDark ? 'text-white/60' : 'text-slate-500'}>PV (แผนงาน)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-1 bg-[#a13c9d]"></div>
+              <span className={isDark ? 'text-white' : 'text-slate-800'}>EV (ความก้าวหน้า)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-1 bg-[#e08a2b]"></div>
+              <span className={isDark ? 'text-white' : 'text-slate-800'}>AC (ค่าใช้จ่ายจริง)</span>
+            </div>
+          </div>
+          
+          <div className="flex-1 w-full h-full min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+              <LineChart data={chartData} margin={{ top: 40, right: 20, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis 
                   dataKey="date" 
-                  stroke="#ffffff60" 
-                  tick={{ fill: '#ffffff60', fontSize: 14 }}
-                  tickMargin={10}
+                  stroke={textColor} 
+                  tick={{ fill: textColor, fontSize: 14 }}
+                  tickMargin={15}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis 
-                  stroke="#ffffff60" 
-                  tick={{ fill: '#ffffff60', fontSize: 14 }}
-                  domain={[0, 100]}
-                  tickFormatter={(v) => `${v}%`}
+                  domain={[0, 100]} 
+                  stroke={textColor} 
+                  tick={{ fill: textColor, fontSize: 14 }}
+                  tickFormatter={(val) => `${val}%`}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a1a32', borderColor: '#252548', color: '#fff', borderRadius: '12px' }}
-                  itemStyle={{ fontSize: 16 }}
+                  contentStyle={{ 
+                    backgroundColor: isDark ? '#1a1a32' : '#ffffff', 
+                    borderColor: isDark ? '#252548' : '#e2e8f0', 
+                    borderRadius: '12px',
+                    color: isDark ? '#fff' : '#000',
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                  }}
+                  itemStyle={{ fontSize: '16px', fontWeight: 'bold' }}
+                  labelStyle={{ color: isDark ? '#94a3b8' : '#64748b', marginBottom: '8px' }}
                 />
-                <Legend wrapperStyle={{ paddingTop: '20px', fontSize: 16 }} />
                 
                 <Line 
                   name="แผนงาน (PV)"
@@ -202,49 +281,17 @@ export function SlideSCurve({ project, tasks }: Props) {
                   dot={{ r: 6, fill: '#a13c9d' }}
                   activeDot={{ r: 8 }}
                 />
+                <Line 
+                  name="ค่าใช้จ่ายจริง (AC)"
+                  type="monotone" 
+                  dataKey="AC" 
+                  stroke="#e08a2b" 
+                  strokeWidth={4} 
+                  dot={{ r: 6, fill: '#e08a2b' }}
+                  activeDot={{ r: 8 }}
+                />
               </LineChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Right: Table */}
-        <div className="w-[40%] bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col">
-          <h3 className="text-2xl font-bold mb-6">งานหลัก (Top WBS)</h3>
-          <div className="flex-1">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/10 text-white/50 text-lg">
-                  <th className="py-3 px-2 font-medium">ชื่องาน</th>
-                  <th className="py-3 px-2 font-medium text-right">Weight</th>
-                  <th className="py-3 px-2 font-medium text-right">Actual</th>
-                  <th className="py-3 px-2 font-medium text-center">สถานะ</th>
-                </tr>
-              </thead>
-              <tbody className="text-xl">
-                {topWbs.map((t) => {
-                  const weight = totalCost > 0 ? (Number(t.cost) / totalCost) * 100 : 0
-                  const isDone = t.actual_progress === 100
-                  const statusColor = isDone ? 'text-emerald-400 bg-emerald-500/10' : t.actual_progress > 0 ? 'text-blue-400 bg-blue-500/10' : 'text-slate-400 bg-white/5'
-                  const statusText = isDone ? 'Done' : t.actual_progress > 0 ? 'In Prog' : 'Wait'
-                  
-                  return (
-                    <tr key={t.id} className="border-b border-white/5 last:border-0">
-                      <td className="py-4 px-2 line-clamp-2 leading-tight">{t.name}</td>
-                      <td className="py-4 px-2 text-right text-white/70">{weight.toFixed(1)}%</td>
-                      <td className="py-4 px-2 text-right font-bold">{t.actual_progress.toFixed(1)}%</td>
-                      <td className="py-4 px-2 text-center">
-                        <span className={`px-3 py-1 rounded-lg text-sm font-bold ${statusColor}`}>{statusText}</span>
-                      </td>
-                    </tr>
-                  )
-                })}
-                {topWbs.length === 0 && (
-                   <tr>
-                     <td colSpan={4} className="py-8 text-center text-white/40">ไม่มีข้อมูลงานในระบบ</td>
-                   </tr>
-                )}
-              </tbody>
-            </table>
           </div>
         </div>
       </div>

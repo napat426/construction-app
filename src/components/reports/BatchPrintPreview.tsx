@@ -226,7 +226,6 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
                     <p className="text-[10px] text-slate-600 mt-1.5">
                       ( {supervisorName ? supervisorName : '...........................................'} )
                     </p>
-                    <p className="text-[10px] text-slate-500 mt-1">ผู้ตรวจรับ / ผู้ควบคุมงาน</p>
                   </div>
                 </div>
               )}

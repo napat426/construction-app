@@ -67,7 +67,6 @@ export function ProjectCard({ project, tasks = [], user }: ProjectCardProps) {
   const [isPending, startTransition] = useTransition()
 
   const status = STATUS_MAP[project.status] ?? STATUS_MAP['รอดำเนินการ']
-  const progressClamped = Math.max(0, Math.min(100, project.progress ?? 0))
 
   const svData = useMemo(() => {
     if (!tasks || tasks.length === 0) return null
@@ -152,9 +151,14 @@ export function ProjectCard({ project, tasks = [], user }: ProjectCardProps) {
 
     return {
       sv: SV,
-      svDays
+      svDays,
+      ev: evCumulative
     }
   }, [project, tasks])
+
+  const progressClamped = svData 
+    ? Math.max(0, Math.min(100, Math.round(svData.ev * 10) / 10))
+    : Math.max(0, Math.min(100, project.progress ?? 0))
 
   const handleDelete = () => {
     startTransition(async () => {

@@ -1,17 +1,18 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 import { Calendar, DollarSign, Clock, CheckCircle2, AlertCircle, PlayCircle } from 'lucide-react'
 import { computeTaskDates } from '@/lib/scheduler'
 
 interface Props {
   project: Project
   tasks: WBSTask[]
+  milestones?: ProjectMilestone[]
   theme?: 'dark' | 'light'
 }
 
-export function SlideOverview({ project, tasks, theme = 'dark' }: Props) {
+export function SlideOverview({ project, tasks, milestones = [], theme = 'dark' }: Props) {
   const isDark = theme === 'dark'
 
   // Replicate EVM Logic from DashboardClient
@@ -70,7 +71,10 @@ export function SlideOverview({ project, tasks, theme = 'dark' }: Props) {
     })
 
     const BAC = project.budget || 1
-    const AC_Cost = project.paid_amount || 0
+    const paidMilestonesAmount = milestones
+      .filter(m => m.is_paid)
+      .reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
+    const AC_Cost = milestones.length > 0 ? paidMilestonesAmount : (project.paid_amount || 0)
     const EV_Cost = BAC * (evCumulative / 100)
     
     const svPercent = evCumulative - pvCumulative
@@ -109,7 +113,7 @@ export function SlideOverview({ project, tasks, theme = 'dark' }: Props) {
     return {
       pvCumulative, evCumulative, svPercent, svDays, cvPercent, cvCost, done, delayed, inProgress, totalDays, daysRemaining, isOverrun
     }
-  }, [project, tasks])
+  }, [project, tasks, milestones])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val)

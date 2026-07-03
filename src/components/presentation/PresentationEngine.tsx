@@ -104,7 +104,7 @@ export function PresentationEngine({ projects, tasks, inspections, milestones, s
 
     switch (slide.type) {
       case 'overview':
-        return <SlideOverview project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} theme={theme} />
+        return <SlideOverview project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} milestones={milestones.filter(m => m.project_id === slide.project!.id)} theme={theme} />
       case 'gantt':
         return <SlideGantt project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} theme={theme} />
       case 'scurve':

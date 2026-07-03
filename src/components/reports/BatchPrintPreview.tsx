@@ -160,10 +160,17 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
                 <div className="mt-8 border-t border-slate-200 pt-6">
                   <span className="text-xs text-slate-400 uppercase font-black tracking-wider block mb-4">รูปภาพและภาพถ่ายหน้างาน (Photos)</span>
                   <div className="grid grid-cols-3 gap-4">
-                    {photoPages[0].map((url: string, idx: number) => (
-                      <div key={idx} className="aspect-video w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`Site image ${idx + 1}`} className="object-cover w-full h-full" />
+                    {photoPages[0].map((photo: any, idx: number) => (
+                      <div key={idx} className="flex flex-col gap-1">
+                        <div className="aspect-video w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photo.url} alt={photo.caption || `Site image ${idx + 1}`} className="object-cover w-full h-full" />
+                        </div>
+                        {photo.caption && (
+                          <p className="text-[10px] text-slate-500 text-center font-bold truncate px-1">
+                            {photo.caption}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -178,10 +185,17 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
                     <p className="text-sm font-bold text-slate-700">โครงการ: {project.name} | วันที่: {formatPrintDate(report.report_date)}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-6 mt-8">
-                    {extraPage.map((url: string, idx: number) => (
-                      <div key={idx} className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-300 bg-slate-50 relative">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`Extra site image ${idx + 1}`} className="object-cover w-full h-full" />
+                    {extraPage.map((photo: any, idx: number) => (
+                      <div key={idx} className="flex flex-col gap-2">
+                        <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-300 bg-slate-50 relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photo.url} alt={photo.caption || `Extra site image ${idx + 1}`} className="object-cover w-full h-full" />
+                        </div>
+                        {photo.caption && (
+                          <p className="text-xs text-slate-500 text-center font-bold truncate px-2">
+                            {photo.caption}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>

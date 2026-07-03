@@ -31,7 +31,6 @@ interface Props {
   project: Project;
   data: WeeklyReport[];
   tasks: WBSTask[];
-  payments: ProjectPayment[];
   milestones: ProjectMilestone[];
   user?: UserSession | null;
 }
@@ -69,7 +68,6 @@ export function WeeklyReportsTab({
   project,
   data,
   tasks,
-  payments,
   milestones,
   user,
 }: Props) {
@@ -570,33 +568,17 @@ function WeeklyReportForm({
     const totalWeightDenominator =
       summary.totalCost > 0 ? summary.totalCost : scheduledTasks.length || 1;
 
-    // Group paid milestones by date and sort chronologically
-    const groupedMap = new Map<string, number>();
-    for (const m of milestones) {
-      if (m.is_paid && m.payment_date && Number(m.amount) > 0) {
-        const dStr = m.payment_date;
-        groupedMap.set(dStr, (groupedMap.get(dStr) || 0) + Number(m.amount));
+    // Prepare payments (AC calculation) from milestones
+    const paymentPoints: { date: Date; amount: number }[] = []
+    milestones.forEach(m => {
+      if (m.is_paid && m.payment_date) {
+        paymentPoints.push({
+          date: new Date(m.payment_date),
+          amount: Number(m.amount) || 0
+        })
       }
-    }
-
-    const sortedPayments = Array.from(groupedMap.entries())
-      .map(([dateStr, amount]) => ({
-        time: new Date(dateStr).getTime(),
-        amount,
-      }))
-      .sort((a, b) => a.time - b.time);
-
-    const keyPoints: { time: number; value: number }[] = [];
-    keyPoints.push({ time: start.getTime(), value: 0 });
-
-    let runningSum = 0;
-    for (const p of sortedPayments) {
-      runningSum += p.amount;
-      keyPoints.push({
-        time: p.time,
-        value: (runningSum / (project.budget || 1)) * 100,
-      });
-    }
+    })
+    paymentPoints.sort((a, b) => a.date.getTime() - b.date.getTime())
 
     for (let i = 0; i <= pointsCount; i++) {
       const fraction = i / pointsCount;
@@ -661,57 +643,31 @@ function WeeklyReportForm({
         }
       }
 
-      // AC cumulative spent from project milestones
+      // AC cumulative spent
       let acVal: number | null = null;
       if (showActual) {
-        if (keyPoints.length > 1) {
-          if (currTime <= keyPoints[0].time) {
-            acVal = 0;
-          } else {
-            let found = false;
-            for (let j = 0; j < keyPoints.length - 1; j++) {
-              const pA = keyPoints[j];
-              const pB = keyPoints[j + 1];
-              if (currTime >= pA.time && currTime <= pB.time) {
-                const dt = pB.time - pA.time;
-                if (dt > 0) {
-                  const ratio = (currTime - pA.time) / dt;
-                  acVal = pA.value + (pB.value - pA.value) * ratio;
-                } else {
-                  acVal = pB.value;
-                }
-                found = true;
-                break;
-              }
-            }
-            if (!found) {
-              acVal = keyPoints[keyPoints.length - 1].value;
-            }
-          }
+        if (paymentPoints.length > 0) {
+          const totalPaidUpToDate = paymentPoints
+            .filter(p => p.date <= currDate)
+            .reduce((sum, p) => sum + p.amount, 0)
+          acVal = (totalPaidUpToDate / (project.budget || 1)) * 100
         } else {
           // Fallback: draw a linear slant from 0 at start date up to totalPaidPercent at today
-          const totalPaidPercent =
-            ((project.paid_amount || 0) / (project.budget || 1)) * 100;
+          const totalPaidPercent = ((project.paid_amount || 0) / (project.budget || 1)) * 100
           if (totalPaidPercent > 0) {
-            const projectStart = start.getTime();
-            const projectToday = todayDateOnly.getTime();
+            const projectStart = start.getTime()
+            const projectToday = todayDateOnly.getTime()
 
             if (currTime <= projectStart) {
-              acVal = 0;
+              acVal = 0
             } else if (projectToday > projectStart) {
-              const ratio = Math.min(
-                1,
-                Math.max(
-                  0,
-                  (currTime - projectStart) / (projectToday - projectStart),
-                ),
-              );
-              acVal = totalPaidPercent * ratio;
+              const ratio = Math.min(1, Math.max(0, (currTime - projectStart) / (projectToday - projectStart)))
+              acVal = totalPaidPercent * ratio
             } else {
-              acVal = totalPaidPercent;
+              acVal = totalPaidPercent
             }
           } else {
-            acVal = 0;
+            acVal = 0
           }
         }
       }

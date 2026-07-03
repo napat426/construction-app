@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { Project, WBSTask, Inspection, ProjectPayment } from '@/lib/types'
+import type { Project, WBSTask, Inspection, ProjectMilestone } from '@/lib/types'
 import type { SelectedProjectSlide } from '../PresentationClient'
 import { Maximize, Minimize, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -15,7 +15,7 @@ interface Props {
   projects: Project[]
   tasks: WBSTask[]
   inspections: Inspection[]
-  payments: ProjectPayment[]
+  milestones: ProjectMilestone[]
   selectedSlides: SelectedProjectSlide[]
   theme: 'dark' | 'light'
   onExit: () => void
@@ -27,7 +27,7 @@ type SlideDef = {
   slideData?: SelectedProjectSlide
 }
 
-export function PresentationEngine({ projects, tasks, inspections, payments, selectedSlides, theme, onExit }: Props) {
+export function PresentationEngine({ projects, tasks, inspections, milestones, selectedSlides, theme, onExit }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -108,7 +108,7 @@ export function PresentationEngine({ projects, tasks, inspections, payments, sel
       case 'gantt':
         return <SlideGantt project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} theme={theme} />
       case 'scurve':
-        return <SlideSCurve project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} payments={payments.filter(p => p.project_id === slide.project!.id)} theme={theme} />
+        return <SlideSCurve project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} milestones={milestones.filter(m => m.project_id === slide.project!.id)} theme={theme} />
       case 'photos':
         return <SlidePhotos 
           project={slide.project} 

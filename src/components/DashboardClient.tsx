@@ -20,14 +20,12 @@ import {
 import Link from 'next/link'
 import { EditBaselineModal } from './EditBaselineModal'
 import { computeTaskDates } from '@/lib/scheduler'
-import type { Project, WBSTask, ProjectPayment, ProjectMilestone } from '@/lib/types'
-import { addPayment, deletePayment } from '@/app/actions/payments'
+import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
 interface DashboardClientProps {
   project: Project
   tasks: WBSTask[]
-  payments: ProjectPayment[]
   milestones: ProjectMilestone[]
   user?: UserSession | null
 }
@@ -50,7 +48,7 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function DashboardClient({ project, tasks, payments, milestones, user }: DashboardClientProps) {
+export function DashboardClient({ project, tasks, milestones, user }: DashboardClientProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [paymentDate, setPaymentDate] = useState('')
@@ -255,7 +253,7 @@ export function DashboardClient({ project, tasks, payments, milestones, user }: 
       cvCurrency,
       taskStats,
     }
-  }, [project, tasks, payments, milestones, today])
+  }, [project, tasks, milestones, today])
 
   const labelCls = 'text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider'
 

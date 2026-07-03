@@ -17,7 +17,6 @@ interface Props {
   dailyReports: DailyReport[]
   weeklyReports: WeeklyReport[]
   tasks: WBSTask[]
-  payments: ProjectPayment[]
   milestones: ProjectMilestone[]
   user?: UserSession | null
 }
@@ -30,7 +29,6 @@ export function ReportsClient({
   dailyReports,
   weeklyReports,
   tasks,
-  payments,
   milestones,
   user,
 }: Props) {
@@ -76,7 +74,6 @@ export function ReportsClient({
             project={project} 
             data={weeklyReports} 
             tasks={tasks}
-            payments={payments}
             milestones={milestones}
             user={user}
           />

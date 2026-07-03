@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask, ProjectPayment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 import {
   LineChart,
   Line,
@@ -18,11 +18,11 @@ import { computeTaskDates } from '@/lib/scheduler'
 interface Props {
   project: Project
   tasks: WBSTask[]
-  payments?: ProjectPayment[]
+  milestones?: ProjectMilestone[]
   theme?: 'dark' | 'light'
 }
 
-export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: Props) {
+export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }: Props) {
   const isDark = theme === 'dark'
 
   const scheduledTasks = useMemo(() => {
@@ -83,14 +83,16 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
     const totalCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
     const totalWeightDenominator = totalCost > 0 ? totalCost : (scheduledTasks.length || 1)
 
-    // Prepare payments (AC calculation)
-    const validPayments = payments.filter(p => p.payment_date).sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime())
+    // Prepare payments (AC calculation) from milestones
+    const validPayments = milestones
+      .filter(m => m.is_paid && m.payment_date)
+      .sort((a, b) => new Date(a.payment_date!).getTime() - new Date(b.payment_date!).getTime())
     const paymentPoints: { date: Date, cumulative: number }[] = []
     let currentCumulative = 0
-    validPayments.forEach(p => {
-      currentCumulative += Number(p.amount) || 0
+    validPayments.forEach(m => {
+      currentCumulative += Number(m.amount) || 0
       paymentPoints.push({
-        date: new Date(p.payment_date),
+        date: new Date(m.payment_date!),
         cumulative: currentCumulative
       })
     })
@@ -187,7 +189,7 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
     }
 
     return data
-  }, [scheduledTasks, project.start_date, project.end_date, payments, project.budget])
+  }, [scheduledTasks, project.start_date, project.end_date, milestones, project.budget])
 
   const topWbs = useMemo(() => {
     return scheduledTasks

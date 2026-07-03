@@ -17,13 +17,12 @@ import {
 } from 'lucide-react'
 import { deleteTask } from '@/app/actions/tasks'
 import { computeTaskDates } from '@/lib/scheduler'
-import type { Project, WBSTask, ProjectPayment, ProjectMilestone } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
 interface PlanningClientProps {
   project: Project
   tasks: WBSTask[]
-  payments: ProjectPayment[]
   milestones: ProjectMilestone[]
   user?: UserSession | null
 }
@@ -59,7 +58,7 @@ function formatDate(dateStr: string): string {
   })
 }
 
-export function PlanningClient({ project, tasks, payments, milestones, user }: PlanningClientProps) {
+export function PlanningClient({ project, tasks, milestones, user }: PlanningClientProps) {
   const [activeTab, setActiveTab] = useState<'wbs' | 'gantt' | 'scurve'>('wbs')
   const [isPending, startTransition] = useTransition()
   
@@ -200,27 +199,16 @@ export function PlanningClient({ project, tasks, payments, milestones, user }: P
 
     const totalWeightDenominator = summary.totalCost > 0 ? summary.totalCost : (scheduledTasks.length || 1)
 
-    // Prepare payments (AC calculation)
+    // Prepare payments (AC calculation) from milestones
     const paymentPoints: { date: Date; amount: number }[] = []
-    if (payments && payments.length > 0) {
-      payments.forEach(p => {
-        if (p.payment_date) {
-          paymentPoints.push({
-            date: new Date(p.payment_date),
-            amount: Number(p.amount) || 0
-          })
-        }
-      })
-    } else {
-      milestones.forEach(m => {
-        if (m.is_paid && m.payment_date) {
-          paymentPoints.push({
-            date: new Date(m.payment_date),
-            amount: Number(m.amount) || 0
-          })
-        }
-      })
-    }
+    milestones.forEach(m => {
+      if (m.is_paid && m.payment_date) {
+        paymentPoints.push({
+          date: new Date(m.payment_date),
+          amount: Number(m.amount) || 0
+        })
+      }
+    })
     paymentPoints.sort((a, b) => a.date.getTime() - b.date.getTime())
 
     for (let i = 0; i <= pointsCount; i++) {
@@ -318,7 +306,7 @@ export function PlanningClient({ project, tasks, payments, milestones, user }: P
       })
     }
     return list
-  }, [scheduledTasks, dateRange, summary, project, milestones, payments])
+  }, [scheduledTasks, dateRange, summary, project, milestones])
 
   // Plan vs Actual deviation at TODAY
   const deviationAtToday = useMemo(() => {

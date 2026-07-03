@@ -9,7 +9,6 @@ import type {
   DailyReport, 
   WeeklyReport,
   WBSTask,
-  ProjectPayment,
   ProjectMilestone
 } from '@/lib/types'
 
@@ -40,7 +39,6 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
     dailyRes,
     weeklyRes,
     tasksRes,
-    paymentsRes,
     milestonesRes
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
@@ -48,7 +46,6 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
     supabase.from('daily_reports').select('*').eq('project_id', id).order('sort_order', { ascending: true }),
     supabase.from('weekly_reports').select('*').eq('project_id', id).order('sort_order', { ascending: true }),
     supabase.from('tasks').select('*').eq('project_id', id).order('wbs_no', { ascending: true }),
-    supabase.from('project_payments').select('*').eq('project_id', id).order('payment_date', { ascending: true }),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
   ])
 
@@ -60,7 +57,6 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
   const dailyData = dailyRes.data
   const weeklyData = weeklyRes.data
   const tasksData = tasksRes.data
-  const paymentsData = paymentsRes.data
   const milestonesData = milestonesRes.data
 
   return (
@@ -86,7 +82,6 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
             dailyReports={(dailyData as DailyReport[]) || []}
             weeklyReports={(weeklyData as WeeklyReport[]) || []}
             tasks={(tasksData as WBSTask[]) || []}
-            payments={(paymentsData as ProjectPayment[]) || []}
             milestones={(milestonesData as ProjectMilestone[]) || []}
             user={user}
           />

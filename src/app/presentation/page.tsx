@@ -14,17 +14,17 @@ export default async function PresentationPage() {
   const user = await getCurrentUser()
 
   // Fetch all necessary data for the presentation (memory caching via Client Component)
-  const [projectsRes, tasksRes, inspectionsRes, paymentsRes] = await Promise.all([
+  const [projectsRes, tasksRes, inspectionsRes, milestonesRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('inspections').select('*').order('created_at', { ascending: false }),
-    supabase.from('project_payments').select('*').order('payment_date', { ascending: true })
+    supabase.from('project_milestones').select('*').order('milestone_no', { ascending: true })
   ])
 
   const projects = (projectsRes.data as Project[]) ?? []
   const tasks = (tasksRes.data as WBSTask[]) ?? []
   const inspections = (inspectionsRes.data as Inspection[]) ?? []
-  const payments = (paymentsRes.data as ProjectPayment[]) ?? []
+  const milestones = milestonesRes.data ?? []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -40,7 +40,7 @@ export default async function PresentationPage() {
             initialProjects={projects} 
             initialTasks={tasks} 
             initialInspections={inspections}
-            initialPayments={payments}
+            initialMilestones={milestones}
             user={user}
           />
         </main>

@@ -284,10 +284,30 @@ export function PlanningClient({ project, tasks, payments, milestones, user }: P
       // AC cumulative spent
       let acVal: number | null = null
       if (showActual) {
-        const totalPaidUpToDate = paymentPoints
-          .filter(p => p.date <= currDate)
-          .reduce((sum, p) => sum + p.amount, 0)
-        acVal = (totalPaidUpToDate / (project.budget || 1)) * 100
+        if (paymentPoints.length > 0) {
+          const totalPaidUpToDate = paymentPoints
+            .filter(p => p.date <= currDate)
+            .reduce((sum, p) => sum + p.amount, 0)
+          acVal = (totalPaidUpToDate / (project.budget || 1)) * 100
+        } else {
+          // Fallback: draw a linear slant from 0 at start date up to totalPaidPercent at today
+          const totalPaidPercent = ((project.paid_amount || 0) / (project.budget || 1)) * 100
+          if (totalPaidPercent > 0) {
+            const projectStart = start.getTime()
+            const projectToday = todayDateOnly.getTime()
+
+            if (currTime <= projectStart) {
+              acVal = 0
+            } else if (projectToday > projectStart) {
+              const ratio = Math.min(1, Math.max(0, (currTime - projectStart) / (projectToday - projectStart)))
+              acVal = totalPaidPercent * ratio
+            } else {
+              acVal = totalPaidPercent
+            }
+          } else {
+            acVal = 0
+          }
+        }
       }
 
       list.push({

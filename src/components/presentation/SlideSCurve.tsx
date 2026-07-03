@@ -153,9 +153,29 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
       // AC Calculation
       let acVal: number | null = null
       if (showActual) {
-        const pastPayments = paymentPoints.filter(p => p.date <= currDate)
-        const cumulativeAc = pastPayments.length > 0 ? pastPayments[pastPayments.length - 1].cumulative : 0
-        acVal = ((cumulativeAc) / (project.budget || 1)) * 100
+        if (paymentPoints.length > 0) {
+          const pastPayments = paymentPoints.filter(p => p.date <= currDate)
+          const cumulativeAc = pastPayments.length > 0 ? pastPayments[pastPayments.length - 1].cumulative : 0
+          acVal = (cumulativeAc / (project.budget || 1)) * 100
+        } else {
+          // Fallback: draw a linear slant from 0 at start date up to totalPaidPercent at today
+          const totalPaidPercent = ((project.paid_amount || 0) / (project.budget || 1)) * 100
+          if (totalPaidPercent > 0) {
+            const projectStart = minDate.getTime()
+            const projectToday = todayDateOnly.getTime()
+
+            if (currTime <= projectStart) {
+              acVal = 0
+            } else if (projectToday > projectStart) {
+              const ratio = Math.min(1, Math.max(0, (currTime - projectStart) / (projectToday - projectStart)))
+              acVal = totalPaidPercent * ratio
+            } else {
+              acVal = totalPaidPercent
+            }
+          } else {
+            acVal = 0
+          }
+        }
       }
 
       data.push({

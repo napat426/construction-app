@@ -409,7 +409,7 @@ function DailyReportForm({
       if (!res.ok) throw new Error('Failed to fetch weather')
       const weatherData = await res.json()
       
-      setWeather(weatherData.weather || 'แดดจัด')
+      setWeather(weatherData.weather_text || 'แดดจัด')
       setTemperature(weatherData.temperature?.toString() || '25')
       setPrecipitation(weatherData.precipitation?.toString() || '0')
       setWeatherCode(weatherData.weather_code || 0)

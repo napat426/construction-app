@@ -103,7 +103,7 @@ export function SlideGantt({ project, tasks, theme }: Props) {
                 return (
                   <div 
                     key={i} 
-                    className={`absolute ${i === 0 ? 'translate-x-0' : i === 10 ? '-translate-x-full' : '-translate-x-1/2'}`} 
+                    className={`absolute whitespace-nowrap ${i === 0 ? 'translate-x-0' : i === 10 ? '-translate-x-full' : '-translate-x-1/2'}`} 
                     style={{ left: `${ratio * 100}%` }}
                   >
                     {date.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })}

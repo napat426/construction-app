@@ -153,7 +153,7 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
         date: currDate.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' }),
         PV: (plannedSum / totalWeightDenominator) * 100,
         EV: showActual ? (actualSum / totalWeightDenominator) * 100 : null,
-        AC: showActual ? Math.min(100, Math.round(acVal || 0)) : null
+        AC: showActual ? Math.round(acVal || 0) : null
       })
     }
 

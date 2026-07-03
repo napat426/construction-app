@@ -393,6 +393,34 @@ function DailyReportForm({
   
   const [uploading, setUploading] = useState(false)
   const [isConfirmed, setIsConfirmed] = useState(item.is_confirmed || false)
+  const [isSyncingWeather, setIsSyncingWeather] = useState(false)
+
+  const handleSyncWeather = async () => {
+    setIsSyncingWeather(true)
+    try {
+      const defaultsRes = await getDailyDefaults(project.id)
+      if (defaultsRes.error || !defaultsRes.data || !defaultsRes.data.latitude || !defaultsRes.data.longitude) {
+        alert('กรุณาตั้งค่าพิกัด GPS ของโครงการในเมนูตั้งค่าก่อนเพื่อใช้ฟีเจอร์นี้')
+        return
+      }
+      
+      const { latitude, longitude } = defaultsRes.data
+      const res = await fetch(`/api/weather?lat=${latitude}&lng=${longitude}&date=${item.report_date}`)
+      if (!res.ok) throw new Error('Failed to fetch weather')
+      const weatherData = await res.json()
+      
+      setWeather(weatherData.weather || 'แดดจัด')
+      setTemperature(weatherData.temperature?.toString() || '25')
+      setPrecipitation(weatherData.precipitation?.toString() || '0')
+      setWeatherCode(weatherData.weather_code || 0)
+      alert('ดึงข้อมูลสภาพอากาศจริงจากดาวเทียมย้อนหลังเรียบร้อยแล้ว!')
+    } catch (err) {
+      console.error(err)
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อดึงข้อมูลสภาพอากาศ')
+    } finally {
+      setIsSyncingWeather(false)
+    }
+  }
 
   useEffect(() => {
     setWeather(item.weather || 'แดดจัด')
@@ -540,10 +568,20 @@ function DailyReportForm({
         
         {/* Weather section */}
         <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 flex flex-col gap-4">
-          <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-            <span>{getWeatherIcon(weatherCode, weather)}</span>
-            สภาพอากาศและสภาวะสิ่งแวดล้อม
-          </h4>
+          <div className="flex justify-between items-center">
+            <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+              <span>{getWeatherIcon(weatherCode, weather)}</span>
+              สภาพอากาศและสภาวะสิ่งแวดล้อม
+            </h4>
+            <button
+              type="button"
+              onClick={handleSyncWeather}
+              disabled={isSyncingWeather}
+              className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+            >
+              {isSyncingWeather ? 'กำลังดึงข้อมูล...' : '🔄 ดึงสภาพอากาศย้อนหลังจริง'}
+            </button>
+          </div>
           <div className="grid grid-cols-4 gap-4">
             <div className="col-span-2">
               <label className={labelCls}>สภาพอากาศ</label>

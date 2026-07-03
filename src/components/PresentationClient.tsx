@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import type { Project, WBSTask, Inspection, ProjectPayment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 import { Search, Filter, Play, CheckSquare, Square, X, GripVertical, Image as ImageIcon, Moon, Sun, Save, Download, Trash2 } from 'lucide-react'
+import { computeTaskDates } from '@/lib/scheduler'
 import { PresentationEngine } from './presentation/PresentationEngine'
 import { PhotoManagerModal } from './presentation/PhotoManagerModal'
 
@@ -140,6 +141,33 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
       return true
     })
   }, [projects, searchQuery, selectedSupervisor, statusFilters])
+
+  // Precompute progress
+  const projectProgress = useMemo(() => {
+    const map: Record<string, number> = {}
+    projects.forEach(p => {
+      const pTasks = initialTasks.filter(t => t.project_id === p.id)
+      if (pTasks.length === 0) {
+        map[p.id] = p.progress || 0
+        return
+      }
+      const scheduledTasks = computeTaskDates(pTasks, p.start_date)
+      const totalCost = scheduledTasks.reduce((s, t) => s + (Number(t.cost) || 0), 0)
+      
+      let ev = 0
+      if (totalCost > 0) {
+        scheduledTasks.forEach(t => {
+          ev += (t.actual_progress || 0) * ((Number(t.cost) || 0) / totalCost)
+        })
+      } else {
+        scheduledTasks.forEach(t => {
+          ev += (t.actual_progress || 0) / scheduledTasks.length
+        })
+      }
+      map[p.id] = ev
+    })
+    return map
+  }, [projects, initialTasks])
 
   // Supervisors list for dropdown
   const supervisors = useMemo(() => {
@@ -356,7 +384,7 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
                     {isSelected ? <CheckSquare className="text-primary-500 shrink-0" size={18} /> : <Square className="text-slate-300 shrink-0" size={18} />}
                   </div>
                   <div className="flex justify-between text-xs text-slate-500 mt-4">
-                    <span>ความก้าวหน้า: {p.progress.toFixed(1)}%</span>
+                    <span>ความก้าวหน้า: {(projectProgress[p.id] || 0).toFixed(1)}%</span>
                     <span>{p.status}</span>
                   </div>
                 </div>

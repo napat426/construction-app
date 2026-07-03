@@ -264,7 +264,7 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
                 
                 <Line 
                   name="แผนงาน (PV)"
-                  type="monotone" 
+                  type="linear" 
                   dataKey="PV" 
                   stroke="#94a3b8" 
                   strokeWidth={4} 
@@ -274,7 +274,7 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
                 />
                 <Line 
                   name="ความก้าวหน้าจริง (EV)"
-                  type="monotone" 
+                  type="linear" 
                   dataKey="EV" 
                   stroke="#a13c9d" 
                   strokeWidth={4} 
@@ -283,7 +283,7 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
                 />
                 <Line 
                   name="ค่าใช้จ่ายจริง (AC)"
-                  type="monotone" 
+                  type="linear" 
                   dataKey="AC" 
                   stroke="#e08a2b" 
                   strokeWidth={4} 

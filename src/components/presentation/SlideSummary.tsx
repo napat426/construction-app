@@ -84,10 +84,7 @@ export function SlideSummary({ projects, tasks = [], selectedSlides, theme = 'da
 
   return (
     <div className={`w-full h-full flex flex-col items-center justify-center pt-8 ${isDark ? 'bg-[#0d0f14] text-white' : 'bg-[#f0f2f5] text-slate-900'}`}>
-      <div className="flex flex-col items-center mb-12">
-        <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-[#a13c9d] to-purple-900 flex items-center justify-center shadow-2xl shadow-purple-900/50 mb-8">
-          <HardHat size={64} className="text-white" />
-        </div>
+      <div className="flex flex-col items-center mb-10">
         <h1 className="text-5xl font-bold mb-4">สรุปภาพรวมทุกโครงการ</h1>
         <p className={`text-3xl ${isDark ? 'text-white/60' : 'text-slate-500'}`}>ข้อมูล ณ วันที่ {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
@@ -111,7 +108,7 @@ export function SlideSummary({ projects, tasks = [], selectedSlides, theme = 'da
               
               return (
                 <tr key={p.id} className={`border-t ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'} ${idx % 2 === 0 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/50') : ''} transition-colors`}>
-                  <td className={`py-6 px-6 font-bold leading-tight max-w-[300px] truncate ${isDark ? 'text-white' : 'text-slate-800'}`} title={p.name}>{p.name}</td>
+                  <td className={`py-6 px-6 font-bold leading-tight max-w-[500px] truncate ${isDark ? 'text-white' : 'text-slate-800'}`} title={p.name}>{p.name}</td>
                   <td className={`py-6 px-6 text-center ${isDark ? 'text-emerald-400' : 'text-emerald-600'} font-bold`}>{evm.ev.toFixed(1)}%</td>
                   <td className="py-6 px-6 text-center font-bold">
                     <div className={svPercent > 0 ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : svPercent < 0 ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-white' : 'text-slate-800')}>

@@ -101,7 +101,11 @@ export function SlideGantt({ project, tasks, theme }: Props) {
                 const ratio = i / 10
                 const date = new Date(minDate.getTime() + ratio * (maxDate.getTime() - minDate.getTime()))
                 return (
-                  <div key={i} className="absolute -translate-x-1/2" style={{ left: `${ratio * 100}%` }}>
+                  <div 
+                    key={i} 
+                    className={`absolute ${i === 0 ? 'translate-x-0' : i === 10 ? '-translate-x-full' : '-translate-x-1/2'}`} 
+                    style={{ left: `${ratio * 100}%` }}
+                  >
                     {date.toLocaleDateString('th-TH', { month: 'short', year: '2-digit' })}
                   </div>
                 )
@@ -125,11 +129,7 @@ export function SlideGantt({ project, tasks, theme }: Props) {
               style={{
                 left: `calc(516px + ((100% - 516px) * ${(today.getTime() - minDate.getTime()) / (totalDays * 24 * 60 * 60 * 1000)}))`
               }}
-            >
-              <div className="bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded -translate-x-1/2 top-0 absolute">
-                วันนี้
-              </div>
-            </div>
+            />
           )}
 
           {displayTasks.map((task, idx) => {

@@ -106,7 +106,9 @@ export interface DailyReport {
   project_id: string
   report_date: string
   weather: string | null
-  temperature: string | null
+  temperature: string | number | null
+  precipitation?: number | null
+  weather_code?: number | null
   manpower: ResourceItem[]
   machinery: ResourceItem[]
   work_done: string | null
@@ -114,6 +116,8 @@ export interface DailyReport {
   photos: ReportPhoto[]
   sort_order: number
   created_at: string
+  is_auto_generated?: boolean
+  is_confirmed?: boolean
 }
 
 export interface WeeklyReportSnapshot {

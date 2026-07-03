@@ -30,6 +30,7 @@ import {
   getDailyDefaults,
   uploadReportPhoto
 } from '@/app/actions/reports'
+import { getWeatherText, getWeatherIcon } from '@/lib/weatherUtils'
 import type { UserSession } from '@/lib/auth'
 
 import { DefaultSettingsModal } from './DefaultSettingsModal'
@@ -469,14 +470,6 @@ function DailyReportForm({
   const labelCls = 'text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5'
   const inputCls = 'w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#252548] bg-transparent text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/40 text-slate-800 dark:text-slate-200'
 
-  const getWeatherEmoji = (code: number) => {
-    if (code === 0 || code === 1) return '☀️'
-    if (code === 2 || code === 3) return '🌤'
-    if (code >= 51 && code <= 57) return '🌧'
-    if (code >= 61 && code <= 65) return '🌧'
-    if (code >= 71 && code <= 77) return '⛈'
-    return '☁️'
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -548,7 +541,7 @@ function DailyReportForm({
         {/* Weather section */}
         <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 flex flex-col gap-4">
           <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-            <span>{getWeatherEmoji(weatherCode)}</span>
+            <span>{getWeatherIcon(weatherCode, weather)}</span>
             สภาพอากาศและสภาวะสิ่งแวดล้อม
           </h4>
           <div className="grid grid-cols-4 gap-4">
@@ -575,7 +568,11 @@ function DailyReportForm({
               <input 
                 type="number"
                 value={precipitation} 
-                onChange={e => setPrecipitation(e.target.value)}
+                onChange={e => {
+                  setPrecipitation(e.target.value)
+                  const pVal = parseFloat(e.target.value) || 0
+                  setWeather(getWeatherText(pVal, weatherCode))
+                }}
                 className={inputCls} 
               />
             </div>

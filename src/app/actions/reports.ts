@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
 import type { InspectionStatus } from '@/lib/types'
+import { getWeatherText } from '@/lib/weatherUtils'
 
 // ==========================================
 // File Upload Helper
@@ -218,20 +219,7 @@ export async function backfillDailyReport(projectId: string, dateStr: string) {
             precipitation = wData.daily.precipitation_sum ? wData.daily.precipitation_sum[0] : 0
             weatherCode = wData.daily.weather_code ? wData.daily.weather_code[0] : 0
 
-            const code = weatherCode
-            if (code === 0 || code === 1) {
-              weatherText = 'แดดจัด'
-            } else if (code === 2 || code === 3) {
-              weatherText = 'ครึ้มฟ้าครึ้มฝน'
-            } else if (code >= 51 && code <= 57) {
-              weatherText = 'ฝนตกเล็กน้อย'
-            } else if (code >= 61 && code <= 65) {
-              weatherText = 'ฝนตกปานกลาง'
-            } else if (code >= 71 && code <= 77) {
-              weatherText = 'ฝนตกหนัก'
-            } else if (code >= 80 && code <= 82) {
-              weatherText = 'ฝนตกทั้งวัน'
-            }
+            weatherText = getWeatherText(precipitation, weatherCode)
           }
         }
       } catch (weatherErr) {

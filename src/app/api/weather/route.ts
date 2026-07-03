@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getWeatherText } from '@/lib/weatherUtils'
 
 export async function GET(request: Request) {
   try {
@@ -41,21 +42,7 @@ export async function GET(request: Request) {
     const precip = daily.precipitation_sum ? daily.precipitation_sum[0] : 0
     const code = daily.weather_code ? daily.weather_code[0] : 0
 
-    let weatherText = 'แดดจัด'
-    if (code === 0 || code === 1) {
-      weatherText = 'แดดจัด'
-    } else if (code === 2 || code === 3) {
-      weatherText = 'ครึ้มฟ้าครึ้มฝน'
-    } else if (code >= 51 && code <= 57) {
-      weatherText = 'ฝนตกเล็กน้อย'
-    } else if (code >= 61 && code <= 65) {
-      weatherText = 'ฝนตกปานกลาง'
-    } else if (code >= 71 && code <= 77) {
-      weatherText = 'ฝนตกหนัก'
-    } else if (code >= 80 && code <= 82) {
-      weatherText = 'ฝนตกทั้งวัน'
-    }
-
+    const weatherText = getWeatherText(precip, code)
     return NextResponse.json({
       temperature: tempMax,
       precipitation: precip,

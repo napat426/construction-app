@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react'
 import type { Project, DailyReport } from '@/lib/types'
+import { getWeatherIcon } from '@/lib/weatherUtils'
 
 interface BatchPrintPreviewProps {
   project: Project
@@ -29,14 +30,6 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
     })
   }
 
-  const getWeatherIcon = (code: number) => {
-    if (code === 0 || code === 1) return '☀️'
-    if (code === 2 || code === 3) return '🌤'
-    if (code >= 51 && code <= 57) return '🌧'
-    if (code >= 61 && code <= 65) return '🌧'
-    if (code >= 71 && code <= 77) return '⛈'
-    return '☁️'
-  }
 
   return (
     <div className="fixed inset-0 bg-slate-900/80 z-[100] flex flex-col overflow-y-auto print:absolute print:inset-0 print:bg-white print:z-0 print:overflow-visible">
@@ -93,7 +86,7 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
                 <div className="border border-slate-300 rounded-2xl p-4 bg-slate-50/50 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                     <span className="text-xs text-slate-400 uppercase font-black tracking-wider">สภาพอากาศ</span>
-                    <span className="text-3xl">{getWeatherIcon(report.weather_code || 0)}</span>
+                    <span className="text-3xl">{getWeatherIcon(report.weather_code || 0, report.weather || '')}</span>
                   </div>
                   <div className="mt-4">
                     <p className="text-lg font-black text-slate-900">{report.weather || 'แดดจัด'}</p>

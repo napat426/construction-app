@@ -13,7 +13,7 @@ interface BatchPrintPreviewProps {
 
 export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPrintPreviewProps) {
   const [showSupervisor, setShowSupervisor] = useState(true)
-  const [supervisorName, setSupervisorName] = useState('')
+  const [supervisorName, setSupervisorName] = useState(project.supervisor || '')
   const [showSignature, setShowSignature] = useState(true)
 
   // Helper to chunk photo attachments in groups of 6
@@ -219,15 +219,13 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
 
               {/* Signature Block (Rendered at the bottom of page 1) */}
               {showSignature && (
-                <div className="mt-8 grid grid-cols-2 gap-8 text-center text-xs font-bold border-t border-slate-200 pt-4 mb-2">
-                  <div>
-                    <p className="mb-8">ผู้บันทึกรายงาน</p>
-                    <p className="text-slate-400">________________________</p>
-                    <p className="text-[10px] text-slate-500 mt-1">ผู้แทนผู้รับจ้าง</p>
-                  </div>
-                  <div>
+                <div className="mt-8 flex justify-end text-center text-xs font-bold border-t border-slate-200 pt-4 mb-2">
+                  <div className="w-[220px]">
                     <p className="mb-8">ผู้ควบคุมงาน</p>
                     <p className="text-slate-400">________________________</p>
+                    <p className="text-[10px] text-slate-600 mt-1.5">
+                      ( {supervisorName ? supervisorName : '...........................................'} )
+                    </p>
                     <p className="text-[10px] text-slate-500 mt-1">ผู้ตรวจรับ / ผู้ควบคุมงาน</p>
                   </div>
                 </div>

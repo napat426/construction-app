@@ -45,16 +45,25 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
     const start = new Date(project.start_date)
     start.setHours(0, 0, 0, 0)
     
-    let minDate = new Date(scheduledTasks[0].computedStartDate)
-    let maxDate = new Date(scheduledTasks[0].computedEndDate)
+    let minDate = project.start_date ? new Date(project.start_date) : new Date(scheduledTasks[0].computedStartDate)
     for (const t of scheduledTasks) {
       const sd = new Date(t.computedStartDate)
-      const ed = new Date(t.computedEndDate)
       if (sd < minDate) minDate = sd
+    }
+    
+    let maxDate = new Date(scheduledTasks[0].computedEndDate)
+    for (const t of scheduledTasks) {
+      const ed = new Date(t.computedEndDate)
       if (ed > maxDate) maxDate = ed
     }
     
-    if (start < minDate) minDate = start
+    if (project.end_date) {
+      const projEnd = new Date(project.end_date)
+      if (projEnd > maxDate) maxDate = projEnd
+    }
+    
+    minDate.setHours(0, 0, 0, 0)
+    maxDate.setHours(0, 0, 0, 0)
     
     const durationDays = Math.max(0, Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)))
     if (durationDays === 0) return []
@@ -150,15 +159,15 @@ export function SlideSCurve({ project, tasks, payments = [], theme = 'dark' }: P
       }
 
       data.push({
-        date: currDate.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' }),
-        PV: (plannedSum / totalWeightDenominator) * 100,
-        EV: showActual ? (actualSum / totalWeightDenominator) * 100 : null,
+        date: currDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
+        PV: Math.min(100, Math.round((plannedSum / totalWeightDenominator) * 100)),
+        EV: showActual ? Math.min(100, Math.round((actualSum / totalWeightDenominator) * 100)) : null,
         AC: showActual ? Math.round(acVal || 0) : null
       })
     }
 
     return data
-  }, [scheduledTasks, project.start_date, payments, project.budget])
+  }, [scheduledTasks, project.start_date, project.end_date, payments, project.budget])
 
   const topWbs = useMemo(() => {
     return scheduledTasks

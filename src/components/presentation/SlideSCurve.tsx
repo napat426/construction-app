@@ -97,13 +97,33 @@ export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }:
       })
     })
 
-    const data = []
-
+    const dates: Date[] = []
     for (let i = 0; i <= pointsCount; i++) {
       const fraction = i / pointsCount
       const currTime = minDate.getTime() + fraction * durationDays * 24 * 60 * 60 * 1000
       const currDate = new Date(currTime)
       currDate.setHours(0, 0, 0, 0)
+      dates.push(currDate)
+    }
+
+    // Insert today dynamically to always show latest progress/costs
+    if (todayDateOnly > minDate && todayDateOnly < maxDate) {
+      const exists = dates.some(d => d.getTime() === todayDateOnly.getTime())
+      if (!exists) {
+        dates.push(todayDateOnly)
+        dates.sort((a, b) => a.getTime() - b.getTime())
+      }
+    }
+
+    const data: {
+      date: string
+      PV: number
+      EV: number | null
+      AC: number | null
+    }[] = []
+
+    dates.forEach((currDate) => {
+      const currTime = currDate.getTime()
 
       let plannedSum = 0
       for (const t of scheduledTasks) {
@@ -120,7 +140,7 @@ export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }:
       }
 
       let actualSum = 0
-      const showActual = currDate <= todayDateOnly || i === 0
+      const showActual = currDate <= todayDateOnly || currTime === minDate.getTime()
 
       if (showActual) {
         for (const t of scheduledTasks) {
@@ -186,7 +206,7 @@ export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }:
         EV: showActual ? Math.min(100, Math.round((actualSum / totalWeightDenominator) * 100)) : null,
         AC: showActual ? Math.round(acVal || 0) : null
       })
-    }
+    })
 
     return data
   }, [scheduledTasks, project.start_date, project.end_date, milestones, project.budget])

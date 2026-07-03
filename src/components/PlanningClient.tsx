@@ -211,11 +211,26 @@ export function PlanningClient({ project, tasks, milestones, user }: PlanningCli
     })
     paymentPoints.sort((a, b) => a.date.getTime() - b.date.getTime())
 
+    const dates: Date[] = []
     for (let i = 0; i <= pointsCount; i++) {
       const fraction = i / pointsCount
       const currTime = start.getTime() + fraction * durationDays * 24 * 60 * 60 * 1000
       const currDate = new Date(currTime)
       currDate.setHours(0, 0, 0, 0)
+      dates.push(currDate)
+    }
+
+    // Insert today dynamically to always show latest progress/costs
+    if (todayDateOnly > start && todayDateOnly < dateRange.end) {
+      const exists = dates.some(d => d.getTime() === todayDateOnly.getTime())
+      if (!exists) {
+        dates.push(todayDateOnly)
+        dates.sort((a, b) => a.getTime() - b.getTime())
+      }
+    }
+
+    dates.forEach((currDate) => {
+      const currTime = currDate.getTime()
 
       // Planned sum (PV)
       let plannedSum = 0
@@ -234,7 +249,7 @@ export function PlanningClient({ project, tasks, milestones, user }: PlanningCli
 
       // Actual sum (EV)
       let actualSum = 0
-      const showActual = currDate <= todayDateOnly || i === 0
+      const showActual = currDate <= todayDateOnly || currTime === start.getTime()
 
       if (showActual) {
         for (const t of scheduledTasks) {
@@ -304,7 +319,7 @@ export function PlanningClient({ project, tasks, milestones, user }: PlanningCli
         actual: showActual ? Math.min(100, Math.round((actualSum / totalWeightDenominator) * 100)) : null,
         actualCost: acVal !== null ? Math.round(acVal) : null,
       })
-    }
+    })
     return list
   }, [scheduledTasks, dateRange, summary, project, milestones])
 

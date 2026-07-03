@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     } else if (code >= 71 && code <= 77) {
       weatherText = 'ฝนตกหนัก'
     } else if (code >= 80 && code <= 82) {
-      weatherText = 'ฝนตกทั้งวัน (หยุดงาน)'
+      weatherText = 'ฝนตกทั้งวัน'
     }
 
     return NextResponse.json({

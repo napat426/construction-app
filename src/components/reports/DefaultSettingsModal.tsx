@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { X, Plus, Trash2, MapPin, Loader2 } from 'lucide-react'
 import { getDailyDefaults, upsertDailyDefaults } from '@/app/actions/reports'
+import type { ResourceItem } from '@/lib/types'
 
 interface DefaultSettingsModalProps {
   projectId: string
@@ -10,18 +11,12 @@ interface DefaultSettingsModalProps {
   onClose: () => void
 }
 
-interface ResourceDefault {
-  trade?: string
-  name?: string
-  count: number
-}
-
 export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSettingsModalProps) {
   const [lat, setLat] = useState('')
   const [lng, setLng] = useState('')
   const [locationName, setLocationName] = useState('')
-  const [manpower, setManpower] = useState<ResourceDefault[]>([])
-  const [machinery, setMachinery] = useState<ResourceDefault[]>([])
+  const [manpower, setManpower] = useState<ResourceItem[]>([])
+  const [machinery, setMachinery] = useState<ResourceItem[]>([])
   const [isPending, startTransition] = useTransition()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -37,8 +32,21 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
           setLat(res.data.latitude?.toString() || '')
           setLng(res.data.longitude?.toString() || '')
           setLocationName(res.data.location_name || '')
-          setManpower(res.data.manpower_defaults || [])
-          setMachinery(res.data.machinery_defaults || [])
+          
+          // Map DB defaults to standard ResourceItem structures
+          const rawManpower = res.data.manpower_defaults || []
+          const mappedManpower = rawManpower.map((m: any) => ({
+            name: m.name || m.trade || '',
+            quantity: (m.quantity || m.count || '0').toString()
+          }))
+          setManpower(mappedManpower)
+
+          const rawMachinery = res.data.machinery_defaults || []
+          const mappedMachinery = rawMachinery.map((m: any) => ({
+            name: m.name || '',
+            quantity: (m.quantity || m.count || '0').toString()
+          }))
+          setMachinery(mappedMachinery)
         }
         setIsLoading(false)
       })
@@ -51,8 +59,8 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
       latitude: lat ? parseFloat(lat) : null,
       longitude: lng ? parseFloat(lng) : null,
       location_name: locationName,
-      manpower_defaults: manpower.filter(m => m.trade && m.count > 0),
-      machinery_defaults: machinery.filter(m => m.name && m.count > 0)
+      manpower_defaults: manpower.filter(m => m.name && parseFloat(String(m.quantity)) > 0),
+      machinery_defaults: machinery.filter(m => m.name && parseFloat(String(m.quantity)) > 0)
     }
 
     startTransition(async () => {
@@ -67,14 +75,14 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
 
   // Manpower Helpers
   const addManpowerRow = () => {
-    setManpower([...manpower, { trade: '', count: 1 }])
+    setManpower([...manpower, { name: '', quantity: '1' }])
   }
 
   const removeManpowerRow = (idx: number) => {
     setManpower(manpower.filter((_, i) => i !== idx))
   }
 
-  const updateManpowerRow = (idx: number, field: string, val: any) => {
+  const updateManpowerRow = (idx: number, field: keyof ResourceItem, val: any) => {
     const updated = [...manpower]
     updated[idx] = { ...updated[idx], [field]: val }
     setManpower(updated)
@@ -82,14 +90,14 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
 
   // Machinery Helpers
   const addMachineryRow = () => {
-    setMachinery([...machinery, { name: '', count: 1 }])
+    setMachinery([...machinery, { name: '', quantity: '1' }])
   }
 
   const removeMachineryRow = (idx: number) => {
     setMachinery(machinery.filter((_, i) => i !== idx))
   }
 
-  const updateMachineryRow = (idx: number, field: string, val: any) => {
+  const updateMachineryRow = (idx: number, field: keyof ResourceItem, val: any) => {
     const updated = [...machinery]
     updated[idx] = { ...updated[idx], [field]: val }
     setMachinery(updated)
@@ -137,7 +145,7 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
 
               {/* Coordinates Section */}
               <div className="space-y-3">
-                <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                   <MapPin size={16} className="text-primary-500" />
                   พิกัดโครงการ (สำหรับดึงข้อมูลสภาพอากาศ)
                 </h4>
@@ -180,7 +188,7 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
               {/* Manpower Section */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-slate-900 dark:text-white">บุคลากรเริ่มต้น (Manpower Defaults)</h4>
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">บุคลากรเริ่มต้น (Manpower Defaults)</h4>
                   <button 
                     onClick={addManpowerRow}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500/25 text-xs font-bold transition-all cursor-pointer"
@@ -197,15 +205,15 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
                         <input 
                           type="text" 
                           placeholder="ชื่อตำแหน่ง/ประเภทช่าง เช่น ช่างปูน" 
-                          value={m.trade || ''}
-                          onChange={e => updateManpowerRow(idx, 'trade', e.target.value)}
+                          value={m.name}
+                          onChange={e => updateManpowerRow(idx, 'name', e.target.value)}
                           className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                         <input 
                           type="number" 
                           placeholder="จำนวน" 
-                          value={m.count}
-                          onChange={e => updateManpowerRow(idx, 'count', parseInt(e.target.value) || 0)}
+                          value={m.quantity}
+                          onChange={e => updateManpowerRow(idx, 'quantity', e.target.value)}
                           className="w-[80px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                         <span className="text-sm font-bold text-slate-400">คน</span>
@@ -224,7 +232,7 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
               {/* Machinery Section */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-slate-900 dark:text-white">เครื่องจักรเริ่มต้น (Machinery Defaults)</h4>
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white">เครื่องจักรเริ่มต้น (Machinery Defaults)</h4>
                   <button 
                     onClick={addMachineryRow}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary-500/10 text-primary-500 hover:bg-primary-500/25 text-xs font-bold transition-all cursor-pointer"
@@ -241,15 +249,15 @@ export function DefaultSettingsModal({ projectId, isOpen, onClose }: DefaultSett
                         <input 
                           type="text" 
                           placeholder="ชื่อเครื่องจักร เช่น รถเครน 25 ตัน" 
-                          value={m.name || ''}
+                          value={m.name}
                           onChange={e => updateMachineryRow(idx, 'name', e.target.value)}
                           className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                         <input 
                           type="number" 
                           placeholder="จำนวน" 
-                          value={m.count}
-                          onChange={e => updateMachineryRow(idx, 'count', parseInt(e.target.value) || 0)}
+                          value={m.quantity}
+                          onChange={e => updateMachineryRow(idx, 'quantity', e.target.value)}
                           className="w-[80px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                         <span className="text-sm font-bold text-slate-400">คัน/เครื่อง</span>

@@ -112,8 +112,8 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
                     ) : (
                       report.manpower.map((m: any, idx: number) => (
                         <div key={idx} className="flex justify-between border-b border-slate-200 py-1">
-                          <span className="text-slate-600">{m.trade}</span>
-                          <span className="text-slate-900 font-bold">{m.count} คน</span>
+                          <span className="text-slate-600">{m.name}</span>
+                          <span className="text-slate-900 font-bold">{m.quantity} คน</span>
                         </div>
                       ))
                     )}
@@ -130,7 +130,7 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
                     {report.machinery.map((m: any, idx: number) => (
                       <div key={idx} className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
                         <span className="text-slate-700 truncate mr-2">{m.name}</span>
-                        <span className="text-primary-600 font-bold flex-shrink-0">{m.count} คัน/เครื่อง</span>
+                        <span className="text-primary-600 font-bold flex-shrink-0">{m.quantity} คัน/เครื่อง</span>
                       </div>
                     ))}
                   </div>

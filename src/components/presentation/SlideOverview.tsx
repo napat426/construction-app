@@ -82,20 +82,26 @@ export function SlideOverview({ project, tasks, theme = 'dark' }: Props) {
 
     let done = 0, delayed = 0, inProgress = 0
     scheduledTasks.forEach(t => {
-      if (t.actual_progress === 100) done++
-      else {
-        if (new Date(t.computedStartDate) <= todayDateOnly) {
-          const tStart = new Date(t.computedStartDate)
-          const tEnd = new Date(t.computedEndDate)
-          let pp = 0
-          if (todayDateOnly >= tEnd) pp = 100
-          else {
-            pp = ((todayDateOnly.getTime() - tStart.getTime()) / Math.max(1, tEnd.getTime() - tStart.getTime())) * 100
-          }
-          if (pp - (t.actual_progress || 0) >= 5) delayed++
-          else inProgress++
-        } else {
+      if (t.actual_progress === 100) {
+        done++
+      } else {
+        const tStart = new Date(t.computedStartDate)
+        const tEnd = new Date(t.computedEndDate)
+        tStart.setHours(0, 0, 0, 0)
+        tEnd.setHours(0, 0, 0, 0)
+
+        if (tStart > todayDateOnly) {
           inProgress++
+        } else {
+          const totalDur = Math.max(1, tEnd.getTime() - tStart.getTime())
+          const elapsed = todayDateOnly.getTime() - tStart.getTime()
+          const plannedPct = Math.min(100, (elapsed / totalDur) * 100)
+          
+          if (plannedPct - (t.actual_progress || 0) >= 5) {
+            delayed++
+          } else {
+            inProgress++
+          }
         }
       }
     })

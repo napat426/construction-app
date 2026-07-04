@@ -292,8 +292,8 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
       </div>
 
       {/* ── Print Signatures ── */}
-      <div className="hidden print:flex justify-end mt-16 pt-8 break-inside-avoid">
-        <div className="text-center">
+      <div className="hidden print:block mt-16 pt-8 text-right print:break-inside-avoid">
+        <div className="inline-block text-center pr-8">
           <p className="mb-12">ลงชื่อผู้ควบคุมงาน</p>
           <p>...........................................................</p>
           <p className="mt-2">( {project.supervisor || '                                   '} )</p>

@@ -214,7 +214,7 @@ export function ConcretePourModal({ project_id, tasks, initialData, existingPour
               <button type="button" onClick={onClose} disabled={pending} className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1e1e38] rounded-xl transition-colors">
                 ยกเลิก
               </button>
-              <button type="submit" disabled={pending || uploading} className="btn-primary">
+              <button type="submit" disabled={pending || uploading} className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl btn-primary cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
                 {pending ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 <span>บันทึกข้อมูล</span>
               </button>

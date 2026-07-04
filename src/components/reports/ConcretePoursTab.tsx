@@ -116,7 +116,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
               setEditData(null)
               setModalOpen(true)
             }}
-            className="btn-primary"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white rounded-xl btn-primary cursor-pointer hover:shadow-lg transition-all"
           >
             <Plus size={18} />
             <span>เพิ่มการเท</span>

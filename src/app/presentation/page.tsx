@@ -14,17 +14,21 @@ export default async function PresentationPage() {
   const user = await getCurrentUser()
 
   // Fetch all necessary data for the presentation (memory caching via Client Component)
-  const [projectsRes, tasksRes, inspectionsRes, milestonesRes] = await Promise.all([
+  const [projectsRes, tasksRes, inspectionsRes, milestonesRes, dailyRes, concreteRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('inspections').select('*').order('created_at', { ascending: false }),
-    supabase.from('project_milestones').select('*').order('milestone_no', { ascending: true })
+    supabase.from('project_milestones').select('*').order('milestone_no', { ascending: true }),
+    supabase.from('daily_reports').select('project_id, photos, created_at').order('created_at', { ascending: false }),
+    supabase.from('concrete_pours').select('project_id, photos, created_at').order('created_at', { ascending: false })
   ])
 
   const projects = (projectsRes.data as Project[]) ?? []
   const tasks = (tasksRes.data as WBSTask[]) ?? []
   const inspections = (inspectionsRes.data as Inspection[]) ?? []
   const milestones = milestonesRes.data ?? []
+  const dailyReports = dailyRes.data ?? []
+  const concretePours = concreteRes.data ?? []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -41,6 +45,8 @@ export default async function PresentationPage() {
             initialTasks={tasks} 
             initialInspections={inspections}
             initialMilestones={milestones}
+            initialDailyReports={dailyReports}
+            initialConcretePours={concretePours}
             user={user}
           />
         </main>

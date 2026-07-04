@@ -10,23 +10,47 @@ interface Props {
   projectId: string
   project: Project
   inspections: Inspection[]
+  dailyReports?: { project_id: string, photos: any[], created_at: string }[]
+  concretePours?: { project_id: string, photos: any[], created_at: string }[]
   selectedUrls: string[]
   onSave: (urls: string[]) => void
   onClose: () => void
 }
 
-export function PhotoManagerModal({ projectId, project, inspections, selectedUrls, onSave, onClose }: Props) {
-  // Combine all photos from inspections
-  const [allPhotos, setAllPhotos] = useState<{ url: string, rawUrl: string, date: string, inspectionId: string }[]>(() => {
-    const list: { url: string, rawUrl: string, date: string, inspectionId: string }[] = []
+type PhotoItem = { url: string, rawUrl: string, date: string, sourceId: string, sourceType: 'inspection' | 'daily' | 'concrete' }
+
+export function PhotoManagerModal({ projectId, project, inspections, dailyReports = [], concretePours = [], selectedUrls, onSave, onClose }: Props) {
+  // Combine all photos
+  const [allPhotos, setAllPhotos] = useState<PhotoItem[]>(() => {
+    const list: PhotoItem[] = []
+    
     inspections.forEach(i => {
       if (i.photo_urls) {
         i.photo_urls.forEach(rawUrl => {
           const url = rawUrl.split('|||')[0]
-          list.push({ url, rawUrl, date: i.created_at, inspectionId: i.id })
+          list.push({ url, rawUrl, date: i.created_at, sourceId: i.id, sourceType: 'inspection' })
         })
       }
     })
+    
+    dailyReports.forEach(d => {
+      if (d.photos) {
+        d.photos.forEach(p => {
+          const url = typeof p === 'string' ? p : (p.url || '')
+          if (url) list.push({ url, rawUrl: url, date: d.created_at, sourceId: '', sourceType: 'daily' })
+        })
+      }
+    })
+    
+    concretePours.forEach(c => {
+      if (c.photos) {
+        c.photos.forEach(p => {
+          const url = typeof p === 'string' ? p : (p.url || '')
+          if (url) list.push({ url, rawUrl: url, date: c.created_at, sourceId: '', sourceType: 'concrete' })
+        })
+      }
+    })
+    
     return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   })
 
@@ -44,12 +68,17 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
     })
   }
 
-  const handleDelete = async (url: string, inspectionId: string) => {
+  const handleDelete = async (photo: PhotoItem) => {
+    if (photo.sourceType !== 'inspection') {
+      alert('ไม่สามารถลบรูปภาพจากรายงานประจำวันหรือการเทคอนกรีตได้จากหน้านี้ กรุณาไปลบที่หน้าเมนูหลักของรายงานนั้นๆ')
+      return
+    }
+
     if (!confirm('ยืนยันการลบรูปภาพนี้?')) return
 
     try {
       // 1. Delete from Supabase Storage
-      const urlObj = new URL(url)
+      const urlObj = new URL(photo.url)
       
       let bucket = ''
       let path = ''
@@ -67,17 +96,17 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
       }
 
       // 2. Update database (remove from photo_urls array in that inspection)
-      const inspection = inspections.find(i => i.id === inspectionId)
+      const inspection = inspections.find(i => i.id === photo.sourceId)
       if (inspection) {
-        const updatedUrls = (inspection.photo_urls || []).filter(u => u.split('|||')[0] !== url)
-        await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', inspectionId)
+        const updatedUrls = (inspection.photo_urls || []).filter(u => u.split('|||')[0] !== photo.url)
+        await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', photo.sourceId)
       }
 
       // 3. Update local state
-      setAllPhotos(prev => prev.filter(p => p.url !== url))
+      setAllPhotos(prev => prev.filter(p => p.url !== photo.url))
       setSelected(prev => {
         const next = new Set(prev)
-        next.delete(url)
+        next.delete(photo.url)
         return next
       })
     } catch (err) {
@@ -129,7 +158,7 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
       await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', targetInspectionId)
 
       // Update local state
-      setAllPhotos(prev => [{ url: publicUrl, rawUrl: rawUrlToSave, date: new Date().toISOString(), inspectionId: targetInspectionId! }, ...prev])
+      setAllPhotos(prev => [{ url: publicUrl, rawUrl: rawUrlToSave, date: new Date().toISOString(), sourceId: targetInspectionId!, sourceType: 'inspection' }, ...prev])
       setSelected(prev => new Set([...prev, publicUrl]))
       
     } catch (err) {
@@ -214,7 +243,11 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
                     
                     {/* Overlays */}
                     <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-white text-[10px]">{new Date(photo.date).toLocaleDateString('th-TH')}</p>
+                      <p className="text-white text-[10px]">
+                        {new Date(photo.date).toLocaleDateString('th-TH')}
+                        {photo.sourceType === 'daily' && ' (รายงานประจำวัน)'}
+                        {photo.sourceType === 'concrete' && ' (เทคอนกรีต)'}
+                      </p>
                     </div>
 
                     <button
@@ -224,12 +257,14 @@ export function PhotoManagerModal({ projectId, project, inspections, selectedUrl
                       <CheckCircle2 size={20} fill={isSelected ? "currentColor" : "none"} className={isSelected ? 'text-white' : ''} />
                     </button>
 
-                    <button
-                      onClick={() => handleDelete(photo.url, photo.inspectionId)}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/20 hover:bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
-                    >
-                      <X size={16} />
-                    </button>
+                    {photo.sourceType === 'inspection' && (
+                      <button
+                        onClick={() => handleDelete(photo)}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/20 hover:bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
                   </div>
                 )
               })}

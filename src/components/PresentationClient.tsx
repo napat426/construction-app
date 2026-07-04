@@ -13,6 +13,8 @@ interface Props {
   initialTasks: WBSTask[]
   initialInspections: Inspection[]
   initialMilestones: ProjectMilestone[]
+  initialDailyReports?: { project_id: string, photos: any[], created_at: string }[]
+  initialConcretePours?: { project_id: string, photos: any[], created_at: string }[]
   user?: UserSession | null
 }
 
@@ -23,6 +25,7 @@ export type SelectedProjectSlide = {
   showSCurve: boolean
   showPhotos: boolean
   selectedPhotoUrls: string[] // User can choose which 4 photos to show
+  availablePhotoUrls?: string[] // All available photos for this project
 }
 
 type Preset = {
@@ -33,7 +36,15 @@ type Preset = {
   selectedSlides: SelectedProjectSlide[]
 }
 
-export function PresentationClient({ initialProjects, initialTasks, initialInspections, initialMilestones, user }: Props) {
+export function PresentationClient({ 
+  initialProjects, 
+  initialTasks, 
+  initialInspections, 
+  initialMilestones, 
+  initialDailyReports = [],
+  initialConcretePours = [],
+  user 
+}: Props) {
   const [projects] = useState<Project[]>(initialProjects)
   
   // Theme state
@@ -180,10 +191,27 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
   }, [projects])
 
   // Handlers
+  // Handlers
   const applyGlobalToggles = (key: keyof typeof globalToggles, val: boolean) => {
     const nextToggles = { ...globalToggles, [key]: val }
     setGlobalToggles(nextToggles)
     setSelectedSlides(prev => prev.map(s => ({ ...s, [key]: val })))
+  }
+
+  const getProjectPhotos = (projectId: string) => {
+    const pInspections = initialInspections.filter(i => i.project_id === projectId)
+    const inspectionPhotos = pInspections.flatMap(i => i.photo_urls || []).map(raw => raw.split('|||')[0])
+    
+    const pDaily = initialDailyReports.filter(d => d.project_id === projectId)
+    const dailyPhotos = pDaily.flatMap(d => d.photos || []).map(p => typeof p === 'string' ? p : (p.url || ''))
+    
+    const pConcrete = initialConcretePours.filter(c => c.project_id === projectId)
+    const concretePhotos = pConcrete.flatMap(c => c.photos || []).map(p => typeof p === 'string' ? p : (p.url || ''))
+    
+    const defaultSelected = inspectionPhotos.slice(0, 4)
+    const allPhotos = Array.from(new Set([...inspectionPhotos, ...dailyPhotos, ...concretePhotos])).filter(Boolean)
+    
+    return { defaultSelected, allPhotos }
   }
 
   const toggleProjectSelection = (projectId: string) => {
@@ -191,9 +219,7 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
       const exists = prev.find(p => p.projectId === projectId)
       if (exists) return prev.filter(p => p.projectId !== projectId)
       
-      const projectInspections = initialInspections.filter(i => i.project_id === projectId)
-      const allPhotos = projectInspections.flatMap(i => i.photo_urls || []).map(raw => raw.split('|||')[0])
-      const latestPhotos = allPhotos.slice(0, 4)
+      const { defaultSelected, allPhotos } = getProjectPhotos(projectId)
 
       return [...prev, {
         projectId,
@@ -201,7 +227,8 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
         showGantt: globalToggles.showGantt,
         showSCurve: globalToggles.showSCurve,
         showPhotos: globalToggles.showPhotos,
-        selectedPhotoUrls: latestPhotos
+        selectedPhotoUrls: defaultSelected,
+        availablePhotoUrls: allPhotos
       }]
     })
   }
@@ -211,15 +238,15 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
       const exists = selectedSlides.find(s => s.projectId === p.id)
       if (exists) return exists
       
-      const projectInspections = initialInspections.filter(i => i.project_id === p.id)
-      const allPhotos = projectInspections.flatMap(i => i.photo_urls || []).map(raw => raw.split('|||')[0])
+      const { defaultSelected, allPhotos } = getProjectPhotos(p.id)
       return {
         projectId: p.id,
         showOverview: globalToggles.showOverview,
         showGantt: globalToggles.showGantt,
         showSCurve: globalToggles.showSCurve,
         showPhotos: globalToggles.showPhotos,
-        selectedPhotoUrls: allPhotos.slice(0, 4)
+        selectedPhotoUrls: defaultSelected,
+        availablePhotoUrls: allPhotos
       }
     })
     
@@ -513,6 +540,8 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
           projectId={managingPhotosFor}
           project={projects.find(p => p.id === managingPhotosFor)!}
           inspections={initialInspections.filter(i => i.project_id === managingPhotosFor)}
+          dailyReports={initialDailyReports.filter(d => d.project_id === managingPhotosFor)}
+          concretePours={initialConcretePours.filter(c => c.project_id === managingPhotosFor)}
           selectedUrls={selectedSlides.find(s => s.projectId === managingPhotosFor)?.selectedPhotoUrls || []}
           onSave={(urls) => {
             setSelectedSlides(prev => prev.map(s => s.projectId === managingPhotosFor ? { ...s, selectedPhotoUrls: urls } : s))

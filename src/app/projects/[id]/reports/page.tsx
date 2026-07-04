@@ -63,8 +63,8 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
   const concreteData = concreteRes.data
 
   return (
-    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
-      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden print:ml-0">
+    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c] print:block print:min-h-0 print:bg-white">
+      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden print:block print:overflow-visible print:min-h-0 print:ml-0">
         <div className="print:hidden">
           <Header
             breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการทั้งหมด', projectData.name, 'ตรวจงาน & รายงาน']}
@@ -74,7 +74,7 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
           />
         </div>
         
-        <main className="flex-1 p-6 print:p-0">
+        <main className="flex-1 p-6 print:p-0 print:block">
           <div className="print:hidden">
             <ProjectTabs projectId={projectData.id} />
           </div>

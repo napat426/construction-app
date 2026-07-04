@@ -238,28 +238,30 @@ export function WeeklyReportsTab({
                       : "border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] hover:border-slate-300"
                   }`}
                 >
-                  <div className="flex flex-col items-center gap-0.5">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMove(idx, "up");
-                      }}
-                      disabled={idx === 0 || isPending}
-                      className="p-1 text-slate-300 hover:text-primary-500 disabled:opacity-30"
-                    >
-                      <ArrowUp size={12} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMove(idx, "down");
-                      }}
-                      disabled={idx === items.length - 1 || isPending}
-                      className="p-1 text-slate-300 hover:text-primary-500 disabled:opacity-30"
-                    >
-                      <ArrowDown size={12} />
-                    </button>
-                  </div>
+                  {user && (user.role === 'admin' || user.role === 'editor') && (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMove(idx, "up");
+                        }}
+                        disabled={idx === 0 || isPending}
+                        className="p-1 text-slate-300 hover:text-primary-500 disabled:opacity-30"
+                      >
+                        <ArrowUp size={12} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMove(idx, "down");
+                        }}
+                        disabled={idx === items.length - 1 || isPending}
+                        className="p-1 text-slate-300 hover:text-primary-500 disabled:opacity-30"
+                      >
+                        <ArrowDown size={12} />
+                      </button>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
                       {item.date_range || "ไม่ระบุช่วงวันที่"}
@@ -985,7 +987,10 @@ function WeeklyReportForm({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 print:overflow-visible print:p-0 print:space-y-2 print:block print:w-full print:h-auto">
+        <fieldset
+          disabled={!(user && (user.role === 'admin' || user.role === 'editor'))}
+          className="flex-1 overflow-y-auto p-6 space-y-6 print:overflow-visible print:p-0 print:space-y-2 print:block print:w-full print:h-auto"
+        >
           {item && !item.snapshot && (
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-xl text-xs font-bold flex items-center justify-between print:hidden">
               <span className="flex items-center gap-1.5">
@@ -1250,7 +1255,7 @@ function WeeklyReportForm({
 
 
 
-        </div>
+        </fieldset>
       </form>
     </>
   );

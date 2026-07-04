@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import type { Project, Inspection } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { uploadReportPhoto } from '@/app/actions/reports'
+import type { UserSession } from '@/lib/auth'
 import { X, Upload, CheckCircle2, Image as ImageIcon, Loader2 } from 'lucide-react'
 
 interface Props {
@@ -13,13 +14,14 @@ interface Props {
   dailyReports?: { project_id: string, photos: any[], created_at: string }[]
   concretePours?: { project_id: string, photos: any[], created_at: string }[]
   selectedUrls: string[]
+  user?: UserSession | null
   onSave: (urls: string[]) => void
   onClose: () => void
 }
 
 type PhotoItem = { url: string, rawUrl: string, date: string, sourceId: string, sourceType: 'inspection' | 'daily' | 'concrete' }
 
-export function PhotoManagerModal({ projectId, project, inspections, dailyReports = [], concretePours = [], selectedUrls, onSave, onClose }: Props) {
+export function PhotoManagerModal({ projectId, project, inspections, dailyReports = [], concretePours = [], selectedUrls, user, onSave, onClose }: Props) {
   // Combine all photos
   const [allPhotos, setAllPhotos] = useState<PhotoItem[]>(() => {
     const list: PhotoItem[] = []
@@ -210,14 +212,16 @@ export function PhotoManagerModal({ projectId, project, inspections, dailyReport
             ref={fileInputRef} 
             onChange={handleUpload} 
           />
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-[#1c1c34] dark:hover:bg-[#252548] text-slate-700 dark:text-slate-300 font-bold text-sm rounded-xl transition-colors disabled:opacity-50"
-          >
-            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-            เพิ่มรูปใหม่
-          </button>
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-[#1c1c34] dark:hover:bg-[#252548] text-slate-700 dark:text-slate-300 font-bold text-sm rounded-xl transition-colors disabled:opacity-50"
+            >
+              {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              เพิ่มรูปใหม่
+            </button>
+          )}
         </div>
 
         {/* Photo Grid */}
@@ -258,12 +262,17 @@ export function PhotoManagerModal({ projectId, project, inspections, dailyReport
                     </button>
 
                     {photo.sourceType === 'inspection' && (
-                      <button
-                        onClick={() => handleDelete(photo)}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/20 hover:bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
-                      >
-                        <X size={16} />
-                      </button>
+                      user && (user.role === 'admin' || user.role === 'editor') && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(photo) }}
+                          disabled={photo.sourceType !== 'inspection'}
+                          className={`absolute top-2 right-2 w-7 h-7 bg-black/60 text-white rounded-full flex items-center justify-center transition-colors
+                            ${photo.sourceType === 'inspection' ? 'hover:bg-red-500 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                          title={photo.sourceType === 'inspection' ? 'ลบรูปภาพ' : 'ไม่สามารถลบรูประบบอื่นได้ที่นี่'}
+                        >
+                          <X size={14} />
+                        </button>
+                      )
                     )}
                   </div>
                 )

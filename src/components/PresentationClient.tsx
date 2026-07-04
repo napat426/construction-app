@@ -543,6 +543,7 @@ export function PresentationClient({
           dailyReports={initialDailyReports.filter(d => d.project_id === managingPhotosFor)}
           concretePours={initialConcretePours.filter(c => c.project_id === managingPhotosFor)}
           selectedUrls={selectedSlides.find(s => s.projectId === managingPhotosFor)?.selectedPhotoUrls || []}
+          user={user}
           onSave={(urls) => {
             setSelectedSlides(prev => prev.map(s => s.projectId === managingPhotosFor ? { ...s, selectedPhotoUrls: urls } : s))
             setManagingPhotosFor(null)

@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { Header } from '@/components/Header'
 import { PresentationClient } from '@/components/PresentationClient'
 import { getCurrentUser } from '@/lib/auth'
+import { notFound, redirect } from 'next/navigation'
 import type { Project, WBSTask, Inspection, ProjectPayment } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -12,6 +13,9 @@ export const metadata = {
 
 export default async function PresentationPage() {
   const user = await getCurrentUser()
+  if (!user) {
+    redirect('/login')
+  }
 
   // Fetch all necessary data for the presentation (memory caching via Client Component)
   const [projectsRes, tasksRes, inspectionsRes, milestonesRes, dailyRes, concreteRes] = await Promise.all([

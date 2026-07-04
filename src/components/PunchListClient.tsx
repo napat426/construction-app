@@ -1000,12 +1000,14 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleTriggerPrint}
-                    className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
-                  >
-                    <Printer size={14} /> พิมพ์รายงาน
-                  </button>
+                  {user && (
+                    <button
+                      onClick={handleTriggerPrint}
+                      className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
+                    >
+                      <Printer size={14} /> พิมพ์รายงาน
+                    </button>
+                  )}
                   {user && (user.role === 'admin' || user.role === 'editor') && (
                     <>
                       <button

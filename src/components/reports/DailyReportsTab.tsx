@@ -228,7 +228,7 @@ export function DailyReportsTab({ project, data, user }: Props) {
         </div>
 
         {/* Print Batch action toolbar */}
-        {currentMonthReports.length > 0 && (
+        {user && currentMonthReports.length > 0 && (
           <div className="p-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between">
             <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
               <input 
@@ -301,7 +301,7 @@ export function DailyReportsTab({ project, data, user }: Props) {
                   }`}
                 >
                   {/* Select Checkbox for batch printing */}
-                  {report ? (
+                  {user && report ? (
                     <input 
                       type="checkbox"
                       checked={selectedPrintIds.includes(report.id)}
@@ -551,20 +551,15 @@ function DailyReportForm({
             </button>
           )}
 
-          <button 
-            type="button" 
-            onClick={() => handleSave(isConfirmed)}
-            disabled={isPending || uploading} 
-            className="px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-primary-500/20 cursor-pointer"
-          >
-            {isPending && <Loader2 className="animate-spin" size={14} />}
-            บันทึกแบบร่าง
-          </button>
+
         </div>
       </div>
 
       {/* Form Fields */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <fieldset 
+        disabled={!(user && (user.role === 'admin' || user.role === 'editor'))}
+        className="flex-1 overflow-y-auto p-6 space-y-6"
+      >
         
         {/* Weather section */}
         <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 flex flex-col gap-4">
@@ -573,14 +568,16 @@ function DailyReportForm({
               <span>{getWeatherIcon(weatherCode, weather)}</span>
               สภาพอากาศและสภาวะสิ่งแวดล้อม
             </h4>
-            <button
-              type="button"
-              onClick={handleSyncWeather}
-              disabled={isSyncingWeather}
-              className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
-            >
-              {isSyncingWeather ? 'กำลังดึงข้อมูล...' : '🔄 ดึงสภาพอากาศย้อนหลังจริง'}
-            </button>
+            {user && (user.role === 'admin' || user.role === 'editor') && (
+              <button
+                type="button"
+                onClick={handleSyncWeather}
+                disabled={isSyncingWeather}
+                className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              >
+                {isSyncingWeather ? 'กำลังดึงข้อมูล...' : '🔄 ดึงสภาพอากาศย้อนหลังจริง'}
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-4 gap-4">
             <div className="col-span-2">
@@ -589,7 +586,6 @@ function DailyReportForm({
                 value={weather} 
                 onChange={e => setWeather(e.target.value)}
                 className={inputCls} 
-                placeholder="แดดจัด / ฝนตกปานกลาง / ครึ้มฟ้าครึ้มฝน"
               />
             </div>
             <div>
@@ -773,7 +769,7 @@ function DailyReportForm({
           </div>
         </div>
 
-      </div>
+      </fieldset>
     </div>
   )
 }

@@ -103,24 +103,28 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
         </div>
         
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors shadow-sm"
-          >
-            <Printer size={16} />
-            <span className="hidden sm:inline">พิมพ์รายงาน</span>
-          </button>
+          {user && (
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors shadow-sm"
+            >
+              <Printer size={16} />
+              <span className="hidden sm:inline">พิมพ์รายงาน</span>
+            </button>
+          )}
           
-          <button
-            onClick={() => {
-              setEditData(null)
-              setModalOpen(true)
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white rounded-xl btn-primary cursor-pointer hover:shadow-lg transition-all"
-          >
-            <Plus size={18} />
-            <span>เพิ่มการเท</span>
-          </button>
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button
+              onClick={() => {
+                setEditData(null)
+                setModalOpen(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white rounded-xl btn-primary cursor-pointer hover:shadow-lg transition-all"
+            >
+              <Plus size={18} />
+              <span>เพิ่มการเท</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -136,13 +140,17 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
             <thead className="bg-slate-50 dark:bg-[#1e1e38] text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-[#252548] print:bg-transparent print:text-black">
               <tr>
-                <th className="px-4 py-3 w-10 text-center print:hidden"></th>
+                {user && (user.role === 'admin' || user.role === 'editor') && (
+                  <th className="px-4 py-3 w-10 text-center print:hidden"></th>
+                )}
                 <th className="px-4 py-3 whitespace-nowrap">เลขที่ / วันที่เท</th>
                 <th className="px-4 py-3">ส่วนโครงสร้าง / กำลังอัด</th>
                 <th className="px-4 py-3 text-right">ปริมาณ (m³)</th>
                 <th className="px-4 py-3 text-center">สลัมป์ (จริง/สเปก)</th>
                 <th className="px-4 py-3 w-64">สถานะการบ่ม (28 วัน)</th>
-                <th className="px-4 py-3 w-20 text-center print:hidden">จัดการ</th>
+                {user && (user.role === 'admin' || user.role === 'editor') && (
+                  <th className="px-4 py-3 w-20 text-center print:hidden">จัดการ</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-[#1e1e38]">
@@ -171,17 +179,19 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                 return (
                   <tr 
                     key={pour.id}
-                    draggable
+                    draggable={!!(user && (user.role === 'admin' || user.role === 'editor'))}
                     onDragStart={(e) => handleDragStart(e, idx)}
                     onDragOver={(e) => handleDragOver(e, idx)}
                     onDrop={handleDrop}
                     className={`${draggedIdx === idx ? 'opacity-50 bg-slate-50 dark:bg-[#1e1e38]' : 'hover:bg-slate-50 dark:hover:bg-[#1e1e38]/50'} transition-colors print:break-inside-avoid print:border-b print:border-slate-200`}
                   >
-                    <td className="px-4 py-3 text-center print:hidden">
-                      <div className="cursor-grab hover:text-primary-500 text-slate-300 dark:text-slate-600 flex justify-center">
-                        <GripVertical size={16} />
-                      </div>
-                    </td>
+                    {user && (user.role === 'admin' || user.role === 'editor') && (
+                      <td className="px-4 py-3 text-center print:hidden">
+                        <div className="cursor-grab hover:text-primary-500 text-slate-300 dark:text-slate-600 flex justify-center">
+                          <GripVertical size={16} />
+                        </div>
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <div className="font-bold text-slate-900 dark:text-white print:text-black">{pour.pour_no}</div>
                       <div className="text-xs mt-0.5 flex items-center gap-1 text-slate-500">
@@ -244,25 +254,27 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center print:hidden">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => {
-                            setEditData(pour)
-                            setModalOpen(true)
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(pour.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+                    {user && (user.role === 'admin' || user.role === 'editor') && (
+                      <td className="px-4 py-3 text-center print:hidden">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditData(pour)
+                              setModalOpen(true)
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded transition-colors"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(pour.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 )
               })}

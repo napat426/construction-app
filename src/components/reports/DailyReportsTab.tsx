@@ -283,8 +283,8 @@ export function DailyReportsTab({ project, data, user }: Props) {
               if (report) {
                 if (report.is_confirmed) {
                   dotColor = 'bg-emerald-500' // confirmed (🟢)
-                } else if (report.is_auto_generated) {
-                  dotColor = 'bg-amber-500 animate-pulse' // auto generated (🟡)
+                } else {
+                  dotColor = 'bg-amber-500 animate-pulse' // draft (🟡)
                 }
               }
 

@@ -98,6 +98,7 @@ export function ConcretePourModal({ project_id, tasks, initialData, existingPour
 
           <form action={formAction} ref={formRef} className="space-y-6">
             <input type="hidden" name="photos" value={JSON.stringify(photos)} />
+            <input type="hidden" name="sequence" value={initialData ? initialData.sequence : existingPoursCount} />
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>

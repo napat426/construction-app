@@ -24,6 +24,7 @@ export async function createConcretePour(projectId: string, prevState: ActionSta
       cube_samples: formData.get('cube_samples') ? parseInt(formData.get('cube_samples') as string, 10) : 0,
       note: formData.get('note') || null,
       photos: formData.get('photos') ? JSON.parse(formData.get('photos') as string) : [],
+      sequence: formData.get('sequence') ? parseInt(formData.get('sequence') as string, 10) : 0,
     }
 
     if (!data.pour_no || !data.pour_date) {

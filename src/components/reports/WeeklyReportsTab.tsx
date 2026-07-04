@@ -634,8 +634,10 @@ function WeeklyReportForm({
     const paymentPoints: { date: Date; amount: number }[] = []
     milestones.forEach(m => {
       if (m.is_paid && m.payment_date) {
+        const pd = new Date(m.payment_date);
+        pd.setHours(0, 0, 0, 0);
         paymentPoints.push({
-          date: new Date(m.payment_date),
+          date: pd,
           amount: Number(m.amount) || 0
         })
       }

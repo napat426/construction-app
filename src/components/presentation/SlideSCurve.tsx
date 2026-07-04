@@ -91,8 +91,10 @@ export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }:
     let currentCumulative = 0
     validPayments.forEach(m => {
       currentCumulative += Number(m.amount) || 0
+      const pd = new Date(m.payment_date!)
+      pd.setHours(0, 0, 0, 0)
       paymentPoints.push({
-        date: new Date(m.payment_date!),
+        date: pd,
         cumulative: currentCumulative
       })
     })

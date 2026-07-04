@@ -31,6 +31,14 @@ export function EditBaselineModal({ project, milestones, onClose }: EditBaseline
         ]
   )
 
+  const [supervisors, setSupervisors] = useState<string[]>(() => {
+    if (project.supervisor) {
+      const list = project.supervisor.split(',').map(s => s.trim()).filter(Boolean)
+      if (list.length > 0) return list
+    }
+    return ['']
+  })
+
   const [committeeMembers, setCommitteeMembers] = useState<string[]>(() => {
     let list: string[] = []
     try {
@@ -170,16 +178,42 @@ export function EditBaselineModal({ project, milestones, onClose }: EditBaseline
                 className={inputCls}
               />
             </div>
-            <div>
-              <label className={labelCls} htmlFor="supervisor">ผู้ควบคุมงาน *</label>
-              <input
-                id="supervisor"
-                name="supervisor"
-                type="text"
-                required
-                defaultValue={project.supervisor}
-                className={inputCls}
-              />
+            <div className="flex flex-col gap-2">
+              <label className={labelCls}>ผู้ควบคุมงาน *</label>
+              <input type="hidden" name="supervisor" value={supervisors.filter(Boolean).join(', ')} />
+              {supervisors.map((sup, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={sup}
+                    onChange={(e) => {
+                      const updated = [...supervisors]
+                      updated[idx] = e.target.value
+                      setSupervisors(updated)
+                    }}
+                    placeholder={`ผู้ควบคุมงานคนที่ ${idx + 1}`}
+                    className={inputCls}
+                  />
+                  {supervisors.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setSupervisors(supervisors.filter((_, i) => i !== idx))}
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      title="ลบ"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSupervisors([...supervisors, ''])}
+                className="text-xs text-primary-600 dark:text-primary-400 font-bold self-start mt-1 hover:underline"
+              >
+                + เพิ่มผู้ควบคุมงาน
+              </button>
             </div>
           </div>
 

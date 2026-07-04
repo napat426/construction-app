@@ -136,7 +136,10 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
       if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
-      if (selectedSupervisor !== 'all' && p.supervisor !== selectedSupervisor) return false
+      if (selectedSupervisor !== 'all') {
+        const pSupervisors = (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)
+        if (!pSupervisors.includes(selectedSupervisor)) return false
+      }
       if (!statusFilters[p.status]) return false
       return true
     })
@@ -171,7 +174,8 @@ export function PresentationClient({ initialProjects, initialTasks, initialInspe
 
   // Supervisors list for dropdown
   const supervisors = useMemo(() => {
-    const set = new Set(projects.map(p => p.supervisor).filter(Boolean))
+    const allSupervisors = projects.flatMap(p => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean))
+    const set = new Set(allSupervisors)
     return Array.from(set).sort()
   }, [projects])
 

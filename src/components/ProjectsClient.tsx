@@ -22,15 +22,16 @@ export function ProjectsClient({ initialProjects, initialTasks, user }: Projects
 
   /* ── Derived data ── */
   const supervisors = useMemo(
-    () => [...new Set(initialProjects.map((p) => p.supervisor))].sort(),
+    () => [...new Set(initialProjects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort(),
     [initialProjects]
   )
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
     return initialProjects.filter((p) => {
+      const pSupervisors = (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)
       const matchSupervisor =
-        selectedSupervisor === 'all' || p.supervisor === selectedSupervisor
+        selectedSupervisor === 'all' || pSupervisors.includes(selectedSupervisor)
       const matchStatus =
         selectedStatus === 'all' || p.status === selectedStatus
       const matchSearch =

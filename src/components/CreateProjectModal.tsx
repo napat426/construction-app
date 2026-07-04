@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useActionState } from 'react'
-import { X, Plus, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState, useActionState } from 'react'
+import { X, Plus, Loader2, Trash2 } from 'lucide-react'
 import { createProject } from '@/app/actions/projects'
 import type { ActionState } from '@/lib/types'
 
@@ -14,6 +14,8 @@ const INITIAL_STATE: ActionState = null
 export function CreateProjectModal({ onClose }: CreateProjectModalProps) {
   const [state, formAction, pending] = useActionState(createProject, INITIAL_STATE)
   const formRef = useRef<HTMLFormElement>(null)
+
+  const [supervisors, setSupervisors] = useState<string[]>([''])
 
   // Close modal on success
   useEffect(() => {
@@ -108,18 +110,44 @@ export function CreateProjectModal({ onClose }: CreateProjectModalProps) {
                 className={inputCls}
               />
             </div>
-            <div>
-              <label className={labelCls} htmlFor="supervisor">
+            <div className="flex flex-col gap-2">
+              <label className={labelCls}>
                 ผู้ควบคุมงาน <span className="text-red-500 normal-case tracking-normal">*</span>
               </label>
-              <input
-                id="supervisor"
-                name="supervisor"
-                type="text"
-                required
-                placeholder="ชื่อ-นามสกุล"
-                className={inputCls}
-              />
+              <input type="hidden" name="supervisor" value={supervisors.filter(Boolean).join(', ')} />
+              {supervisors.map((sup, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={sup}
+                    onChange={(e) => {
+                      const updated = [...supervisors]
+                      updated[idx] = e.target.value
+                      setSupervisors(updated)
+                    }}
+                    placeholder={`ชื่อ-นามสกุล คนที่ ${idx + 1}`}
+                    className={inputCls}
+                  />
+                  {supervisors.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setSupervisors(supervisors.filter((_, i) => i !== idx))}
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      title="ลบ"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSupervisors([...supervisors, ''])}
+                className="text-xs text-primary-600 dark:text-primary-400 font-bold self-start mt-1 hover:underline"
+              >
+                + เพิ่มผู้ควบคุมงาน
+              </button>
             </div>
           </div>
 

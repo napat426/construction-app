@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { ClipboardCheck, FileClock, CalendarDays } from 'lucide-react'
-import type { Project, Inspection, DailyReport, WeeklyReport, WBSTask, ProjectPayment, ProjectMilestone } from '@/lib/types'
+import { ClipboardCheck, FileClock, CalendarDays, Truck } from 'lucide-react'
+import type { Project, Inspection, DailyReport, WeeklyReport, WBSTask, ProjectPayment, ProjectMilestone, ConcretePour } from '@/lib/types'
 
 // We will lazily load or statically import the child components
 import { InspectionsTab } from './reports/InspectionsTab'
 import { DailyReportsTab } from './reports/DailyReportsTab'
 import { WeeklyReportsTab } from './reports/WeeklyReportsTab'
+import { ConcretePoursTab } from './reports/ConcretePoursTab'
 
 import type { UserSession } from '@/lib/auth'
 
@@ -16,18 +17,20 @@ interface Props {
   inspections: Inspection[]
   dailyReports: DailyReport[]
   weeklyReports: WeeklyReport[]
+  concretePours: ConcretePour[]
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
   user?: UserSession | null
 }
 
-type TabType = 'inspections' | 'daily' | 'weekly'
+type TabType = 'inspections' | 'daily' | 'weekly' | 'concrete'
 
 export function ReportsClient({
   project,
   inspections,
   dailyReports,
   weeklyReports,
+  concretePours,
   tasks,
   milestones,
   user,
@@ -38,6 +41,7 @@ export function ReportsClient({
     { id: 'inspections', label: 'ตรวจสอบคุณภาพ', icon: ClipboardCheck },
     { id: 'daily', label: 'รายงานประจำวัน', icon: FileClock },
     { id: 'weekly', label: 'รายงานประจำสัปดาห์', icon: CalendarDays },
+    { id: 'concrete', label: 'รายการเทคอนกรีต', icon: Truck },
   ] as const
 
   return (
@@ -75,6 +79,14 @@ export function ReportsClient({
             data={weeklyReports} 
             tasks={tasks}
             milestones={milestones}
+            user={user}
+          />
+        )}
+        {activeTab === 'concrete' && (
+          <ConcretePoursTab
+            project={project}
+            tasks={tasks}
+            pours={concretePours}
             user={user}
           />
         )}

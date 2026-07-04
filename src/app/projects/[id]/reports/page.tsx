@@ -39,7 +39,8 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
     dailyRes,
     weeklyRes,
     tasksRes,
-    milestonesRes
+    milestonesRes,
+    concreteRes
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
     supabase.from('inspections').select('*').eq('project_id', id).order('sort_order', { ascending: true }),
@@ -47,6 +48,7 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
     supabase.from('weekly_reports').select('*').eq('project_id', id).order('sort_order', { ascending: true }),
     supabase.from('tasks').select('*').eq('project_id', id).order('wbs_no', { ascending: true }),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
+    supabase.from('concrete_pours').select('*').eq('project_id', id).order('sequence', { ascending: true })
   ])
 
   const projectData = projectRes.data
@@ -58,6 +60,7 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
   const weeklyData = weeklyRes.data
   const tasksData = tasksRes.data
   const milestonesData = milestonesRes.data
+  const concreteData = concreteRes.data
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -81,6 +84,7 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
             inspections={(inspectionsData as Inspection[]) || []}
             dailyReports={(dailyData as DailyReport[]) || []}
             weeklyReports={(weeklyData as WeeklyReport[]) || []}
+            concretePours={(concreteData as any[]) || []}
             tasks={(tasksData as WBSTask[]) || []}
             milestones={(milestonesData as ProjectMilestone[]) || []}
             user={user}

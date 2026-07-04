@@ -120,6 +120,29 @@ export interface DailyReport {
   is_confirmed?: boolean
 }
 
+export interface ConcretePour {
+  id: string
+  project_id: string
+  pour_no: string
+  pour_date: string
+  structure_element?: string
+  wbs_task_id?: string
+  concrete_grade?: string
+  slump_spec?: number
+  slump_actual?: number
+  volume?: number
+  supplier?: string
+  ticket_no?: string
+  pour_start_time?: string
+  pour_end_time?: string
+  weather?: string
+  cube_samples?: number
+  photos?: any[]
+  note?: string
+  sequence: number
+  created_at: string
+}
+
 export interface WeeklyReportSnapshot {
   pv: number;
   ev: number;

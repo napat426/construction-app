@@ -249,9 +249,9 @@ export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }:
                 <div className="flex justify-between text-sm">
                   <span className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>ทำได้: {wbs.actual_progress || 0}%</span>
                   <span className={isDark ? 'text-white/60' : 'text-slate-500'}>
-                    {new Date(wbs.computedStartDate).toLocaleDateString('th-TH', {month:'short', year:'2-digit'})} 
+                    {new Date(wbs.computedStartDate).toLocaleDateString('th-TH', {day: 'numeric', month:'short', year:'2-digit'})} 
                     {' - '}
-                    {new Date(wbs.computedEndDate).toLocaleDateString('th-TH', {month:'short', year:'2-digit'})}
+                    {new Date(wbs.computedEndDate).toLocaleDateString('th-TH', {day: 'numeric', month:'short', year:'2-digit'})}
                   </span>
                 </div>
                 <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-200'} h-1.5 rounded-full mt-1 overflow-hidden`}>

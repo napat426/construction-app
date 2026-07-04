@@ -64,6 +64,68 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function formatThaiDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateRange(startStr: string, endStr: string): string {
+  if (!startStr || !endStr) return "";
+  return `${formatThaiDate(startStr)} - ${formatThaiDate(endStr)}`;
+}
+
+function parseDateRangeStart(dateRange: string): string {
+  // Try to parse "21 มิ.ย. 2569 - 27 มิ.ย. 2569" back to YYYY-MM-DD
+  // Also handle if it's already stored as ISO dates
+  const parts = dateRange.split(" - ");
+  if (parts.length >= 1) {
+    const parsed = tryParseThaiDate(parts[0].trim());
+    if (parsed) return parsed;
+  }
+  return "";
+}
+
+function parseDateRangeEnd(dateRange: string): string {
+  const parts = dateRange.split(" - ");
+  if (parts.length >= 2) {
+    const parsed = tryParseThaiDate(parts[1].trim());
+    if (parsed) return parsed;
+  }
+  return "";
+}
+
+function tryParseThaiDate(str: string): string {
+  // Try native Date parse first (handles ISO and common formats)
+  const d = new Date(str);
+  if (!isNaN(d.getTime()) && d.getFullYear() > 1970) {
+    return d.toISOString().slice(0, 10);
+  }
+  // Try Thai month abbreviations
+  const thaiMonths: Record<string, number> = {
+    'ม.ค.': 0, 'ก.พ.': 1, 'มี.ค.': 2, 'เม.ย.': 3,
+    'พ.ค.': 4, 'มิ.ย.': 5, 'ก.ค.': 6, 'ส.ค.': 7,
+    'ก.ย.': 8, 'ต.ค.': 9, 'พ.ย.': 10, 'ธ.ค.': 11,
+  };
+  const match = str.match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
+  if (match) {
+    const day = parseInt(match[1]);
+    const monthStr = match[2];
+    let year = parseInt(match[3]);
+    // Convert Buddhist Era to CE if needed
+    if (year > 2500) year -= 543;
+    const month = thaiMonths[monthStr];
+    if (month !== undefined) {
+      const result = new Date(year, month, day);
+      return result.toISOString().slice(0, 10);
+    }
+  }
+  return "";
+}
+
 export function WeeklyReportsTab({
   project,
   data,
@@ -338,7 +400,7 @@ function WeeklyReportForm({
     };
 
     const payload = {
-      date_range: fd.get("date_range") || "",
+      date_range: formatDateRange(fd.get("date_start") as string, fd.get("date_end") as string),
       summary: fd.get("summary") || null,
       delayed_tasks: fd.get("delayed_tasks") || null,
       look_ahead: fd.get("look_ahead") || null,
@@ -1011,14 +1073,27 @@ function WeeklyReportForm({
           {/* --- Form Fields (visible on screen & print) --- */}
           <div>
             <label className={labelCls}>ช่วงวันที่ของรายงาน (Date Range)</label>
-            <input
-              name="date_range"
-              type="text"
-              defaultValue={item?.date_range || ""}
-              className={`${inputCls} print:border-none print:p-0 print:bg-transparent print:font-bold`}
-              placeholder="เช่น 21 มิ.ย. 2026 - 27 มิ.ย. 2026"
-              required
-            />
+            <div className="flex items-center gap-2 print:hidden">
+              <input
+                name="date_start"
+                type="date"
+                defaultValue={item?.date_range ? parseDateRangeStart(item.date_range) : ''}
+                className={inputCls}
+                required
+              />
+              <span className="text-slate-400 font-bold text-sm flex-shrink-0">ถึง</span>
+              <input
+                name="date_end"
+                type="date"
+                defaultValue={item?.date_range ? parseDateRangeEnd(item.date_range) : ''}
+                className={inputCls}
+                required
+              />
+            </div>
+            {/* Show formatted text for print */}
+            <p className="hidden print:block text-sm font-bold text-slate-800">
+              {item?.date_range || '-'}
+            </p>
           </div>
 
           <div>

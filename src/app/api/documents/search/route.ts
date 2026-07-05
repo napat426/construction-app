@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     if (queryEmbedding.length === 0) {
       const embedModel = genAI.getGenerativeModel({ model: 'gemini-embedding-001' })
       const result = await embedModel.embedContent(query)
-      queryEmbedding = result.embedding.values
+      queryEmbedding = result.embedding.values.slice(0, 768)
 
       // Save to cache (non-blocking)
       supabase.from('embedding_cache').insert({

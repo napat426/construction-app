@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
       try {
         const result = await embedModel.embedContent(chunkText)
-        const embedding = result.embedding.values
+        const embeddingArray = result.embedding.values.slice(0, 768)
 
         const { error: insertErr } = await supabase.from('document_chunks').insert({
           document_id: documentId,
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
           chunk_index: i,
           page_number: pageNumber,
           content: chunkText,
-          embedding: `[${embedding.join(',')}]`, // Postgres vector string format
+          embedding: `[${embeddingArray.join(',')}]`, // Postgres vector string format
           extract_method: extractMethod,
           ocr_confidence: ocrConfidence
         })

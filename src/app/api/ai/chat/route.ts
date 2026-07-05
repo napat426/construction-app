@@ -101,14 +101,17 @@ export async function POST(req: Request) {
       ]
       
     } else if (actionType === 'risk') {
+      let delayedSum = 0
       const risks = projects.map(p => {
         const pTasks = tasks.filter(t => t.project_id === p.id)
-        const delayedTasks = pTasks.filter(t => (t.actual_progress || 0) < 100 && new Date(t.start_date) <= today)
+        const scheduledTasks = computeTaskDates(pTasks, p.start_date)
+        const delayedTasks = scheduledTasks.filter(t => (t.actual_progress || 0) < 100 && new Date(t.computedStartDate) <= today)
+        delayedSum += delayedTasks.length
+        
         const oldPendingMat = materials.filter(m => m.project_id === p.id && m.status === 'pending' && m.submitted_date && (today.getTime() - new Date(m.submitted_date).getTime()) > 7 * 24 * 60 * 60 * 1000).length
         return `⚠️ **โครงการ ${p.name}**\n- **งานที่อาจล่าช้า:** ${delayedTasks.length} งาน\n- **วัสดุค้างอนุมัติเกิน 7 วัน:** ${oldPendingMat} รายการ`
       })
       answer = `**⚠️ การวิเคราะห์ความเสี่ยง:**\n\n${risks.join('\n\n')}\n\n✅ **ข้อเสนอแนะ:** เร่งรัดการอนุมัติวัสดุที่ค้างนานเกิน 7 วัน และติดตามงานที่ยังไม่เสร็จตามแผน`
-      const delayedSum = tasks.filter(t => (t.actual_progress || 0) < 100 && new Date(t.start_date) <= today).length
       sources = [{ type: 'planning', text: `⚠️ งานล่าช้ารวม ${delayedSum} งาน`, link: `/projects/${projectIds[0]}/planning` }]
 
     } else if (actionType === 'compare') {
@@ -123,17 +126,27 @@ export async function POST(req: Request) {
       sources = [{ type: 'portfolio', text: `🔀 เปรียบเทียบ ${projects.length} โครงการ`, link: `/portfolio` }]
 
     } else if (actionType === 'tasks') {
-      const upcomingTasks = tasks.filter(t => {
-        const diff = new Date(t.start_date).getTime() - today.getTime()
-        return diff >= -86400000 && diff <= 7 * 24 * 60 * 60 * 1000 && (t.actual_progress || 0) < 100
+      const upcomingTasksList: string[] = []
+      let totalUpcomingCount = 0
+      
+      projects.forEach(p => {
+        const pTasks = tasks.filter(t => t.project_id === p.id)
+        const scheduledTasks = computeTaskDates(pTasks, p.start_date)
+        const upcomingTasks = scheduledTasks.filter(t => {
+          const diff = new Date(t.computedStartDate).getTime() - today.getTime()
+          return diff >= -86400000 && diff <= 7 * 24 * 60 * 60 * 1000 && (t.actual_progress || 0) < 100
+        })
+        
+        totalUpcomingCount += upcomingTasks.length
+        upcomingTasks.forEach(t => {
+          upcomingTasksList.push(`- [${p.name}] **${t.name}** (เริ่ม: ${new Date(t.computedStartDate).toLocaleDateString('th-TH')})`)
+        })
       })
-      let list = upcomingTasks.map(t => {
-        const p = projects.find(proj => proj.id === t.project_id)
-        return `- [${p?.name}] **${t.name}** (เริ่ม: ${new Date(t.start_date).toLocaleDateString('th-TH')})`
-      }).join('\n')
+      
+      let list = upcomingTasksList.join('\n')
       if (!list) list = '- ไม่มีงานที่ต้องเริ่มใน 7 วันนี้'
       answer = `**📅 สิ่งที่ต้องทำสัปดาห์นี้ (7 วันข้างหน้า):**\n\n${list}`
-      sources = [{ type: 'planning', text: `📅 งานสัปดาห์นี้: ${upcomingTasks.length} งาน`, link: `/projects/${projectIds[0]}/planning` }]
+      sources = [{ type: 'planning', text: `📅 งานสัปดาห์นี้: ${totalUpcomingCount} งาน`, link: `/projects/${projectIds[0]}/planning` }]
 
     } else if (actionType === 'report') {
       const reports = projects.map(p => {

@@ -224,7 +224,7 @@ export interface AIConversation {
 
 export interface ProjectDocument {
   id: string
-  project_id: string
+  project_id?: string | null
   doc_type: string
   file_name: string
   file_url: string
@@ -235,6 +235,7 @@ export interface ProjectDocument {
   processed_pages?: number
   status?: string
   keep_original?: boolean
+  scope?: string
   uploaded_at: string
 }
 

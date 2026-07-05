@@ -36,7 +36,7 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   // RAG Source counts for selected projects
-  const [ragCounts, setRagCounts] = useState({ tasks: 0, materials: 0, reports: 0, inspections: 0 })
+  const [ragCounts, setRagCounts] = useState({ tasks: 0, materials: 0, reports: 0, inspections: 0, globalDocs: 0, projectDocs: 0 })
 
   useEffect(() => {
     const saved = localStorage.getItem('ai_selected_projects')
@@ -57,20 +57,25 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
   }, [messages])
 
   const fetchRagCounts = async () => {
+    const { count: cGlobalDocs } = await supabase.from('project_documents').select('*', { count: 'exact', head: true }).eq('scope', 'global')
+    
     if (selectedIds.length === 0) {
-      setRagCounts({ tasks: 0, materials: 0, reports: 0, inspections: 0 })
+      setRagCounts({ tasks: 0, materials: 0, reports: 0, inspections: 0, globalDocs: cGlobalDocs || 0, projectDocs: 0 })
       return
     }
     const { count: cTasks } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
     const { count: cMat } = await supabase.from('project_materials').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
     const { count: cRep } = await supabase.from('daily_reports').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
     const { count: cInsp } = await supabase.from('quality_inspections').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
+    const { count: cProjDocs } = await supabase.from('project_documents').select('*', { count: 'exact', head: true }).eq('scope', 'project').in('project_id', selectedIds)
     
     setRagCounts({
       tasks: cTasks || 0,
       materials: cMat || 0,
       reports: cRep || 0,
-      inspections: cInsp || 0
+      inspections: cInsp || 0,
+      globalDocs: cGlobalDocs || 0,
+      projectDocs: cProjDocs || 0
     })
   }
 
@@ -184,18 +189,18 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
             <div className="p-4 bg-slate-100/50 dark:bg-[#1a1a32] border-t border-slate-200 dark:border-[#252548]">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">แหล่งข้อมูลที่ AI ค้นพบ (RAG)</span>
               <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                <div className="flex justify-between"><span>เอกสารกลาง:</span> <span className="font-mono">{ragCounts.globalDocs} ลิงก์</span></div>
+                <div className="flex justify-between"><span>เอกสารโครงการ:</span> <span className="font-mono">{ragCounts.projectDocs} ลิงก์</span></div>
                 <div className="flex justify-between"><span>แผนงาน/WBS:</span> <span className="font-mono">{ragCounts.tasks}</span></div>
                 <div className="flex justify-between"><span>วัสดุก่อสร้าง:</span> <span className="font-mono">{ragCounts.materials}</span></div>
                 <div className="flex justify-between"><span>รายงานประจำวัน:</span> <span className="font-mono">{ragCounts.reports}</span></div>
                 <div className="flex justify-between"><span>ตรวจสอบคุณภาพ:</span> <span className="font-mono">{ragCounts.inspections}</span></div>
               </div>
               
-              {selectedIds.length > 0 ? (
-                <DocumentManager selectedProjectId={selectedIds[0]} />
-              ) : (
-                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-[#252548]">
-                  <p className="text-[9px] text-amber-500 mt-1 text-center">เลือกโครงการก่อนเพื่อจัดการเอกสาร</p>
-                </div>
+              <DocumentManager scope="global" />
+              
+              {selectedIds.length === 1 && (
+                <DocumentManager scope="project" selectedProjectId={selectedIds[0]} />
               )}
             </div>
           </div>

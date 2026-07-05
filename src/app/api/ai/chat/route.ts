@@ -101,6 +101,25 @@ export async function POST(req: Request) {
     const materials = materialsData || []
     const milestones = milestonesData || []
 
+    // Fetch extra textual data for better context
+    const { data: inspections } = await supabase.from('inspections').select('inspection_no, work_type, status, request_date, note').in('project_id', projectIds).order('created_at', { ascending: false }).limit(10)
+    const { data: pours } = await supabase.from('concrete_pours').select('pour_no, pour_date, structure_element, concrete_grade, volume, supplier').in('project_id', projectIds).order('created_at', { ascending: false }).limit(10)
+    const { data: dailyReports } = await supabase.from('daily_reports').select('report_date, weather, manpower, machinery, work_done, issues').in('project_id', projectIds).order('report_date', { ascending: false }).limit(5)
+    
+    let extraContext = ''
+    if (inspections && inspections.length > 0) {
+      extraContext += `\nรายการตรวจสอบล่าสุด:\n` + inspections.map((i: any) => `- เลขที่: ${i.inspection_no}, งาน: ${i.work_type}, สถานะ: ${i.status}, หมายเหตุ: ${i.note || '-'}`).join('\n')
+    }
+    if (pours && pours.length > 0) {
+      extraContext += `\n\nรายการเทคอนกรีตล่าสุด:\n` + pours.map((p: any) => `- วันที่: ${new Date(p.pour_date).toLocaleDateString('th-TH')}, ส่วนโครงสร้าง: ${p.structure_element}, เกรด: ${p.concrete_grade}, ปริมาตร: ${p.volume} คิว`).join('\n')
+    }
+    if (dailyReports && dailyReports.length > 0) {
+      extraContext += `\n\nรายงานประจำวันล่าสุด:\n` + dailyReports.map((d: any) => {
+        const manStr = Array.isArray(d.manpower) ? d.manpower.map((m: any) => `${m.name}=${m.quantity}`).join(', ') : '-'
+        return `- วันที่: ${new Date(d.report_date).toLocaleDateString('th-TH')}, สภาพอากาศ: ${d.weather}, แรงงาน: [${manStr}], งานที่ทำ: ${d.work_done || '-'}`
+      }).join('\n')
+    }
+
     const today = new Date()
     let rawContext = ''
     let sources: any[] = []
@@ -185,6 +204,11 @@ export async function POST(req: Request) {
         return `โครงการ: ${p.name} | สถานะ: ${p.status} | ความก้าวหน้าจริง: ${ev.toFixed(1)}% | แผน: ${pv.toFixed(1)}% | จำนวนงาน: ${pTasks.length} งาน`
       })
       rawContext = `ข้อมูลโครงการเบื้องต้น:\n${summaries.join('\n')}`
+    }
+
+    // Append extra context for ALL questions
+    if (extraContext) {
+      rawContext += `\n\n--- ข้อมูลบันทึกโครงการล่าสุด (ใช้อ้างอิงหากผู้ใช้ถาม) ---\n${extraContext}`
     }
 
     // 2. Call Gemini API

@@ -198,7 +198,7 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
             <Sparkles size={18} />
           </div>
           <div>
-            <h3 className="font-bold text-slate-800 dark:text-white">AI Assistant <span className="text-[10px] bg-indigo-500/20 text-indigo-600 px-2 py-0.5 rounded-full ml-2">Phase 1</span></h3>
+            <h3 className="font-bold text-slate-800 dark:text-white">AI Assistant <span className="text-[10px] bg-indigo-500/20 text-indigo-600 px-2 py-0.5 rounded-full ml-2">Phase 2B</span></h3>
             <p className="text-xs text-slate-500">ผู้ช่วยวิเคราะห์ข้อมูลโครงการก่อสร้างอัจฉริยะ</p>
           </div>
         </div>

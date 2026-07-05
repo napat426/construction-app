@@ -44,7 +44,9 @@ export async function POST(req: Request) {
       supabase.from('embedding_cache').insert({
         query_text: query,
         embedding: `[${queryEmbedding.join(',')}]`
-      }).then(() => {}).catch(e => console.error('Cache save error:', e))
+      }).then(({ error }) => {
+        if (error) console.error('Cache save error:', error)
+      })
     }
 
     // 3. Match Documents

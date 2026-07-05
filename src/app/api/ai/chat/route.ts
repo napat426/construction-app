@@ -201,10 +201,10 @@ ${question || actionType}
 
       const result = await model.generateContent(prompt)
       answer = result.response.text()
-    } catch (aiError) {
+    } catch (aiError: any) {
       console.error('Gemini API Error:', aiError)
       // Graceful Fallback
-      answer = `⚠️ **AI ไม่พร้อมใช้งานชั่วคราว (โควตาหรือเชื่อมต่อ)**\nนี่คือข้อมูลสรุปเบื้องต้นที่ระบบคำนวณได้:\n\n${rawContext.split('\n').map(l => `- ${l}`).join('\n')}`
+      answer = `⚠️ **AI ไม่พร้อมใช้งานชั่วคราว (โควตาหรือเชื่อมต่อ)**\n(Error: ${aiError.message})\nนี่คือข้อมูลสรุปเบื้องต้นที่ระบบคำนวณได้:\n\n${rawContext.split('\n').map(l => `- ${l}`).join('\n')}`
     }
 
     // 3. Save to History (Cache)

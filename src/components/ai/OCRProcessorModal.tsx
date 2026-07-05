@@ -98,7 +98,7 @@ export function OCRProcessorModal({ doc, onClose, onComplete }: Props) {
   const getPageBase64 = async (pageNumber: number): Promise<string> => {
     if (!pdf) throw new Error('PDF not loaded')
     const page = await pdf.getPage(pageNumber)
-    const viewport = page.getViewport({ scale: 1.5 }) // 1.5 scale is usually enough for OCR
+    const viewport = page.getViewport({ scale: 1.0 }) // Reduced scale to 1.0 to prevent payload too large
     
     const canvas = document.createElement('canvas')
     const context = canvas.getContext('2d')
@@ -127,29 +127,52 @@ export function OCRProcessorModal({ doc, onClose, onComplete }: Props) {
       
       try {
         const base64 = await getPageBase64(pageNum)
+        let maxRetries = 3;
+        let retries = 0;
+        let success = false;
         
-        const res = await fetch('/api/documents/process-page', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            documentId: doc.id,
-            projectId: doc.project_id,
-            pageNumber: pageNum,
-            imageBase64: base64
-          }),
-          signal: abortControllerRef.current.signal
-        })
-        
-        const data = await res.json()
-        
-        if (res.status === 429) {
-          // Rate limited, backoff 5 seconds and retry same page
-          console.log('Rate limit hit, waiting 5 seconds before retry...')
-          await new Promise(r => setTimeout(r, 5000))
-          continue // retry same page
+        while (retries < maxRetries && !success && isProcessingRef.current) {
+          try {
+            const res = await fetch('/api/documents/process-page', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                documentId: doc.id,
+                projectId: doc.project_id,
+                pageNumber: pageNum,
+                imageBase64: base64
+              }),
+              signal: abortControllerRef.current.signal
+            })
+            
+            const data = await res.json()
+            
+            if (res.status === 429) {
+              console.log('Rate limit hit, waiting 5 seconds before retry...')
+              await new Promise(r => setTimeout(r, 5000))
+              retries++;
+              if (retries >= maxRetries) {
+                throw new Error('ระบบถูกจำกัดโควตา (Rate Limit) กรุณาลองใหม่ในภายหลัง')
+              }
+              continue;
+            }
+            
+            if (res.status === 504) {
+              throw new Error('เซิร์ฟเวอร์ใช้เวลาประมวลผลนานเกินไป (Timeout) อาจเป็นเพราะไฟล์ภาพมีรายละเอียดมากเกินไป')
+            }
+            
+            if (!res.ok) throw new Error(data.error || 'Failed to process page')
+            
+            success = true;
+          } catch (fetchErr: any) {
+            if (fetchErr.name === 'AbortError') throw fetchErr;
+            // if it's a parsing error from 504 gateway timeout HTML
+            if (fetchErr.message.includes('Unexpected token')) {
+               throw new Error('เซิร์ฟเวอร์ไม่ตอบสนอง (Timeout) กรุณาลองใหม่')
+            }
+            throw fetchErr;
+          }
         }
-        
-        if (!res.ok) throw new Error(data.error || 'Failed to process page')
         
         current++
         setProcessedPages(current)

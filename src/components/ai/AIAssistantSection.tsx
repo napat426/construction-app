@@ -20,6 +20,9 @@ interface ChatMessage {
   content: string
   sources?: any[]
   isTyping?: boolean
+  cachedAt?: string
+  actionType?: string
+  originalText?: string
 }
 
 export function AIAssistantSection({ projects, user }: AIAssistantProps) {
@@ -42,6 +45,16 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+
+  const [aiOcrEnabled, setAiOcrEnabled] = useState(false)
+
+  useEffect(() => {
+    supabase.from('system_settings').select('value').eq('key', 'ai_ocr_enabled').single().then(({ data }) => {
+      if (data) {
+        setAiOcrEnabled(data.value === 'true' || data.value === true)
+      }
+    })
+  }, [])
 
   const handleSemanticSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,26 +145,28 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
   }
 
-  const sendQuery = async (text: string, actionType: string) => {
+  const sendQuery = async (text: string, actionType: string, forceRefresh: boolean = false) => {
     if (selectedIds.length === 0) return
     
-    const userMsgId = Date.now().toString()
-    setMessages(prev => [...prev, { id: userMsgId, role: 'user', content: text }])
-    setInput('')
+    if (!forceRefresh) {
+      const userMsgId = Date.now().toString()
+      setMessages(prev => [...prev, { id: userMsgId, role: 'user', content: text, actionType, originalText: text }])
+      setInput('')
+    }
     setIsProcessing(true)
 
     const botMsgId = (Date.now() + 1).toString()
-    setMessages(prev => [...prev, { id: botMsgId, role: 'assistant', content: '', isTyping: true }])
+    setMessages(prev => [...prev, { id: botMsgId, role: 'assistant', content: '', isTyping: true, actionType, originalText: text }])
 
     try {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actionType, projectIds: selectedIds, question: text, userId: user?.id })
+        body: JSON.stringify({ actionType, projectIds: selectedIds, question: text, userId: user?.id, forceRefresh })
       })
       const data = await res.json()
       
-      setMessages(prev => prev.map(m => m.id === botMsgId ? { ...m, content: data.answer || data.error, sources: data.sources, isTyping: false } : m))
+      setMessages(prev => prev.map(m => m.id === botMsgId ? { ...m, content: data.answer || data.error, sources: data.sources, isTyping: false, cachedAt: data.cachedAt } : m))
     } catch (error) {
       setMessages(prev => prev.map(m => m.id === botMsgId ? { ...m, content: 'เกิดข้อผิดพลาดในการดึงข้อมูล', isTyping: false } : m))
     } finally {
@@ -198,7 +213,7 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
             <Sparkles size={18} />
           </div>
           <div>
-            <h3 className="font-bold text-slate-800 dark:text-white">AI Assistant <span className="text-[10px] bg-indigo-500/20 text-indigo-600 px-2 py-0.5 rounded-full ml-2">Phase 2B</span></h3>
+            <h3 className="font-bold text-slate-800 dark:text-white">AI Assistant <span className="text-[10px] bg-indigo-500/20 text-indigo-600 px-2 py-0.5 rounded-full ml-2">Phase 2B-2</span></h3>
             <p className="text-xs text-slate-500">ผู้ช่วยวิเคราะห์ข้อมูลโครงการก่อสร้างอัจฉริยะ</p>
           </div>
         </div>
@@ -245,46 +260,51 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
                 <div className="flex justify-between"><span>รายงานประจำวัน:</span> <span className="font-mono">{ragCounts.reports}</span></div>
                 <div className="flex justify-between"><span>ตรวจสอบคุณภาพ:</span> <span className="font-mono">{ragCounts.inspections}</span></div>
               </div>
-              
-              <DocumentManager scope="global" onUpdate={fetchRagCounts} />
-              
-              {selectedIds.length === 1 && (
-                <DocumentManager scope="project" selectedProjectId={selectedIds[0]} onUpdate={fetchRagCounts} />
+              {aiOcrEnabled && (
+                <>
+                  <DocumentManager scope="global" onUpdate={fetchRagCounts} />
+                  
+                  {selectedIds.length === 1 && (
+                    <DocumentManager scope="project" selectedProjectId={selectedIds[0]} onUpdate={fetchRagCounts} />
+                  )}
+                </>
               )}
             </div>
 
             {/* Semantic Search Testing */}
-            <div className="p-4 bg-slate-50 dark:bg-[#14142a] border-t border-slate-200 dark:border-[#252548]">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">ทดสอบค้นหา (Semantic Search)</span>
-              <form onSubmit={handleSemanticSearch} className="flex gap-2 mb-3">
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="เช่น 'ระยะทาบเหล็ก'" 
-                  className="flex-1 text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]"
-                />
-                <button type="submit" disabled={isSearching || !searchQuery} className="bg-primary-600 text-white px-2.5 py-1.5 rounded disabled:opacity-50 flex items-center justify-center">
-                  {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                </button>
-              </form>
-              <div className="space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar">
-                {searchResults.map((r, i) => (
-                  <div key={i} className="text-[10px] p-2 bg-white dark:bg-[#1a1a32] border border-slate-200 dark:border-slate-700 rounded shadow-sm">
-                    <div className="flex justify-between items-start mb-1 text-slate-500">
-                      <span className="font-bold text-primary-600 truncate">{r.section_title || 'ไม่ระบุหัวข้อ'} (หน้า {r.page_number})</span>
-                      <span className="text-[8px] bg-slate-100 dark:bg-slate-800 px-1 rounded">{(r.similarity * 100).toFixed(1)}%</span>
+            {aiOcrEnabled && (
+              <div className="p-4 bg-slate-50 dark:bg-[#14142a] border-t border-slate-200 dark:border-[#252548]">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">ทดสอบค้นหา (Semantic Search)</span>
+                <form onSubmit={handleSemanticSearch} className="flex gap-2 mb-3">
+                  <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="เช่น 'ระยะทาบเหล็ก'" 
+                    className="flex-1 text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]"
+                  />
+                  <button type="submit" disabled={isSearching || !searchQuery} className="bg-primary-600 text-white px-2.5 py-1.5 rounded disabled:opacity-50 flex items-center justify-center">
+                    {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                  </button>
+                </form>
+                <div className="space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar">
+                  {searchResults.map((r, i) => (
+                    <div key={i} className="text-[10px] p-2 bg-white dark:bg-[#1a1a32] border border-slate-200 dark:border-slate-700 rounded shadow-sm">
+                      <div className="flex justify-between items-start mb-1 text-slate-500">
+                        <span className="font-bold text-primary-600 truncate">{r.section_title || 'ไม่ระบุหัวข้อ'} (หน้า {r.page_number})</span>
+                        <span className="text-[8px] bg-slate-100 dark:bg-slate-800 px-1 rounded">{(r.similarity * 100).toFixed(1)}%</span>
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-300 line-clamp-3">{r.content}</p>
+                      {r.extract_method === 'gemini_ocr' && (
+                        <span className="inline-block mt-1 text-[8px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1 rounded border border-amber-200 dark:border-amber-800">
+                          ⚠️ จาก OCR ({r.ocr_confidence})
+                        </span>
+                      )}
                     </div>
-                    <p className="text-slate-700 dark:text-slate-300 line-clamp-3">{r.content}</p>
-                    {r.extract_method === 'gemini_ocr' && (
-                      <span className="inline-block mt-1 text-[8px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1 rounded border border-amber-200 dark:border-amber-800">
-                        ⚠️ จาก OCR ({r.ocr_confidence})
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column - Chat Area */}
@@ -330,12 +350,26 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
                       </div>
                     )}
                     
-                    {/* Copy Button */}
+                    {/* Copy Button & Cache Info */}
                     {!m.isTyping && m.role === 'assistant' && m.id !== '1' && (
-                      <button onClick={() => handleCopy(m.content, m.id)} className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600 self-start mt-1">
-                        {copiedId === m.id ? <Check size={12} className="text-emerald-500"/> : <Copy size={12} />}
-                        {copiedId === m.id ? 'คัดลอกแล้ว' : 'คัดลอก'}
-                      </button>
+                      <div className="flex flex-wrap items-center justify-between mt-1 gap-2">
+                        <button onClick={() => handleCopy(m.content, m.id)} className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600">
+                          {copiedId === m.id ? <Check size={12} className="text-emerald-500"/> : <Copy size={12} />}
+                          {copiedId === m.id ? 'คัดลอกแล้ว' : 'คัดลอก'}
+                        </button>
+                        
+                        {m.cachedAt && (
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                            <span>วิเคราะห์เมื่อ {new Date(m.cachedAt).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})}</span>
+                            <button 
+                              onClick={() => sendQuery(m.originalText || m.actionType || 'summary', m.actionType || 'summary', true)}
+                              className="flex items-center gap-1 text-primary-600 hover:text-primary-700 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded font-medium"
+                            >
+                              🔄 วิเคราะห์ใหม่
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

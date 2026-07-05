@@ -197,12 +197,20 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
               )}
 
               {user.role === 'admin' && (
-                <Link
-                  href="/admin/users"
-                  className="px-3 h-9 rounded-lg border border-[#a13c9d]/30 text-[#a13c9d] hover:bg-[#a13c9d]/5 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  จัดการผู้ใช้
-                </Link>
+                <div className="flex gap-2">
+                  <Link
+                    href="/admin/users"
+                    className="px-3 h-9 rounded-lg border border-[#a13c9d]/30 text-[#a13c9d] hover:bg-[#a13c9d]/5 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    จัดการผู้ใช้
+                  </Link>
+                  <Link
+                    href="/admin/settings"
+                    className="px-3 h-9 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    ตั้งค่าระบบ
+                  </Link>
+                </div>
               )}
 
               <button

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { computeTaskDates } from '@/lib/scheduler'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 function getProjectProgress(project: any, allTasks: any[]) {
   const pTasks = allTasks.filter(t => t.project_id === project.id)
@@ -52,12 +53,43 @@ function getProjectProgress(project: any, allTasks: any[]) {
 
 export async function POST(req: Request) {
   try {
-    const { actionType, projectIds, question, userId } = await req.json()
+    const { actionType, projectIds, question, userId, forceRefresh } = await req.json()
 
     if (!projectIds || projectIds.length === 0) {
       return NextResponse.json({ error: 'No projects selected' }, { status: 400 })
     }
 
+    // Check cache first
+    const cacheKey = question || actionType
+    if (!forceRefresh) {
+      const { data: cached } = await supabase
+        .from('ai_conversations')
+        .select('*')
+        .eq('question', cacheKey)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (cached && cached.length > 0) {
+        const validCache = cached.find(c => {
+          // Verify exact project match and age < 1 hour
+          try {
+            const pIdsMatch = JSON.stringify([...c.project_ids].sort()) === JSON.stringify([...projectIds].sort())
+            const isRecent = (new Date().getTime() - new Date(c.created_at).getTime()) < 3600000
+            return pIdsMatch && isRecent
+          } catch(e) { return false }
+        })
+
+        if (validCache) {
+          return NextResponse.json({ 
+            answer: validCache.answer, 
+            sources: validCache.sources, 
+            cachedAt: validCache.created_at 
+          })
+        }
+      }
+    }
+
+    // Fetch live data
     const { data: projectsData } = await supabase.from('projects').select('*').in('id', projectIds)
     const projects = projectsData || []
 
@@ -69,11 +101,12 @@ export async function POST(req: Request) {
     const materials = materialsData || []
     const milestones = milestonesData || []
 
-    let answer = ''
-    let sources: any[] = []
     const today = new Date()
+    let rawContext = ''
+    let sources: any[] = []
 
-    if (actionType === 'summary') {
+    // 1. Prepare factual context based on action
+    if (actionType === 'summary' || actionType === 'report' || !actionType) {
       const summaries = projects.map(p => {
         const pTasks = tasks.filter(t => t.project_id === p.id)
         const pMaterials = materials.filter(m => m.project_id === p.id)
@@ -83,9 +116,9 @@ export async function POST(req: Request) {
         const sv = ev - pv
         const svText = sv < 0 ? `ล่าช้ากว่าแผน ${Math.abs(sv).toFixed(1)}%` : sv > 0 ? `เร็วกว่าแผน ${sv.toFixed(1)}%` : 'ตรงตามแผน'
         
-        return `📌 **โครงการ ${p.name}**\n- **สถานะ:** ${p.status}\n- **ความก้าวหน้า:** จริง ${ev.toFixed(1)}% | แผน ${pv.toFixed(1)}% (SV: ${svText})\n- **แผนงาน:** มี ${pTasks.length} งาน\n- **วัสดุที่รออนุมัติ:** ${pendingMat} รายการ`
+        return `โครงการ: ${p.name} | สถานะ: ${p.status} | ความก้าวหน้าจริง: ${ev.toFixed(1)}% | แผน: ${pv.toFixed(1)}% | SV: ${svText} | จำนวนงานทั้งหมด: ${pTasks.length} งาน | วัสดุที่รออนุมัติ: ${pendingMat} รายการ`
       })
-      answer = `**📊 สรุปสถานะโครงการที่เลือก:**\n\n${summaries.join('\n\n')}`
+      rawContext = `สรุปสถานะ:\n${summaries.join('\n')}`
       
       let totalEv = 0, totalPv = 0
       projects.forEach(p => {
@@ -99,8 +132,8 @@ export async function POST(req: Request) {
         { type: 'dashboard', text: `📊 จากแผนงาน: SV = ${overallSv.toFixed(1)}%`, link: `/portfolio` },
         { type: 'materials', text: `📦 จากวัสดุ: ค้าง ${pendingCount} รายการ`, link: `/projects/${projectIds[0]}/materials` }
       ]
-      
-    } else if (actionType === 'risk') {
+    } 
+    else if (actionType === 'risk') {
       let delayedSum = 0
       const risks = projects.map(p => {
         const pTasks = tasks.filter(t => t.project_id === p.id)
@@ -109,23 +142,21 @@ export async function POST(req: Request) {
         delayedSum += delayedTasks.length
         
         const oldPendingMat = materials.filter(m => m.project_id === p.id && m.status === 'pending' && m.submitted_date && (today.getTime() - new Date(m.submitted_date).getTime()) > 7 * 24 * 60 * 60 * 1000).length
-        return `⚠️ **โครงการ ${p.name}**\n- **งานที่อาจล่าช้า:** ${delayedTasks.length} งาน\n- **วัสดุค้างอนุมัติเกิน 7 วัน:** ${oldPendingMat} รายการ`
+        return `โครงการ: ${p.name} | งานที่ล่าช้าหรือเกินกำหนดเริ่ม: ${delayedTasks.length} งาน | วัสดุค้างอนุมัติเกิน 7 วัน: ${oldPendingMat} รายการ`
       })
-      answer = `**⚠️ การวิเคราะห์ความเสี่ยง:**\n\n${risks.join('\n\n')}\n\n✅ **ข้อเสนอแนะ:** เร่งรัดการอนุมัติวัสดุที่ค้างนานเกิน 7 วัน และติดตามงานที่ยังไม่เสร็จตามแผน`
+      rawContext = `วิเคราะห์ความเสี่ยง:\n${risks.join('\n')}`
       sources = [{ type: 'planning', text: `⚠️ งานล่าช้ารวม ${delayedSum} งาน`, link: `/projects/${projectIds[0]}/planning` }]
-
-    } else if (actionType === 'compare') {
-      let table = `| โครงการ | สถานะ | ก้าวหน้า (จริง) | ก้าวหน้า (แผน) | SV |\n|---|---|---|---|---|\n`
-      projects.forEach(p => {
+    } 
+    else if (actionType === 'compare') {
+      const comps = projects.map(p => {
         const { pv, ev } = getProjectProgress(p, tasks)
         const sv = ev - pv
-        const svStr = sv < 0 ? `**<span style="color:red">${sv.toFixed(1)}%</span>**` : `<span style="color:green">+${sv.toFixed(1)}%</span>`
-        table += `| **${p.name}** | ${p.status} | ${ev.toFixed(1)}% | ${pv.toFixed(1)}% | ${svStr} |\n`
+        return `โครงการ: ${p.name} | สถานะ: ${p.status} | จริง: ${ev.toFixed(1)}% | แผน: ${pv.toFixed(1)}% | SV: ${sv.toFixed(1)}%`
       })
-      answer = `**🔀 เปรียบเทียบโครงการ:**\n\n${table}`
+      rawContext = `เปรียบเทียบโครงการ:\n${comps.join('\n')}`
       sources = [{ type: 'portfolio', text: `🔀 เปรียบเทียบ ${projects.length} โครงการ`, link: `/portfolio` }]
-
-    } else if (actionType === 'tasks') {
+    } 
+    else if (actionType === 'tasks') {
       const upcomingTasksList: string[] = []
       let totalUpcomingCount = 0
       
@@ -139,43 +170,57 @@ export async function POST(req: Request) {
         
         totalUpcomingCount += upcomingTasks.length
         upcomingTasks.forEach(t => {
-          upcomingTasksList.push(`- [${p.name}] **${t.name}** (เริ่ม: ${new Date(t.computedStartDate).toLocaleDateString('th-TH')})`)
+          upcomingTasksList.push(`โครงการ: ${p.name} | ชื่องาน: ${t.name} | กำหนดเริ่ม: ${new Date(t.computedStartDate).toLocaleDateString('th-TH')}`)
         })
       })
       
-      let list = upcomingTasksList.join('\n')
-      if (!list) list = '- ไม่มีงานที่ต้องเริ่มใน 7 วันนี้'
-      answer = `**📅 สิ่งที่ต้องทำสัปดาห์นี้ (7 วันข้างหน้า):**\n\n${list}`
+      rawContext = upcomingTasksList.length > 0 ? `สิ่งที่ต้องทำสัปดาห์นี้:\n${upcomingTasksList.join('\n')}` : `สิ่งที่ต้องทำสัปดาห์นี้: ไม่มีงานที่ต้องเริ่มใน 7 วันนี้`
       sources = [{ type: 'planning', text: `📅 งานสัปดาห์นี้: ${totalUpcomingCount} งาน`, link: `/projects/${projectIds[0]}/planning` }]
-
-    } else if (actionType === 'report') {
-      const reports = projects.map(p => {
-        const { pv, ev } = getProjectProgress(p, tasks)
-        const sv = ev - pv
-        const svStatus = sv < 0 ? 'มีความล่าช้ากว่าแผนงานเล็กน้อย' : 'สามารถดำเนินการได้ตามแผนงานหรือเร็วกว่าแผน'
-        const pMilestones = milestones.filter(m => m.project_id === p.id && m.is_paid)
-        const paidPercent = p.budget && p.budget > 0 ? (pMilestones.reduce((s, m) => s + Number(m.amount), 0) / p.budget) * 100 : 0
-        return `**โครงการ ${p.name}**\nปัจจุบันโครงการอยู่ในสถานะ "${p.status}" มีความก้าวหน้าจริงที่ ${ev.toFixed(1)}% (เทียบกับแผน ${pv.toFixed(1)}%) ภาพรวมพบว่า ${svStatus} การเบิกจ่ายงบประมาณสะสมอยู่ที่ ${paidPercent.toFixed(1)}% ของงบประมาณรวม`
-      })
-      answer = `**📄 ร่างรายงานผู้บริหาร (Executive Summary):**\n\n${reports.join('\n\n')}\n\n✅ **ข้อเสนอแนะจากระบบ:** ควรติดตามงานที่ยังไม่แล้วเสร็จอย่างใกล้ชิดเพื่อรักษาระดับความก้าวหน้าให้อยู่ในแผนงาน`
-      sources = [{ type: 'report', text: `📄 ข้อมูลเพื่อจัดทำรายงาน`, link: `/projects/${projectIds[0]}/reports` }]
-
-    } else {
-      answer = `คุณถามว่า: "${question}"\n\n(นี่คือโหมดเฟส 1: กรุณาใช้ปุ่ม Quick Actions ด้านบนเพื่อดูสรุปข้อมูลจริงจากฐานข้อมูลครับ)`
-      sources = []
     }
 
+    // 2. Call Gemini API
+    let answer = ''
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' })
+      
+      const prompt = `คุณคือ AI ผู้ช่วยผู้จัดการโครงการก่อสร้าง หน้าที่ของคุณคือการเรียบเรียงข้อมูลตัวเลขและสถานะโครงการที่ได้รับ ให้เป็นภาษาธรรมชาติที่อ่านง่าย เป็นมืออาชีพ และกระชับ
+
+คำสั่งสำคัญ (Strict Rules):
+1. ให้ใช้เฉพาะข้อมูลและตัวเลขที่ให้มาใน "ข้อมูลดิบ" เท่านั้น ห้ามคำนวณใหม่ ห้ามเดา ห้ามสร้างตัวเลขใหม่เองเด็ดขาด
+2. หากไม่มีข้อมูล ให้แจ้งชัดเจนว่า "ไม่มีข้อมูลในระบบ"
+3. จัดรูปแบบคำตอบให้มี 📌 ภาพรวม / ⚠️ จุดที่ต้องระวัง / ✅ ข้อเสนอแนะ
+
+ข้อมูลดิบ (Facts):
+${rawContext}
+
+คำถามจากผู้ใช้:
+${question || actionType}
+
+กรุณาเขียนสรุปตอบกลับ:`
+
+      const result = await model.generateContent(prompt)
+      answer = result.response.text()
+    } catch (aiError) {
+      console.error('Gemini API Error:', aiError)
+      // Graceful Fallback
+      answer = `⚠️ **AI ไม่พร้อมใช้งานชั่วคราว (โควตาหรือเชื่อมต่อ)**\nนี่คือข้อมูลสรุปเบื้องต้นที่ระบบคำนวณได้:\n\n${rawContext.split('\n').map(l => `- ${l}`).join('\n')}`
+    }
+
+    // 3. Save to History (Cache)
+    const now = new Date().toISOString()
     if (userId) {
       await supabase.from('ai_conversations').insert({
         user_id: userId,
         project_ids: projectIds,
-        question: question || actionType,
+        question: cacheKey,
         answer,
-        sources
+        sources,
+        created_at: now
       })
     }
 
-    return NextResponse.json({ answer, sources })
+    return NextResponse.json({ answer, sources, cachedAt: now })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

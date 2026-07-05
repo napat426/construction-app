@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     const projects = projectsData || []
 
     const { data: tasksData } = await supabase.from('tasks').select('*').in('project_id', projectIds)
-    const { data: materialsData } = await supabase.from('project_materials').select('*').in('project_id', projectIds)
+    const { data: materialsData } = await supabase.from('materials').select('*').in('project_id', projectIds)
     const { data: milestonesData } = await supabase.from('project_milestones').select('*').in('project_id', projectIds)
 
     const tasks = tasksData || []

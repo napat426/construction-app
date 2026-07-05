@@ -71,9 +71,9 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
       }
       
       const { count: cTasks, error: e1 } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
-      const { count: cMat, error: e2 } = await supabase.from('project_materials').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
+      const { count: cMat, error: e2 } = await supabase.from('materials').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
       const { count: cRep, error: e3 } = await supabase.from('daily_reports').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
-      const { count: cInsp, error: e4 } = await supabase.from('quality_inspections').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
+      const { count: cInsp, error: e4 } = await supabase.from('inspections').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
       const { count: cProjDocs, error: e5 } = await supabase.from('project_documents').select('*', { count: 'exact', head: true }).eq('scope', 'project').in('project_id', selectedIds)
       
       if (e1) console.error('Error counting tasks:', e1)

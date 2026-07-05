@@ -8,19 +8,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing document ID' }, { status: 400 })
     }
 
-    // 1. Fetch document info to get file name
+    // 1. Fetch document info to get file_url
     const { data: doc, error: fetchError } = await supabase
       .from('project_documents')
-      .select('file_name, source_type')
+      .select('file_url, source_type')
       .eq('id', docId)
       .single()
       
     if (fetchError) throw fetchError
 
     // 2. Delete from storage if it was uploaded and still exists
-    if (doc.source_type === 'upload' && doc.file_name) {
-      // It might not exist if keep_original was false, but we try anyway
-      await supabase.storage.from('project-docs').remove([doc.file_name])
+    if (doc.source_type === 'upload' && doc.file_url) {
+      // Extract the path from the URL, e.g. "https://.../project-docs/project_id/timestamp_hash.pdf"
+      const storageKey = doc.file_url.split('/project-docs/')[1]
+      if (storageKey) {
+        await supabase.storage.from('project-docs').remove([storageKey])
+      }
     }
 
     // 3. Delete from DB (this will cascade delete chunks)

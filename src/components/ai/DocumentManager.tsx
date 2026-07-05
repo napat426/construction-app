@@ -88,10 +88,10 @@ export function DocumentManager({ selectedProjectId }: DocumentManagerProps) {
       let publicUrl = ''
       if (keepOriginal) {
         setProgress(p => ({ ...p, status: 'กำลังอัปโหลดไฟล์...' }))
-        const fileName = `${Date.now()}_${file.name}`
-        const { error: uploadError } = await supabase.storage.from('project-docs').upload(fileName, file)
+        const safeKey = `${selectedProjectId}/${Date.now()}_${Math.random().toString(36).substring(7)}.pdf`
+        const { error: uploadError } = await supabase.storage.from('project-docs').upload(safeKey, file)
         if (uploadError) throw uploadError
-        const { data: urlData } = supabase.storage.from('project-docs').getPublicUrl(fileName)
+        const { data: urlData } = supabase.storage.from('project-docs').getPublicUrl(safeKey)
         publicUrl = urlData.publicUrl
       }
 

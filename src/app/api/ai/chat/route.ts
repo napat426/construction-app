@@ -177,6 +177,15 @@ export async function POST(req: Request) {
       rawContext = upcomingTasksList.length > 0 ? `สิ่งที่ต้องทำสัปดาห์นี้:\n${upcomingTasksList.join('\n')}` : `สิ่งที่ต้องทำสัปดาห์นี้: ไม่มีงานที่ต้องเริ่มใน 7 วันนี้`
       sources = [{ type: 'planning', text: `📅 งานสัปดาห์นี้: ${totalUpcomingCount} งาน`, link: `/projects/${projectIds[0]}/planning` }]
     }
+    else {
+      // Fallback for custom 'chat' messages, give it basic summary context
+      const summaries = projects.map(p => {
+        const pTasks = tasks.filter(t => t.project_id === p.id)
+        const { pv, ev } = getProjectProgress(p, tasks)
+        return `โครงการ: ${p.name} | สถานะ: ${p.status} | ความก้าวหน้าจริง: ${ev.toFixed(1)}% | แผน: ${pv.toFixed(1)}% | จำนวนงาน: ${pTasks.length} งาน`
+      })
+      rawContext = `ข้อมูลโครงการเบื้องต้น:\n${summaries.join('\n')}`
+    }
 
     // 2. Call Gemini API
     let answer = ''

@@ -180,6 +180,20 @@ export async function POST(req: Request) {
 
     // 2. Call Gemini API
     let answer = ''
+    
+    // DEBUG MODE
+    if (question === 'DEBUG_MODELS') {
+      try {
+        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+        const data = await res.json()
+        const modelNames = data.models ? data.models.map((m: any) => m.name).join(', ') : JSON.stringify(data)
+        return NextResponse.json({ answer: `AVAILABLE MODELS: ${modelNames}` })
+      } catch (e: any) {
+        return NextResponse.json({ answer: `DEBUG ERROR: ${e.message}` })
+      }
+    }
+
     try {
       const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
       const model = genAI.getGenerativeModel({ model: 'gemini-pro' })

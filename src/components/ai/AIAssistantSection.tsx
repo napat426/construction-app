@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Sparkles, BarChart2, AlertTriangle, GitCompare, Calendar, FileText, Send, ChevronDown, ChevronUp, Copy, Check, ExternalLink, Paperclip } from 'lucide-react'
+import { Sparkles, BarChart2, AlertTriangle, GitCompare, Calendar, FileText, Send, ChevronDown, ChevronUp, Copy, Check, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import type { Project, WBSTask, ProjectMaterial, DailyReport, Inspection } from '@/lib/types'
+
+const DocumentManager = dynamic(() => import('./DocumentManager').then(mod => mod.DocumentManager), { ssr: false })
 
 interface AIAssistantProps {
   projects: Project[]
@@ -34,7 +37,6 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
 
   // RAG Source counts for selected projects
   const [ragCounts, setRagCounts] = useState({ tasks: 0, materials: 0, reports: 0, inspections: 0 })
-  const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('ai_selected_projects')
@@ -74,31 +76,6 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
 
   const toggleProject = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
-  }
-
-  const handleUploadDoc = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || selectedIds.length === 0) return
-    setIsUploading(true)
-    try {
-      const fileName = `${Date.now()}_${file.name}`
-      const { data, error } = await supabase.storage.from('project-docs').upload(fileName, file)
-      if (error) throw error
-      const { data: { publicUrl } } = supabase.storage.from('project-docs').getPublicUrl(fileName)
-      
-      // Save to DB for the first selected project
-      await supabase.from('project_documents').insert({
-        project_id: selectedIds[0],
-        doc_type: 'spec_sheet',
-        file_name: file.name,
-        file_url: publicUrl
-      })
-      alert('อัปโหลดรายการประกอบแบบสำเร็จ!')
-    } catch (error: any) {
-      alert('อัปโหลดล้มเหลว: ' + error.message)
-    } finally {
-      setIsUploading(false)
-    }
   }
 
   const sendQuery = async (text: string, actionType: string) => {
@@ -213,14 +190,13 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
                 <div className="flex justify-between"><span>ตรวจสอบคุณภาพ:</span> <span className="font-mono">{ragCounts.inspections}</span></div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-[#252548]">
-                <label className="flex items-center justify-center gap-2 w-full py-2 bg-white dark:bg-[#252548] border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer hover:bg-slate-50 transition-colors relative">
-                  <Paperclip size={14} />
-                  {isUploading ? 'กำลังอัปโหลด...' : 'อัปโหลดรายการประกอบแบบ'}
-                  <input type="file" accept="application/pdf" className="hidden" onChange={handleUploadDoc} disabled={selectedIds.length === 0 || isUploading} />
-                </label>
-                {selectedIds.length === 0 && <p className="text-[9px] text-amber-500 mt-1 text-center">เลือกโครงการก่อนอัปโหลด</p>}
-              </div>
+              {selectedIds.length > 0 ? (
+                <DocumentManager selectedProjectId={selectedIds[0]} />
+              ) : (
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-[#252548]">
+                  <p className="text-[9px] text-amber-500 mt-1 text-center">เลือกโครงการก่อนเพื่อจัดการเอกสาร</p>
+                </div>
+              )}
             </div>
           </div>
 

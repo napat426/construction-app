@@ -228,7 +228,13 @@ export interface ProjectDocument {
   doc_type: string
   file_name: string
   file_url: string
-  extracted_text: string | null
+  extracted_text?: string
+  source_type?: string
+  external_url?: string
+  page_count?: number
+  processed_pages?: number
+  status?: string
+  keep_original?: boolean
   uploaded_at: string
 }
 

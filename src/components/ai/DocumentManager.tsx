@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Link as LinkIcon, Trash2, ExternalLink, Cloud } from 'lucide-react'
+import { Link as LinkIcon, Trash2, ExternalLink, Cloud, Cpu, CheckCircle2 } from 'lucide-react'
+import { OCRProcessorModal } from './OCRProcessorModal'
 
 interface DocumentManagerProps {
   scope: 'global' | 'project'
@@ -16,6 +17,7 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate }: Document
   const [docName, setDocName] = useState('')
   const [docType, setDocType] = useState('Google Drive')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [activeOCRDoc, setActiveOCRDoc] = useState<any | null>(null)
 
   useEffect(() => {
     if (scope === 'project' && !selectedProjectId) {
@@ -133,9 +135,25 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate }: Document
             </div>
             
             <div className="flex items-center justify-between mt-1">
-              <span className="text-[9px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
-                🔗 ลิงก์ (รอ OCR เฟส 2B)
-              </span>
+              <div className="flex items-center gap-2">
+                {doc.status === 'pending_ocr' || doc.status === 'processing' ? (
+                  <button 
+                    onClick={() => setActiveOCRDoc(doc)}
+                    className="flex items-center gap-1 text-[9px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 px-1.5 py-0.5 rounded border border-primary-200 dark:border-primary-800 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                  >
+                    <Cpu size={10} /> 
+                    {doc.status === 'processing' ? `กำลังประมวลผล (${doc.processed_pages || 0}/${doc.total_pages || '?'})` : '🔍 ประมวลผลให้ AI'}
+                  </button>
+                ) : doc.status === 'ready' ? (
+                  <span className="flex items-center gap-1 text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded border border-green-200 dark:border-green-800" title={`อ่านไปแล้ว ${doc.total_pages} หน้า`}>
+                    <CheckCircle2 size={10} /> AI พร้อมอ่านแล้ว
+                  </span>
+                ) : (
+                  <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                    ไม่ทราบสถานะ
+                  </span>
+                )}
+              </div>
               <a href={doc.external_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
                 เปิด ↗
               </a>
@@ -144,6 +162,14 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate }: Document
         ))}
         {docs.length === 0 && <p className="text-[10px] text-center text-slate-400 py-2">ยังไม่มีเอกสาร</p>}
       </div>
+
+      {activeOCRDoc && (
+        <OCRProcessorModal 
+          doc={activeOCRDoc} 
+          onClose={() => setActiveOCRDoc(null)} 
+          onComplete={fetchDocs} 
+        />
+      )}
     </div>
   )
 }

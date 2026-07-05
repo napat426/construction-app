@@ -42,10 +42,15 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
     const saved = localStorage.getItem('ai_selected_projects')
     if (saved) {
       try {
-        setSelectedIds(JSON.parse(saved))
+        const parsed = JSON.parse(saved)
+        // Filter out any IDs that no longer exist in the projects list
+        if (Array.isArray(parsed) && projects.length > 0) {
+          const validIds = parsed.filter(id => projects.some(p => p.id === id))
+          setSelectedIds(validIds)
+        }
       } catch (e) {}
     }
-  }, [])
+  }, [projects])
 
   useEffect(() => {
     localStorage.setItem('ai_selected_projects', JSON.stringify(selectedIds))
@@ -57,26 +62,37 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
   }, [messages])
 
   const fetchRagCounts = async () => {
-    const { count: cGlobalDocs } = await supabase.from('project_documents').select('*', { count: 'exact', head: true }).eq('scope', 'global')
-    
-    if (selectedIds.length === 0) {
-      setRagCounts({ tasks: 0, materials: 0, reports: 0, inspections: 0, globalDocs: cGlobalDocs || 0, projectDocs: 0 })
-      return
+    try {
+      const { count: cGlobalDocs } = await supabase.from('project_documents').select('*', { count: 'exact', head: true }).eq('scope', 'global')
+      
+      if (selectedIds.length === 0) {
+        setRagCounts({ tasks: 0, materials: 0, reports: 0, inspections: 0, globalDocs: cGlobalDocs || 0, projectDocs: 0 })
+        return
+      }
+      
+      const { count: cTasks, error: e1 } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
+      const { count: cMat, error: e2 } = await supabase.from('project_materials').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
+      const { count: cRep, error: e3 } = await supabase.from('daily_reports').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
+      const { count: cInsp, error: e4 } = await supabase.from('quality_inspections').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
+      const { count: cProjDocs, error: e5 } = await supabase.from('project_documents').select('*', { count: 'exact', head: true }).eq('scope', 'project').in('project_id', selectedIds)
+      
+      if (e1) console.error('Error counting tasks:', e1)
+      if (e2) console.error('Error counting materials:', e2)
+      if (e3) console.error('Error counting reports:', e3)
+      if (e4) console.error('Error counting inspections:', e4)
+      if (e5) console.error('Error counting projectDocs:', e5)
+
+      setRagCounts({
+        tasks: cTasks || 0,
+        materials: cMat || 0,
+        reports: cRep || 0,
+        inspections: cInsp || 0,
+        globalDocs: cGlobalDocs || 0,
+        projectDocs: cProjDocs || 0
+      })
+    } catch (err) {
+      console.error("Error in fetchRagCounts:", err)
     }
-    const { count: cTasks } = await supabase.from('tasks').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
-    const { count: cMat } = await supabase.from('project_materials').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
-    const { count: cRep } = await supabase.from('daily_reports').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
-    const { count: cInsp } = await supabase.from('quality_inspections').select('*', { count: 'exact', head: true }).in('project_id', selectedIds)
-    const { count: cProjDocs } = await supabase.from('project_documents').select('*', { count: 'exact', head: true }).eq('scope', 'project').in('project_id', selectedIds)
-    
-    setRagCounts({
-      tasks: cTasks || 0,
-      materials: cMat || 0,
-      reports: cRep || 0,
-      inspections: cInsp || 0,
-      globalDocs: cGlobalDocs || 0,
-      projectDocs: cProjDocs || 0
-    })
   }
 
   const toggleProject = (id: string) => {
@@ -197,10 +213,10 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
                 <div className="flex justify-between"><span>ตรวจสอบคุณภาพ:</span> <span className="font-mono">{ragCounts.inspections}</span></div>
               </div>
               
-              <DocumentManager scope="global" />
+              <DocumentManager scope="global" onUpdate={fetchRagCounts} />
               
               {selectedIds.length === 1 && (
-                <DocumentManager scope="project" selectedProjectId={selectedIds[0]} />
+                <DocumentManager scope="project" selectedProjectId={selectedIds[0]} onUpdate={fetchRagCounts} />
               )}
             </div>
           </div>

@@ -7,9 +7,10 @@ import { Link as LinkIcon, Trash2, ExternalLink, Cloud } from 'lucide-react'
 interface DocumentManagerProps {
   scope: 'global' | 'project'
   selectedProjectId?: string
+  onUpdate?: () => void
 }
 
-export function DocumentManager({ scope, selectedProjectId }: DocumentManagerProps) {
+export function DocumentManager({ scope, selectedProjectId, onUpdate }: DocumentManagerProps) {
   const [docs, setDocs] = useState<any[]>([])
   const [linkUrl, setLinkUrl] = useState('')
   const [docName, setDocName] = useState('')
@@ -31,6 +32,7 @@ export function DocumentManager({ scope, selectedProjectId }: DocumentManagerPro
     }
     const { data } = await query
     if (data) setDocs(data)
+    if (onUpdate) onUpdate()
   }
 
   const handleLinkSubmit = async (e: React.FormEvent) => {

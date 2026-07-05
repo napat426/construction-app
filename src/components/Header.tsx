@@ -5,6 +5,8 @@ import { useTheme } from './ThemeProvider'
 import { Sun, Moon, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { useState, useEffect } from 'react'
 
 import type { UserSession } from '@/lib/auth'
 
@@ -19,6 +21,25 @@ interface HeaderProps {
 export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderProps) {
   const { theme, toggleTheme } = useTheme()
   const pathname = usePathname()
+  const [aiEnabled, setAiEnabled] = useState(false)
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      supabase.from('system_settings').select('value').eq('key', 'ai_assistant_enabled').single().then(({ data }) => {
+        if (data) {
+          setAiEnabled(data.value === 'true' || data.value === true)
+        }
+      })
+    }
+  }, [user])
+
+  const toggleAi = async () => {
+    const newVal = !aiEnabled
+    setAiEnabled(newVal)
+    await supabase.from('system_settings').update({ value: newVal }).eq('key', 'ai_assistant_enabled')
+    // force reload to apply
+    window.location.reload()
+  }
 
   // Get project ID from pathname (URL format: /projects/[projectId]/...)
   const segments = pathname.split('/')
@@ -163,6 +184,18 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
                 </span>
               </div>
               
+              {user.role === 'admin' && (
+                <div className="flex items-center gap-2 mr-2 border-r border-slate-200 dark:border-[#252548] pr-4">
+                  <span className="text-[10px] font-bold text-slate-500">AI Assistant</span>
+                  <button 
+                    onClick={toggleAi}
+                    className={`w-8 h-4 rounded-full transition-colors relative ${aiEnabled ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${aiEnabled ? 'translate-x-4' : ''}`} />
+                  </button>
+                </div>
+              )}
+
               {user.role === 'admin' && (
                 <Link
                   href="/admin/users"

@@ -16,14 +16,16 @@ import { getCurrentUser } from '@/lib/auth'
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const [projectsRes, tasksRes] = await Promise.all([
+  const [projectsRes, tasksRes, settingsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
-    supabase.from('tasks').select('*')
+    supabase.from('tasks').select('*'),
+    supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single()
   ])
 
   const projects: Project[] = (projectsRes.data as Project[]) ?? []
   const error = projectsRes.error
   const tasks = tasksRes.data ?? []
+  const aiEnabled = settingsRes.data?.value === 'true' || settingsRes.data?.value === true
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -59,7 +61,7 @@ export default async function ProjectsPage() {
             </div>
           )}
 
-          <ProjectsClient initialProjects={projects} initialTasks={tasks} user={user} />
+          <ProjectsClient initialProjects={projects} initialTasks={tasks} user={user} aiEnabled={aiEnabled} />
         </main>
       </div>
     </div>

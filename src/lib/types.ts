@@ -212,3 +212,27 @@ export interface PunchItem {
   response_date?: string | null
   created_at: string
 }
+export interface AIConversation {
+  id: string
+  user_id: string
+  project_ids: string[]
+  question: string
+  answer: string
+  sources: any
+  created_at: string
+}
+
+export interface ProjectDocument {
+  id: string
+  project_id: string
+  doc_type: string
+  file_name: string
+  file_url: string
+  extracted_text: string | null
+  uploaded_at: string
+}
+
+export interface SystemSetting {
+  key: string
+  value: any
+}

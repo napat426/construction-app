@@ -5,6 +5,7 @@ import { Plus, Search, SlidersHorizontal, FolderOpen, Building2, TrendingUp } fr
 import Link from 'next/link'
 import { ProjectCard } from './ProjectCard'
 import { CreateProjectModal } from './CreateProjectModal'
+import { AIAssistantSection } from './ai/AIAssistantSection'
 import type { Project, WBSTask } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
@@ -12,9 +13,10 @@ interface ProjectsClientProps {
   initialProjects: Project[]
   initialTasks: WBSTask[]
   user?: UserSession | null
+  aiEnabled?: boolean
 }
 
-export function ProjectsClient({ initialProjects, initialTasks, user }: ProjectsClientProps) {
+export function ProjectsClient({ initialProjects, initialTasks, user, aiEnabled = false }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSupervisor, setSelectedSupervisor] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -223,6 +225,11 @@ export function ProjectsClient({ initialProjects, initialTasks, user }: Projects
       {/* ── Create modal ── */}
       {showCreateModal && (
         <CreateProjectModal onClose={() => setShowCreateModal(false)} />
+      )}
+
+      {/* ── AI Assistant Section ── */}
+      {aiEnabled && (
+        <AIAssistantSection projects={initialProjects} user={user} />
       )}
     </>
   )

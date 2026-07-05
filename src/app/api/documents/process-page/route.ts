@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     // 1. OCR with Gemini Vision if no text provided
     if (!pageText && imageBase64) {
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' })
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
         const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '')
         const prompt = "Please extract all text and tables from this image accurately. Preserve the reading order and structure. If there is Thai text, please extract it correctly."
         

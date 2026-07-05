@@ -182,7 +182,7 @@ export async function POST(req: Request) {
     let answer = ''
     try {
       const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' })
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
       
       const prompt = `คุณคือ AI ผู้ช่วยผู้จัดการโครงการก่อสร้าง หน้าที่ของคุณคือการเรียบเรียงข้อมูลตัวเลขและสถานะโครงการที่ได้รับ ให้เป็นภาษาธรรมชาติที่อ่านง่าย เป็นมืออาชีพ และกระชับ
 

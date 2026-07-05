@@ -207,9 +207,9 @@ ${question || actionType}
       answer = `⚠️ **AI ไม่พร้อมใช้งานชั่วคราว (โควตาหรือเชื่อมต่อ)**\n(Error: ${aiError.message})\nนี่คือข้อมูลสรุปเบื้องต้นที่ระบบคำนวณได้:\n\n${rawContext.split('\n').map(l => `- ${l}`).join('\n')}`
     }
 
-    // 3. Save to History (Cache)
+    // 3. Save to History (Cache) only if no error occurred
     const now = new Date().toISOString()
-    if (userId) {
+    if (userId && !answer.includes('⚠️ **AI ไม่พร้อมใช้งานชั่วคราว')) {
       await supabase.from('ai_conversations').insert({
         user_id: userId,
         project_ids: projectIds,

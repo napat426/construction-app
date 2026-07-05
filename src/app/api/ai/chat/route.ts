@@ -1,5 +1,54 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { computeTaskDates } from '@/lib/scheduler'
+
+function getProjectProgress(project: any, allTasks: any[]) {
+  const pTasks = allTasks.filter(t => t.project_id === project.id)
+  if (pTasks.length === 0) return { pv: 0, ev: 0 }
+
+  const scheduledTasks = computeTaskDates(pTasks, project.start_date)
+  const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
+  
+  const today = new Date()
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+
+  let totalWeightedPlanned = 0
+  let totalWeightedActual = 0
+
+  if (totalWbsCost > 0) {
+    for (const t of scheduledTasks) {
+      const tStart = new Date(t.computedStartDate)
+      const tEnd = new Date(t.computedEndDate)
+      const weight = (Number(t.cost) || 0) / totalWbsCost
+
+      let plannedProgress = 0
+      if (todayDateOnly >= tEnd) plannedProgress = 100
+      else if (todayDateOnly > tStart) {
+        plannedProgress = ((todayDateOnly.getTime() - tStart.getTime()) / Math.max(1, tEnd.getTime() - tStart.getTime())) * 100
+      }
+
+      totalWeightedPlanned += weight * plannedProgress
+      totalWeightedActual += weight * (t.actual_progress || 0)
+    }
+  } else {
+    for (const t of scheduledTasks) {
+      const tStart = new Date(t.computedStartDate)
+      const tEnd = new Date(t.computedEndDate)
+      
+      let plannedProgress = 0
+      if (todayDateOnly >= tEnd) plannedProgress = 100
+      else if (todayDateOnly > tStart) {
+        plannedProgress = ((todayDateOnly.getTime() - tStart.getTime()) / Math.max(1, tEnd.getTime() - tStart.getTime())) * 100
+      }
+      totalWeightedPlanned += plannedProgress
+      totalWeightedActual += (t.actual_progress || 0)
+    }
+    totalWeightedPlanned /= scheduledTasks.length
+    totalWeightedActual /= scheduledTasks.length
+  }
+
+  return { pv: totalWeightedPlanned, ev: totalWeightedActual }
+}
 
 export async function POST(req: Request) {
   try {
@@ -29,14 +78,22 @@ export async function POST(req: Request) {
         const pTasks = tasks.filter(t => t.project_id === p.id)
         const pMaterials = materials.filter(m => m.project_id === p.id)
         const pendingMat = pMaterials.filter(m => m.status === 'pending').length
-        const sv = p.progress - p.planned_progress
+        
+        const { pv, ev } = getProjectProgress(p, tasks)
+        const sv = ev - pv
         const svText = sv < 0 ? `ล่าช้ากว่าแผน ${Math.abs(sv).toFixed(1)}%` : sv > 0 ? `เร็วกว่าแผน ${sv.toFixed(1)}%` : 'ตรงตามแผน'
         
-        return `📌 **โครงการ ${p.name}**\n- **สถานะ:** ${p.status}\n- **ความก้าวหน้า:** จริง ${p.progress.toFixed(1)}% | แผน ${p.planned_progress.toFixed(1)}% (SV: ${svText})\n- **แผนงาน:** มี ${pTasks.length} งาน\n- **วัสดุที่รออนุมัติ:** ${pendingMat} รายการ`
+        return `📌 **โครงการ ${p.name}**\n- **สถานะ:** ${p.status}\n- **ความก้าวหน้า:** จริง ${ev.toFixed(1)}% | แผน ${pv.toFixed(1)}% (SV: ${svText})\n- **แผนงาน:** มี ${pTasks.length} งาน\n- **วัสดุที่รออนุมัติ:** ${pendingMat} รายการ`
       })
       answer = `**📊 สรุปสถานะโครงการที่เลือก:**\n\n${summaries.join('\n\n')}`
       
-      const overallSv = (projects.reduce((s, p) => s + p.progress, 0) / projects.length) - (projects.reduce((s, p) => s + p.planned_progress, 0) / projects.length)
+      let totalEv = 0, totalPv = 0
+      projects.forEach(p => {
+        const { pv, ev } = getProjectProgress(p, tasks)
+        totalEv += ev
+        totalPv += pv
+      })
+      const overallSv = projects.length > 0 ? (totalEv / projects.length) - (totalPv / projects.length) : 0
       const pendingCount = materials.filter(m => m.status === 'pending').length
       sources = [
         { type: 'dashboard', text: `📊 จากแผนงาน: SV = ${overallSv.toFixed(1)}%`, link: `/portfolio` },
@@ -57,9 +114,10 @@ export async function POST(req: Request) {
     } else if (actionType === 'compare') {
       let table = `| โครงการ | สถานะ | ก้าวหน้า (จริง) | ก้าวหน้า (แผน) | SV |\n|---|---|---|---|---|\n`
       projects.forEach(p => {
-        const sv = p.progress - p.planned_progress
+        const { pv, ev } = getProjectProgress(p, tasks)
+        const sv = ev - pv
         const svStr = sv < 0 ? `**<span style="color:red">${sv.toFixed(1)}%</span>**` : `<span style="color:green">+${sv.toFixed(1)}%</span>`
-        table += `| **${p.name}** | ${p.status} | ${p.progress.toFixed(1)}% | ${p.planned_progress.toFixed(1)}% | ${svStr} |\n`
+        table += `| **${p.name}** | ${p.status} | ${ev.toFixed(1)}% | ${pv.toFixed(1)}% | ${svStr} |\n`
       })
       answer = `**🔀 เปรียบเทียบโครงการ:**\n\n${table}`
       sources = [{ type: 'portfolio', text: `🔀 เปรียบเทียบ ${projects.length} โครงการ`, link: `/portfolio` }]
@@ -79,11 +137,12 @@ export async function POST(req: Request) {
 
     } else if (actionType === 'report') {
       const reports = projects.map(p => {
-        const sv = p.progress - p.planned_progress
+        const { pv, ev } = getProjectProgress(p, tasks)
+        const sv = ev - pv
         const svStatus = sv < 0 ? 'มีความล่าช้ากว่าแผนงานเล็กน้อย' : 'สามารถดำเนินการได้ตามแผนงานหรือเร็วกว่าแผน'
         const pMilestones = milestones.filter(m => m.project_id === p.id && m.is_paid)
         const paidPercent = p.budget && p.budget > 0 ? (pMilestones.reduce((s, m) => s + Number(m.amount), 0) / p.budget) * 100 : 0
-        return `**โครงการ ${p.name}**\nปัจจุบันโครงการอยู่ในสถานะ "${p.status}" มีความก้าวหน้าจริงที่ ${p.progress.toFixed(1)}% (เทียบกับแผน ${p.planned_progress.toFixed(1)}%) ภาพรวมพบว่า ${svStatus} การเบิกจ่ายงบประมาณสะสมอยู่ที่ ${paidPercent.toFixed(1)}% ของงบประมาณรวม`
+        return `**โครงการ ${p.name}**\nปัจจุบันโครงการอยู่ในสถานะ "${p.status}" มีความก้าวหน้าจริงที่ ${ev.toFixed(1)}% (เทียบกับแผน ${pv.toFixed(1)}%) ภาพรวมพบว่า ${svStatus} การเบิกจ่ายงบประมาณสะสมอยู่ที่ ${paidPercent.toFixed(1)}% ของงบประมาณรวม`
       })
       answer = `**📄 ร่างรายงานผู้บริหาร (Executive Summary):**\n\n${reports.join('\n\n')}\n\n✅ **ข้อเสนอแนะจากระบบ:** ควรติดตามงานที่ยังไม่แล้วเสร็จอย่างใกล้ชิดเพื่อรักษาระดับความก้าวหน้าให้อยู่ในแผนงาน`
       sources = [{ type: 'report', text: `📄 ข้อมูลเพื่อจัดทำรายงาน`, link: `/projects/${projectIds[0]}/reports` }]

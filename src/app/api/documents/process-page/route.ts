@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     if (currentChunk) chunks.push(currentChunk.trim())
 
     // 3. Embedding and Saving
-    const embedModel = genAI.getGenerativeModel({ model: 'embedding-001' })
+    const embedModel = genAI.getGenerativeModel({ model: 'gemini-embedding-001' })
 
     for (let i = 0; i < chunks.length; i++) {
       const chunkText = chunks[i]

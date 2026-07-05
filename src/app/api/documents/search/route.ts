@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
     // 2. Call Gemini if not cached
     if (queryEmbedding.length === 0) {
-      const embedModel = genAI.getGenerativeModel({ model: 'embedding-001' })
+      const embedModel = genAI.getGenerativeModel({ model: 'gemini-embedding-001' })
       const result = await embedModel.embedContent(query)
       queryEmbedding = result.embedding.values
 

@@ -161,9 +161,9 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
       {isExpanded && (
         <div className="flex flex-col md:flex-row h-[600px] max-h-[70vh]">
           {/* Left Column - 290px */}
-          <div className="w-full md:w-[290px] border-r border-slate-200 dark:border-[#252548] flex flex-col bg-slate-50/50 dark:bg-[#14142a]/50">
+          <div className="w-full md:w-[290px] border-r border-slate-200 dark:border-[#252548] flex flex-col bg-slate-50/50 dark:bg-[#14142a]/50 overflow-y-auto custom-scrollbar">
             {/* Project Selection */}
-            <div className="p-4 border-b border-slate-200 dark:border-[#252548] flex-1 overflow-y-auto">
+            <div className="p-4 border-b border-slate-200 dark:border-[#252548] flex-shrink-0">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">เลือกโครงการวิเคราะห์</span>
                 <button 

@@ -58,7 +58,9 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
   }, [selectedIds])
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messages.length > 1) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
   }, [messages])
 
   const fetchRagCounts = async () => {

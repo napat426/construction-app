@@ -33,6 +33,9 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
   const [sortBy, setBy] = useState<SortField>('sv')
   const [sortDir, setDir] = useState<SortDir>('asc') // Default SV ascending (most delayed first)
 
+  // Print states
+  const [includePrintForecast, setIncludePrintForecast] = useState<boolean>(false)
+
 
   // 1. Calculate project-level metrics for all projects (pre-filtering)
   const computedProjects = useMemo(() => {
@@ -466,25 +469,39 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setSelectedStatuses(['กำลังดำเนินการ', 'เสร็จสิ้น', 'รอดำเนินการ', 'ระงับ'])}
-            className="px-2.5 py-1.5 text-[10px] font-black rounded-lg border border-slate-200 dark:border-[#252548] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
-          >
-            เลือกทั้งหมด
-          </button>
-          <button
-            onClick={() => setSelectedStatuses([])}
-            className="px-2.5 py-1.5 text-[10px] font-black rounded-lg border border-slate-200 dark:border-[#252548] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
-          >
-            ล้างทั้งหมด
-          </button>
-          <button
-            onClick={handlePrint}
-            className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
-          >
-            <Printer size={14} /> 🖨 พิมพ์ภาพรวม
-          </button>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedStatuses(['กำลังดำเนินการ', 'เสร็จสิ้น', 'รอดำเนินการ', 'ระงับ'])}
+              className="px-2.5 py-1.5 text-[10px] font-black rounded-lg border border-slate-200 dark:border-[#252548] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
+            >
+              เลือกทั้งหมด
+            </button>
+            <button
+              onClick={() => setSelectedStatuses([])}
+              className="px-2.5 py-1.5 text-[10px] font-black rounded-lg border border-slate-200 dark:border-[#252548] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
+            >
+              ล้างทั้งหมด
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-[#252548]">
+            <label className="flex items-center gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includePrintForecast}
+                onChange={(e) => setIncludePrintForecast(e.target.checked)}
+                className="w-3.5 h-3.5 rounded text-primary-600 focus:ring-primary-500/20"
+              />
+              รวมประมาณการเบิกจ่ายในรายงาน
+            </label>
+            <button
+              onClick={handlePrint}
+              className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
+            >
+              <Printer size={14} /> 🖨 พิมพ์ภาพรวม
+            </button>
+          </div>
         </div>
       </div>
 
@@ -544,7 +561,7 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
       </div>
 
       {/* ── PART 2.5: PAYMENT FORECAST CHART ── */}
-      <div className="mb-6 no-print">
+      <div className={`mb-6 ${includePrintForecast ? 'print:block' : 'no-print'}`}>
         <PaymentForecastChart milestones={milestones} projects={projects} />
       </div>
 

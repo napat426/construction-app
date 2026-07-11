@@ -949,6 +949,41 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], u
                           />
                         ))}
 
+                        {/* Suspension bands */}
+                        {suspensions.map((s, idx) => {
+                          const sStart = new Date(s.suspend_date)
+                          sStart.setHours(0, 0, 0, 0)
+                          
+                          // If no resume_date, extend to the end of the timeline
+                          const isOngoing = !s.resume_date
+                          const sEnd = s.resume_date ? new Date(s.resume_date) : dateRange.end
+                          sEnd.setHours(0, 0, 0, 0)
+
+                          if (sEnd < dateRange.start || sStart > dateRange.end) return null
+
+                          const visibleStart = new Date(Math.max(sStart.getTime(), dateRange.start.getTime()))
+                          const visibleEnd = new Date(Math.min(sEnd.getTime(), dateRange.end.getTime()))
+
+                          const leftOffset = dateRange.durationDays > 0 
+                            ? ((visibleStart.getTime() - dateRange.start.getTime()) / (dateRange.durationDays * 24 * 60 * 60 * 1000)) * 100
+                            : 0
+                          const widthPct = dateRange.durationDays > 0
+                            ? ((visibleEnd.getTime() - visibleStart.getTime()) / (dateRange.durationDays * 24 * 60 * 60 * 1000)) * 100
+                            : 0
+
+                          return (
+                            <div
+                              key={`susp-${idx}`}
+                              className="absolute top-0 bottom-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0Pgo8cGF0aCBkPSJNMCA4TDggMFpNOCAxNkwxNiA4Wk0tOCAwTDAgLThaIiBzdHJva2U9InJnYmEoMjM5LCA2OCwgNjgsIDAuMSkiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=')] opacity-50 z-0 border-x border-red-500/20 group/susp cursor-help"
+                              style={{ left: `${leftOffset}%`, width: `${widthPct}%` }}
+                            >
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden group-hover/susp:block bg-red-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap z-30 pointer-events-none">
+                                ⏸ หยุดงาน ({formatDate(s.suspend_date)} - {isOngoing ? 'ยังไม่กำหนด' : formatDate(s.resume_date!)})
+                              </div>
+                            </div>
+                          )
+                        })}
+
                         {/* Today vertical line */}
                         {todayLeft >= 0 && todayLeft <= 100 && (
                           <div

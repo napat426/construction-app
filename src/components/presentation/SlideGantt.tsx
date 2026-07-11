@@ -200,24 +200,54 @@ export function SlideGantt({ project, tasks, suspensions = [], theme }: Props) {
                     />
                   ) : (
                     <>
-                      {/* Plan Bar */}
-                      <div 
-                        className={`absolute top-2 h-4 rounded-sm ${isDark ? 'bg-white/20' : 'bg-slate-300'} transition-all`}
-                        style={{
-                          left: `${startRatio * 100}%`,
-                          width: `${widthRatio * 100}%`
-                        }}
-                      />
-                      {/* Actual Progress Bar */}
-                      {task.actual_progress > 0 && (
-                        <div 
-                          className="absolute top-3 h-2 rounded-sm bg-[#a13c9d]/85 z-10"
-                          style={{
-                            left: `${startRatio * 100}%`,
-                            width: `${widthRatio * actualRatio * 100}%`
-                          }}
-                        />
-                      )}
+                      {/* Segment Render */}
+                      {(() => {
+                        const workedDaysTotal = ((task.actual_progress || 0) / 100) * (task.duration || 1)
+                        let remainingWorkedDays = workedDaysTotal
+                        const segments = (task as any).segments || []
+
+                        return segments.map((seg: any, sIdx: number) => {
+                          const segStart = new Date(seg.start)
+                          const segEnd = new Date(seg.end)
+                          
+                          if (segEnd < minDate || segStart > maxDate) return null
+                          
+                          const visibleStart = new Date(Math.max(segStart.getTime(), minDate.getTime()))
+                          const visibleEnd = new Date(Math.min(segEnd.getTime(), maxDate.getTime()))
+
+                          const segLeftRatio = Math.max(0, (visibleStart.getTime() - minDate.getTime()) / (totalDays * 24 * 60 * 60 * 1000))
+                          const segWidthRatio = Math.max(0, (visibleEnd.getTime() - visibleStart.getTime()) / (totalDays * 24 * 60 * 60 * 1000))
+                            
+                          const segCapDays = seg.durationDays
+                          const fillDays = Math.min(segCapDays, Math.max(0, remainingWorkedDays))
+                          const fillPct = segCapDays > 0 ? (fillDays / segCapDays) : (task.actual_progress === 100 ? 1 : 0)
+                          
+                          remainingWorkedDays -= fillDays
+
+                          return (
+                            <div key={sIdx}>
+                              {/* Plan Bar */}
+                              <div 
+                                className={`absolute top-2 h-4 ${isDark ? 'bg-white/20' : 'bg-slate-300'} transition-all ${sIdx === 0 ? 'rounded-l-sm' : ''} ${sIdx === segments.length - 1 ? 'rounded-r-sm' : ''}`}
+                                style={{
+                                  left: `${segLeftRatio * 100}%`,
+                                  width: `${segWidthRatio * 100}%`
+                                }}
+                              />
+                              {/* Actual Progress Bar */}
+                              {fillPct > 0 && (
+                                <div 
+                                  className={`absolute top-3 h-2 bg-[#a13c9d]/85 z-10 ${sIdx === 0 ? 'rounded-l-sm' : ''} ${fillPct === 1 && sIdx === segments.length - 1 ? 'rounded-r-sm' : ''}`}
+                                  style={{
+                                    left: `${segLeftRatio * 100}%`,
+                                    width: `${segWidthRatio * fillPct * 100}%`
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )
+                        })
+                      })()}
                     </>
                   )}
                 </div>

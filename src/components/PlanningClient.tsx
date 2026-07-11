@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { deleteTask } from '@/app/actions/tasks'
 import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
-import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
+import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
 interface PlanningClientProps {
@@ -62,6 +62,9 @@ function formatDate(dateStr: string): string {
 export function PlanningClient({ project, tasks, milestones, suspensions = [], user }: PlanningClientProps) {
   const [activeTab, setActiveTab] = useState<'wbs' | 'gantt' | 'scurve'>('wbs')
   const [isPending, startTransition] = useTransition()
+  
+  const todayForSuspensionCheck = new Date()
+  const isCurrentlySuspended = useMemo(() => isDateSuspended(todayForSuspensionCheck, suspensions), [suspensions])
   
   // S-Curve tooltip state
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null)
@@ -851,14 +854,15 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], u
                       />
                     </td>
                     <td className="py-2 px-2 text-right font-mono text-slate-400">—</td>
-                    <td className="py-2 px-2">
+                    <td className="py-2 px-2" title={isCurrentlySuspended ? 'อยู่ในช่วงหยุดงาน ไม่สามารถบันทึกความคืบหน้าได้' : ''}>
                       <input
                         type="number"
                         min="0"
                         max="100"
                         placeholder="0"
-                        className="input-base w-full px-1.5 py-1 text-xs"
+                        className={`input-base w-full px-1.5 py-1 text-xs ${isCurrentlySuspended ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-[#14142a]' : ''}`}
                         value={inputProgress || ''}
+                        disabled={isCurrentlySuspended}
                         onChange={(e) => setInputProgress(e.target.value.replace(/^0+(?=\d)/, ''))}
                       />
                     </td>
@@ -992,28 +996,61 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], u
                           />
                         )}
 
-                        <div
-                          className="absolute inset-y-0 h-4 my-1 rounded bg-slate-200 dark:bg-[#1e1e38] shadow-sm flex items-center px-1 overflow-visible group cursor-pointer hover:bg-slate-300 dark:hover:bg-[#2c2c4d] transition-all"
-                          style={{
-                            left: `${Math.min(95, Math.max(0, leftOffset))}%`,
-                            width: `${Math.min(100, Math.max(2, barWidth))}%`,
-                          }}
-                        >
-                          {/* CSS Hover Tooltip */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg pointer-events-none whitespace-nowrap z-30 border border-slate-700/50">
-                            {formatDate(t.computedStartDate)} - {formatDate(t.computedEndDate)}
-                          </div>
+                        {/* Render segments */}
+                        {(() => {
+                          const workedDaysTotal = ((t.actual_progress || 0) / 100) * (t.duration || 1)
+                          let remainingWorkedDays = workedDaysTotal
+                          const segments = (t as any).segments || []
 
-                          {/* Inner Actual Progress bar */}
-                          <div
-                            className="absolute inset-y-0 left-0 progress-fill rounded-l"
-                            style={{ width: `${t.actual_progress}%` }}
-                          />
-                          
-                          <span className="relative z-10 text-[9px] font-extrabold text-primary-950 dark:text-white pl-1.5">
-                            {t.actual_progress}%
-                          </span>
-                        </div>
+                          return segments.map((seg: any, sIdx: number) => {
+                            const segStart = new Date(seg.start)
+                            const segEnd = new Date(seg.end)
+                            
+                            if (segEnd < dateRange.start || segStart > dateRange.end) return null
+                            
+                            const visibleStart = new Date(Math.max(segStart.getTime(), dateRange.start.getTime()))
+                            const visibleEnd = new Date(Math.min(segEnd.getTime(), dateRange.end.getTime()))
+
+                            const segLeft = dateRange.durationDays > 0 
+                              ? ((visibleStart.getTime() - dateRange.start.getTime()) / (dateRange.durationDays * 24 * 60 * 60 * 1000)) * 100
+                              : 0
+                            const segWidth = dateRange.durationDays > 0
+                              ? ((visibleEnd.getTime() - visibleStart.getTime()) / (dateRange.durationDays * 24 * 60 * 60 * 1000)) * 100
+                              : 0
+                              
+                            const segCapDays = seg.durationDays
+                            const fillDays = Math.min(segCapDays, Math.max(0, remainingWorkedDays))
+                            const fillPct = segCapDays > 0 ? (fillDays / segCapDays) * 100 : (t.actual_progress === 100 ? 100 : 0)
+                            
+                            remainingWorkedDays -= fillDays
+
+                            return (
+                              <div
+                                key={sIdx}
+                                className={`absolute inset-y-0 h-4 my-1 bg-slate-200 dark:bg-[#1e1e38] shadow-sm flex items-center overflow-hidden group cursor-pointer hover:bg-slate-300 dark:hover:bg-[#2c2c4d] transition-all ${sIdx === 0 ? 'rounded-l' : ''} ${sIdx === segments.length - 1 ? 'rounded-r' : ''}`}
+                                style={{
+                                  left: `${Math.min(99, Math.max(0, segLeft))}%`,
+                                  width: `${Math.max(0.5, segWidth)}%`,
+                                }}
+                              >
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg pointer-events-none whitespace-nowrap z-30 border border-slate-700/50">
+                                  {formatDate(t.computedStartDate)} - {formatDate(t.computedEndDate)}
+                                </div>
+
+                                <div
+                                  className="absolute inset-y-0 left-0 progress-fill"
+                                  style={{ width: `${fillPct}%` }}
+                                />
+                                
+                                {sIdx === 0 && (
+                                  <span className="absolute z-10 text-[9px] font-extrabold text-primary-950 dark:text-white pl-1.5 whitespace-nowrap">
+                                    {t.actual_progress}%
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })
+                        })()}
                       </div>
                     </div>
                   )

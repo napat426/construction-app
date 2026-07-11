@@ -21,9 +21,16 @@ export function parsePredecessor(predStr: string | null): ParsedPredecessor | nu
   return { wbsNo, lagDays }
 }
 
+export interface TaskSegment {
+  start: string // ISO string
+  end: string   // ISO string
+  durationDays: number
+}
+
 export interface ScheduledTask extends WBSTask {
   computedStartDate: string // ISO string YYYY-MM-DD
   computedEndDate: string
+  segments: TaskSegment[]
 }
 
 function stripTime(d: Date): Date {
@@ -85,6 +92,73 @@ export function countWorkingDays(startDate: Date, endDate: Date, suspensions: Co
     current.setDate(current.getDate() + 1)
   }
   return count
+}
+
+export function getTaskSegments(startDate: Date, durationDays: number, suspensions: ContractSuspension[]): TaskSegment[] {
+  let currentDate = stripTime(startDate)
+  let remainingDays = Math.max(0, durationDays)
+  
+  const segments: TaskSegment[] = []
+  let currentSegment: { start: Date; end: Date; durationDays: number } | null = null
+
+  while (remainingDays > 0) {
+    if (!isDateSuspended(currentDate, suspensions)) {
+      if (!currentSegment) {
+        currentSegment = { start: new Date(currentDate), end: new Date(currentDate), durationDays: 0 }
+      }
+      currentSegment.durationDays++
+      currentSegment.end = new Date(currentDate)
+      remainingDays--
+    } else {
+      if (currentSegment) {
+        const sYear = currentSegment.start.getFullYear()
+        const sMonth = String(currentSegment.start.getMonth() + 1).padStart(2, '0')
+        const sDay = String(currentSegment.start.getDate()).padStart(2, '0')
+        const eYear = currentSegment.end.getFullYear()
+        const eMonth = String(currentSegment.end.getMonth() + 1).padStart(2, '0')
+        const eDay = String(currentSegment.end.getDate()).padStart(2, '0')
+
+        segments.push({
+          start: `${sYear}-${sMonth}-${sDay}`,
+          end: `${eYear}-${eMonth}-${eDay}`,
+          durationDays: currentSegment.durationDays
+        })
+        currentSegment = null
+      }
+    }
+    
+    if (remainingDays > 0) {
+      currentDate.setDate(currentDate.getDate() + 1)
+    }
+  }
+
+  if (currentSegment) {
+    const sYear = currentSegment.start.getFullYear()
+    const sMonth = String(currentSegment.start.getMonth() + 1).padStart(2, '0')
+    const sDay = String(currentSegment.start.getDate()).padStart(2, '0')
+    const eYear = currentSegment.end.getFullYear()
+    const eMonth = String(currentSegment.end.getMonth() + 1).padStart(2, '0')
+    const eDay = String(currentSegment.end.getDate()).padStart(2, '0')
+
+    segments.push({
+      start: `${sYear}-${sMonth}-${sDay}`,
+      end: `${eYear}-${eMonth}-${eDay}`,
+      durationDays: currentSegment.durationDays
+    })
+  }
+
+  if (segments.length === 0) {
+    const sYear = startDate.getFullYear()
+    const sMonth = String(startDate.getMonth() + 1).padStart(2, '0')
+    const sDay = String(startDate.getDate()).padStart(2, '0')
+    segments.push({
+      start: `${sYear}-${sMonth}-${sDay}`,
+      end: `${sYear}-${sMonth}-${sDay}`,
+      durationDays: 0
+    })
+  }
+
+  return segments
 }
 
 export function computeTaskDates(tasks: WBSTask[], projectStartDateStr: string | null, suspensions: ContractSuspension[] = []): ScheduledTask[] {
@@ -150,10 +224,13 @@ export function computeTaskDates(tasks: WBSTask[], projectStartDateStr: string |
     const eMonth = String(dates.end.getMonth() + 1).padStart(2, '0')
     const eDay = String(dates.end.getDate()).padStart(2, '0')
     
+    const segments = getTaskSegments(dates.start, t.duration || 1, suspensions)
+    
     return {
       ...t,
       computedStartDate: `${sYear}-${sMonth}-${sDay}`,
       computedEndDate: `${eYear}-${eMonth}-${eDay}`,
+      segments,
     }
   })
 }

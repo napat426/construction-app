@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { Project, WBSTask, Inspection, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, Inspection, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import type { SelectedProjectSlide } from '../PresentationClient'
 import { Maximize, Minimize, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -16,7 +16,7 @@ interface Props {
   tasks: WBSTask[]
   inspections: Inspection[]
   milestones: ProjectMilestone[]
-  suspensions?: ContractSuspension[]
+  
   amendments?: ContractAmendment[]
   selectedSlides: SelectedProjectSlide[]
   theme: 'dark' | 'light'
@@ -29,7 +29,7 @@ type SlideDef = {
   slideData?: SelectedProjectSlide
 }
 
-export function PresentationEngine({ projects, tasks, inspections, milestones, suspensions = [], amendments = [], selectedSlides, theme, onExit }: Props) {
+export function PresentationEngine({ projects, tasks, inspections, milestones, amendments = [], selectedSlides, theme, onExit }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -99,18 +99,18 @@ export function PresentationEngine({ projects, tasks, inspections, milestones, s
     if (!slide) return null
 
     if (slide.type === 'summary') {
-      return <SlideSummary projects={projects} tasks={tasks} milestones={milestones} suspensions={suspensions} amendments={amendments} theme={theme} selectedSlides={selectedSlides} />
+      return <SlideSummary projects={projects} tasks={tasks} milestones={milestones} amendments={amendments} theme={theme} selectedSlides={selectedSlides} />
     }
 
     if (!slide.project) return null
 
     switch (slide.type) {
       case 'overview':
-        return <SlideOverview project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} milestones={milestones.filter(m => m.project_id === slide.project!.id)} suspensions={suspensions.filter(s => s.project_id === slide.project!.id)} amendments={amendments.filter(a => a.project_id === slide.project!.id)} inspections={inspections.filter(i => i.project_id === slide.project!.id)} theme={theme} />
+        return <SlideOverview project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} milestones={milestones.filter(m => m.project_id === slide.project!.id)} amendments={amendments.filter(a => a.project_id === slide.project!.id)} inspections={inspections.filter(i => i.project_id === slide.project!.id)} theme={theme} />
       case 'gantt':
-        return <SlideGantt project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} suspensions={suspensions.filter(s => s.project_id === slide.project!.id)} amendments={amendments.filter(a => a.project_id === slide.project!.id)} theme={theme} />
+        return <SlideGantt project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} amendments={amendments.filter(a => a.project_id === slide.project!.id)} theme={theme} />
       case 'scurve':
-        return <SlideSCurve project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} milestones={milestones.filter(m => m.project_id === slide.project!.id)} suspensions={suspensions.filter(s => s.project_id === slide.project!.id)} amendments={amendments.filter(a => a.project_id === slide.project!.id)} theme={theme} />
+        return <SlideSCurve project={slide.project} tasks={tasks.filter(t => t.project_id === slide.project!.id)} milestones={milestones.filter(m => m.project_id === slide.project!.id)} amendments={amendments.filter(a => a.project_id === slide.project!.id)} theme={theme} />
       case 'photos':
         return <SlidePhotos 
           project={slide.project} 

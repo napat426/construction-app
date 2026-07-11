@@ -1,4 +1,4 @@
-import type { WBSTask, ContractSuspension, Project } from '@/lib/types'
+import type { WBSTask, ContractAmendment, Project } from '@/lib/types'
 
 interface ParsedPredecessor {
   wbsNo: string
@@ -40,11 +40,14 @@ function stripTime(d: Date): Date {
 // Helper to check if a date is inside any suspension (exclusive of resume_date if we treat resume_date as the first day back to work)
 // The prompt says: "resume_date ... (วันเริ่มกลับมาเป็นวันทำงานวันแรกของช่วงที่เหลือ)"
 // So if suspend_date = 15 July, resume_date = 20 Aug, then 15 July to 19 Aug are suspended days. 20 Aug is a working day.
-export function isDateSuspended(date: Date, suspensions: ContractSuspension[]): boolean {
+export function isDateSuspended(date: Date, amendments: ContractAmendment[]): boolean {
   const dTime = stripTime(date).getTime()
   const todayTime = stripTime(new Date()).getTime()
+  
+  const suspensions = amendments.filter(a => a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open')
 
   for (const s of suspensions) {
+    if (!s.suspend_date) continue
     const sTime = stripTime(new Date(s.suspend_date)).getTime()
     
     let rTime = Infinity
@@ -64,13 +67,13 @@ export function isDateSuspended(date: Date, suspensions: ContractSuspension[]): 
 }
 
 // Add working days to a start date, skipping suspended days
-export function addWorkingDays(startDate: Date, daysToAdd: number, suspensions: ContractSuspension[]): Date {
+export function addWorkingDays(startDate: Date, daysToAdd: number, amendments: ContractAmendment[]): Date {
   let currentDate = stripTime(startDate)
   let remainingDays = Math.max(0, daysToAdd) // duration
 
   while (remainingDays > 0) {
     // If the day is suspended, it doesn't count towards the duration
-    if (!isDateSuspended(currentDate, suspensions)) {
+    if (!isDateSuspended(currentDate, amendments)) {
       remainingDays--
     }
     if (remainingDays > 0) {
@@ -80,13 +83,13 @@ export function addWorkingDays(startDate: Date, daysToAdd: number, suspensions: 
   return currentDate
 }
 
-export function countWorkingDays(startDate: Date, endDate: Date, suspensions: ContractSuspension[]): number {
+export function countWorkingDays(startDate: Date, endDate: Date, amendments: ContractAmendment[]): number {
   let count = 0
   let current = stripTime(startDate)
   const end = stripTime(endDate)
   
   while (current < end) {
-    if (!isDateSuspended(current, suspensions)) {
+    if (!isDateSuspended(current, amendments)) {
       count++
     }
     current.setDate(current.getDate() + 1)
@@ -94,7 +97,7 @@ export function countWorkingDays(startDate: Date, endDate: Date, suspensions: Co
   return count
 }
 
-export function getTaskSegments(startDate: Date, durationDays: number, suspensions: ContractSuspension[]): TaskSegment[] {
+export function getTaskSegments(startDate: Date, durationDays: number, amendments: ContractAmendment[]): TaskSegment[] {
   let currentDate = stripTime(startDate)
   let remainingDays = Math.max(0, durationDays)
   
@@ -102,7 +105,7 @@ export function getTaskSegments(startDate: Date, durationDays: number, suspensio
   let currentSegment: { start: Date; end: Date; durationDays: number } | null = null
 
   while (remainingDays > 0) {
-    if (!isDateSuspended(currentDate, suspensions)) {
+    if (!isDateSuspended(currentDate, amendments)) {
       if (!currentSegment) {
         currentSegment = { start: new Date(currentDate), end: new Date(currentDate), durationDays: 0 }
       }
@@ -161,51 +164,43 @@ export function getTaskSegments(startDate: Date, durationDays: number, suspensio
   return segments
 }
 
-export function computeTaskDates(tasks: WBSTask[], projectStartDateStr: string | null, suspensions: ContractSuspension[] = []): ScheduledTask[] {
+export function computeTaskDates(tasks: WBSTask[], projectStartDate: string | null, amendments: ContractAmendment[] = []): ScheduledTask[] {
   const taskMap = new Map<string, WBSTask>()
   for (const t of tasks) {
     taskMap.set(t.wbs_no, t)
   }
 
   const computedCache = new Map<string, { start: Date; end: Date }>()
-  const fallbackProjectStart = projectStartDateStr ? new Date(projectStartDateStr) : new Date()
+  const fallbackProjectStart = projectStartDate ? new Date(projectStartDate) : new Date()
 
   function getDates(wbsNo: string, visiting: Set<string>): { start: Date; end: Date } {
     if (computedCache.has(wbsNo)) return computedCache.get(wbsNo)!
 
     const task = taskMap.get(wbsNo)
     if (!task) {
-      return { start: fallbackProjectStart, end: addWorkingDays(fallbackProjectStart, 1, suspensions) }
+      return { start: fallbackProjectStart, end: addWorkingDays(fallbackProjectStart, 1, amendments) }
     }
 
     if (visiting.has(wbsNo)) {
       const baseStart = task.start_date ? new Date(task.start_date) : fallbackProjectStart
-      return { start: baseStart, end: addWorkingDays(baseStart, task.duration || 1, suspensions) }
+      return { start: baseStart, end: addWorkingDays(baseStart, task.duration || 1, amendments) }
     }
 
     visiting.add(wbsNo)
 
-    const parsedPred = parsePredecessor(task.predecessors)
+    const parsed = parsePredecessor(task.predecessors)
     let startDate: Date
 
-    if (parsedPred && taskMap.has(parsedPred.wbsNo)) {
-      const predDates = getDates(parsedPred.wbsNo, visiting)
-      const predFinish = predDates.end
-      // Lag days also only count working days? For simplicity, yes.
-      if (parsedPred.lagDays >= 0) {
-        startDate = addWorkingDays(predFinish, parsedPred.lagDays, suspensions)
-      } else {
-        // Negative lag (lead) is harder with forward-only addWorkingDays, let's just subtract raw days for now to keep it simple, or implement subtractWorkingDays.
-        // For now, raw subtract.
-        startDate = new Date(predFinish.getTime() + parsedPred.lagDays * 24 * 60 * 60 * 1000)
-      }
+    if (parsed && taskMap.has(parsed.wbsNo)) {
+      const predDates = getDates(parsed.wbsNo, visiting)
+      const baseDate = predDates.end
+      startDate = addWorkingDays(baseDate, parsed.lagDays, amendments)
     } else {
       startDate = task.start_date ? new Date(task.start_date) : fallbackProjectStart
     }
 
     const durationDays = task.duration || 1
-    // Task ends after duration *working* days
-    const endDate = addWorkingDays(startDate, durationDays, suspensions)
+    const endDate = addWorkingDays(startDate, durationDays, amendments)
 
     visiting.delete(wbsNo)
 
@@ -224,7 +219,7 @@ export function computeTaskDates(tasks: WBSTask[], projectStartDateStr: string |
     const eMonth = String(dates.end.getMonth() + 1).padStart(2, '0')
     const eDay = String(dates.end.getDate()).padStart(2, '0')
     
-    const segments = getTaskSegments(dates.start, t.duration || 1, suspensions)
+    const segments = getTaskSegments(dates.start, t.duration || 1, amendments)
     
     return {
       ...t,
@@ -235,7 +230,7 @@ export function computeTaskDates(tasks: WBSTask[], projectStartDateStr: string |
   })
 }
 
-export function computeProjectExtension(project: Project, suspensions: ContractSuspension[], amendments: import('@/lib/types').ContractAmendment[] = []) {
+export function computeProjectExtension(project: Project, amendments: ContractAmendment[] = []) {
   if (!project.start_date || !project.end_date) {
     return {
       totalDays: 0,
@@ -262,10 +257,16 @@ export function computeProjectExtension(project: Project, suspensions: ContractS
   let isCurrentlySuspended = false
   let currentSuspension = null
 
+  const suspensions = amendments.filter(a => a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open')
+
   // Sort suspensions by date just in case
-  const sortedSuspensions = [...suspensions].sort((a, b) => new Date(a.suspend_date).getTime() - new Date(b.suspend_date).getTime())
+  const sortedSuspensions = [...suspensions].sort((a, b) => {
+    if (!a.suspend_date || !b.suspend_date) return 0
+    return new Date(a.suspend_date).getTime() - new Date(b.suspend_date).getTime()
+  })
 
   for (const s of sortedSuspensions) {
+    if (!s.suspend_date) continue
     const sDate = stripTime(new Date(s.suspend_date))
     let rDate: Date | null = null
     
@@ -297,7 +298,9 @@ export function computeProjectExtension(project: Project, suspensions: ContractS
 
   let totalAmendmentDays = 0
   for (const a of amendments) {
-    totalAmendmentDays += Number(a.extra_days) || 0
+    if (a.amendment_type === 'direct') {
+      totalAmendmentDays += Number(a.extra_days) || 0
+    }
   }
 
   // 1. Raw elapsed days = today - start_date

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import type { Project, WBSTask, Inspection, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, Inspection, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 import { Search, Filter, Play, CheckSquare, Square, X, GripVertical, Image as ImageIcon, Moon, Sun, Save, Download, Trash2 } from 'lucide-react'
 import { computeTaskDates } from '@/lib/scheduler'
@@ -15,7 +15,6 @@ interface Props {
   initialMilestones: ProjectMilestone[]
   initialDailyReports?: { project_id: string, photos: any[], created_at: string }[]
   initialConcretePours?: { project_id: string, photos: any[], created_at: string }[]
-  initialSuspensions?: ContractSuspension[]
   initialAmendments?: ContractAmendment[]
   user?: UserSession | null
 }
@@ -45,7 +44,6 @@ export function PresentationClient({
   initialMilestones, 
   initialDailyReports = [],
   initialConcretePours = [],
-  initialSuspensions = [],
   initialAmendments = [],
   user 
 }: Props) {
@@ -301,7 +299,6 @@ export function PresentationClient({
         projects={projects}
         tasks={initialTasks}
         milestones={initialMilestones}
-        suspensions={initialSuspensions}
         amendments={initialAmendments}
         inspections={initialInspections}
         selectedSlides={selectedSlides}

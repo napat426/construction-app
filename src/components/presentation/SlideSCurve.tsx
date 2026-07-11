@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import {
   LineChart,
   Line,
@@ -19,12 +19,12 @@ interface Props {
   project: Project
   tasks: WBSTask[]
   milestones?: ProjectMilestone[]
-  suspensions?: ContractSuspension[]
+  
   amendments?: ContractAmendment[]
   theme?: 'dark' | 'light'
 }
 
-export function SlideSCurve({ project, tasks, milestones = [], suspensions = [], amendments = [], theme = 'dark' }: Props) {
+export function SlideSCurve({ project, tasks, milestones = [], amendments = [], theme = 'dark' }: Props) {
   const isDark = theme === 'dark'
 
   const scheduledTasks = useMemo(() => {
@@ -38,8 +38,8 @@ export function SlideSCurve({ project, tasks, milestones = [], suspensions = [],
       }
       return 0
     })
-    return computeTaskDates(sorted, project.start_date, suspensions)
-  }, [tasks, project.start_date, suspensions])
+    return computeTaskDates(sorted, project.start_date, amendments)
+  }, [tasks, project.start_date, amendments])
 
   const chartData = useMemo(() => {
     if (scheduledTasks.length === 0 || !project.start_date) return []
@@ -60,7 +60,7 @@ export function SlideSCurve({ project, tasks, milestones = [], suspensions = [],
     }
     
     if (project.end_date) {
-      const ext = computeProjectExtension(project, suspensions, amendments)
+      const ext = computeProjectExtension(project, amendments)
       const e = new Date(project.start_date)
       e.setDate(e.getDate() + ext.totalDays - 1)
       if (e > maxDate) maxDate = e
@@ -140,8 +140,8 @@ export function SlideSCurve({ project, tasks, milestones = [], suspensions = [],
         if (currDate >= tEnd) {
           plannedSum += taskWeightValue
         } else if (currDate >= tStart) {
-          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
-          const elapsed = countWorkingDays(tStart, currDate, suspensions)
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+          const elapsed = countWorkingDays(tStart, currDate, amendments)
           plannedSum += taskWeightValue * (elapsed / totalDur)
         }
       }

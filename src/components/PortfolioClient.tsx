@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck } from 'lucide-react'
-import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractAmendment } from '@/lib/types'
 import { PaymentForecastChart } from './portfolio/PaymentForecastChart'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
@@ -14,7 +14,7 @@ interface Props {
   milestones: ProjectMilestone[]
   punchLists?: PunchList[]
   punchItems?: PunchItem[]
-  suspensions: ContractSuspension[]
+  
   amendments: ContractAmendment[]
   user?: UserSession | null
 }
@@ -22,7 +22,7 @@ interface Props {
 type SortField = 'name' | 'remaining' | 'ev' | 'sv'
 type SortDir = 'asc' | 'desc'
 
-export function PortfolioClient({ projects, tasks, milestones, suspensions = [], amendments = [], punchLists = [], punchItems = [], user }: Props) {
+export function PortfolioClient({ projects, tasks, milestones, amendments = [], punchLists = [], punchItems = [], user }: Props) {
   // Checkbox status filter states
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     'กำลังดำเนินการ',
@@ -53,9 +53,9 @@ export function PortfolioClient({ projects, tasks, milestones, suspensions = [],
 
       let totalDays = 0
       let remainingDays = 0
-      const projectSuspensions = suspensions.filter(s => s.project_id === p.id)
+      
       const projectAmendments = amendments.filter(a => a.project_id === p.id)
-      const ext = computeProjectExtension(p, projectSuspensions, projectAmendments)
+      const ext = computeProjectExtension(p, projectAmendments)
       
       if (start && end) {
         totalDays = ext.totalDays
@@ -67,7 +67,7 @@ export function PortfolioClient({ projects, tasks, milestones, suspensions = [],
       let evCumulative = 0
 
       if (projectTasks.length > 0) {
-        const scheduledTasks = computeTaskDates(projectTasks, p.start_date, projectSuspensions)
+        const scheduledTasks = computeTaskDates(projectTasks, p.start_date, projectAmendments)
         const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
 
         if (totalWbsCost > 0) {
@@ -86,8 +86,8 @@ export function PortfolioClient({ projects, tasks, milestones, suspensions = [],
             } else if (todayDateOnly < tStart) {
               plannedProgress = 0
             } else {
-              const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, projectSuspensions))
-              const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, projectSuspensions)
+              const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, projectAmendments))
+              const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, projectAmendments)
               plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
             }
 
@@ -111,8 +111,8 @@ export function PortfolioClient({ projects, tasks, milestones, suspensions = [],
             } else if (todayDateOnly < tStart) {
               plannedProgress = 0
             } else {
-              const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, projectSuspensions))
-              const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, projectSuspensions)
+              const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, projectAmendments))
+              const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, projectAmendments)
               plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
             }
             totalPlanned += plannedProgress
@@ -134,8 +134,8 @@ export function PortfolioClient({ projects, tasks, milestones, suspensions = [],
           } else if (todayDateOnly < start) {
             pvCumulative = 0
           } else {
-            const totalTaskTime = Math.max(1, countWorkingDays(start, end, projectSuspensions))
-            const elapsedTaskTime = countWorkingDays(start, todayDateOnly, projectSuspensions)
+            const totalTaskTime = Math.max(1, countWorkingDays(start, end, projectAmendments))
+            const elapsedTaskTime = countWorkingDays(start, todayDateOnly, projectAmendments)
             pvCumulative = (elapsedTaskTime / totalTaskTime) * 100
           }
         }
@@ -178,7 +178,7 @@ export function PortfolioClient({ projects, tasks, milestones, suspensions = [],
         trafficLight,
       }
     })
-  }, [projects, tasks, milestones, suspensions])
+  }, [projects, tasks, milestones, amendments])
 
   // Count badges for filters
   const filterCounts = useMemo(() => {

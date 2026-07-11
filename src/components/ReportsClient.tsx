@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ClipboardCheck, FileClock, CalendarDays, Truck } from 'lucide-react'
-import type { Project, Inspection, DailyReport, WeeklyReport, WBSTask, ProjectMilestone, ConcretePour, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, Inspection, DailyReport, WeeklyReport, WBSTask, ProjectMilestone, ConcretePour, ContractAmendment } from '@/lib/types'
 
 // We will lazily load or statically import the child components
 import { InspectionsTab } from './reports/InspectionsTab'
@@ -20,7 +20,7 @@ interface Props {
   concretePours: ConcretePour[]
   tasks?: WBSTask[]
   milestones?: ProjectMilestone[]
-  suspensions?: ContractSuspension[]
+  
   amendments?: ContractAmendment[]
   user?: UserSession | null
 }
@@ -35,7 +35,6 @@ export function ReportsClient({
   concretePours,
   tasks = [],
   milestones = [],
-  suspensions = [],
   amendments = [],
   user,
 }: Props) {
@@ -83,7 +82,6 @@ export function ReportsClient({
             data={weeklyReports} 
             tasks={tasks}
             milestones={milestones}
-            suspensions={suspensions}
             userRole={user?.role}
           />
         )}

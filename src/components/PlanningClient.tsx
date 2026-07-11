@@ -16,7 +16,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { deleteTask } from '@/app/actions/tasks'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
@@ -24,7 +24,7 @@ interface PlanningClientProps {
   project: Project
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
-  suspensions?: ContractSuspension[]
+  
   amendments?: ContractAmendment[]
   user?: UserSession | null
 }
@@ -60,12 +60,12 @@ function formatDate(dateStr: string): string {
   })
 }
 
-export function PlanningClient({ project, tasks, milestones, suspensions = [], amendments = [], user }: PlanningClientProps) {
+export function PlanningClient({ project, tasks, milestones, amendments = [], user }: PlanningClientProps) {
   const [activeTab, setActiveTab] = useState<'wbs' | 'gantt' | 'scurve'>('wbs')
   const [isPending, startTransition] = useTransition()
   
   const todayForSuspensionCheck = new Date()
-  const isCurrentlySuspended = useMemo(() => isDateSuspended(todayForSuspensionCheck, suspensions), [suspensions])
+  const isCurrentlySuspended = useMemo(() => isDateSuspended(todayForSuspensionCheck, amendments), [amendments])
   
   // S-Curve tooltip state
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null)
@@ -86,8 +86,8 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], a
   // Sort tasks naturally by WBS No. and calculate dynamic schedule dates
   const scheduledTasks = useMemo(() => {
     const sorted = [...tasks].sort((a, b) => sortWBS(a.wbs_no, b.wbs_no))
-    return computeTaskDates(sorted, project.start_date, suspensions)
-  }, [tasks, project.start_date, suspensions])
+    return computeTaskDates(sorted, project.start_date, amendments)
+  }, [tasks, project.start_date, amendments])
 
   // Helper: compute task status badge
   const todayForStatus = new Date()
@@ -105,8 +105,8 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], a
     if (tStart > todayForStatus) {
       return { label: 'ในอนาคต', cls: 'bg-slate-100 dark:bg-[#1e1e38] text-slate-500 dark:text-slate-400 border-slate-300 dark:border-[#252548]' }
     }
-    const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
-    const elapsed = countWorkingDays(tStart, todayForStatus, suspensions)
+    const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+    const elapsed = countWorkingDays(tStart, todayForStatus, amendments)
     const plannedPct = Math.min(100, (elapsed / totalDur) * 100)
     if (plannedPct - (t.actual_progress || 0) >= 5) {
       return { label: 'ล่าช้า', cls: 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-300 dark:border-red-500/30' }
@@ -142,7 +142,7 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], a
   }, [scheduledTasks])
 
   // 2. Timeline date range (for Gantt & S-Curve)
-  const projectExt = useMemo(() => computeProjectExtension(project, suspensions, amendments), [project, suspensions, amendments])
+  const projectExt = useMemo(() => computeProjectExtension(project, amendments), [project, amendments])
   const dateRange = useMemo(() => {
     const ext = projectExt
     if (scheduledTasks.length === 0) {
@@ -166,7 +166,7 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], a
 
     const durationDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (24 * 60 * 60 * 1000)))
     return { start: minDate, end: maxDate, durationDays }
-  }, [scheduledTasks, project, suspensions])
+  }, [scheduledTasks, project, amendments])
 
   // Today marker left position for Gantt chart
   const todayLeft = useMemo(() => {
@@ -251,8 +251,8 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], a
         if (currDate >= tEnd) {
           plannedSum += taskWeightValue
         } else if (currDate >= tStart) {
-          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
-          const elapsed = countWorkingDays(tStart, currDate, suspensions)
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+          const elapsed = countWorkingDays(tStart, currDate, amendments)
           plannedSum += taskWeightValue * (elapsed / totalDur)
         }
       }
@@ -956,8 +956,8 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], a
                         ))}
 
                         {/* Suspension bands */}
-                        {suspensions.map((s, idx) => {
-                          const sStart = new Date(s.suspend_date)
+                        {amendments.filter(a => (a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open') && !!a.suspend_date).map((s, idx) => {
+                          const sStart = new Date(s.suspend_date!)
                           sStart.setHours(0, 0, 0, 0)
                           
                           // If no resume_date, extend to the end of the timeline
@@ -984,7 +984,7 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], a
                               style={{ left: `${leftOffset}%`, width: `${widthPct}%` }}
                             >
                               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden group-hover/susp:block bg-red-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap z-30 pointer-events-none">
-                                ⏸ หยุดงาน ({formatDate(s.suspend_date)} - {isOngoing ? 'ยังไม่กำหนด' : formatDate(s.resume_date!)})
+                                ⏸ หยุดงาน ({formatDate(s.suspend_date!)} - {isOngoing ? 'ยังไม่กำหนด' : formatDate(s.resume_date!)})
                               </div>
                             </div>
                           )

@@ -20,14 +20,14 @@ import {
 import Link from 'next/link'
 import { EditBaselineModal } from './EditBaselineModal'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
 interface DashboardClientProps {
   project: Project
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
-  suspensions?: ContractSuspension[]
+  
   amendments?: ContractAmendment[]
   user?: UserSession | null
 }
@@ -50,7 +50,7 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function DashboardClient({ project, tasks, milestones, suspensions = [], amendments = [], user }: DashboardClientProps) {
+export function DashboardClient({ project, tasks, milestones, amendments = [], user }: DashboardClientProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [paymentDate, setPaymentDate] = useState('')
@@ -59,13 +59,13 @@ export function DashboardClient({ project, tasks, milestones, suspensions = [], 
   const today = new Date()
 
   const metrics = useMemo(() => {
-    const ext = computeProjectExtension(project, suspensions, amendments)
+    const ext = computeProjectExtension(project, amendments)
     const totalDays = ext.totalDays
     const daysUsed = ext.daysUsed
     const daysRemaining = ext.daysRemaining
     const isOverrun = ext.isOverrun
 
-    const scheduledTasks = computeTaskDates(tasks, project.start_date, suspensions)
+    const scheduledTasks = computeTaskDates(tasks, project.start_date, amendments)
     const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
     
     let pvCumulative = 0
@@ -89,8 +89,8 @@ export function DashboardClient({ project, tasks, milestones, suspensions = [], 
         } else if (todayDateOnly < tStart) {
           plannedProgress = 0
         } else {
-          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
-          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, suspensions)
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, amendments)
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
         }
 
@@ -113,8 +113,8 @@ export function DashboardClient({ project, tasks, milestones, suspensions = [], 
         } else if (todayDateOnly < tStart) {
           plannedProgress = 0
         } else {
-          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
-          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, suspensions)
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, amendments)
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
         }
         totalPlanned += plannedProgress
@@ -183,8 +183,8 @@ export function DashboardClient({ project, tasks, milestones, suspensions = [], 
       } else if (todayDateOnly < tStart) {
         plannedProgress = 0
       } else {
-        const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
-        const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, suspensions)
+        const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+        const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, amendments)
         plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
       }
 
@@ -236,7 +236,7 @@ export function DashboardClient({ project, tasks, milestones, suspensions = [], 
       cvCurrency,
       taskStats,
     }
-  }, [project, tasks, milestones, suspensions, today])
+  }, [project, tasks, milestones, amendments, today])
 
   const labelCls = 'text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider'
 
@@ -679,7 +679,6 @@ export function DashboardClient({ project, tasks, milestones, suspensions = [], 
         <EditBaselineModal 
           project={project} 
           milestones={milestones} 
-          suspensions={suspensions || []} 
           amendments={amendments || []}
           onClose={() => setShowEditModal(false)} 
         />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import { Calendar, DollarSign, Clock, CheckCircle2, AlertCircle, PlayCircle } from 'lucide-react'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 
@@ -9,13 +9,13 @@ interface Props {
   project: Project
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
-  suspensions?: ContractSuspension[]
+  
   amendments?: ContractAmendment[]
   inspections?: any[]
   theme: 'dark' | 'light'
 }
 
-export function SlideOverview({ project, tasks, milestones, suspensions = [], amendments = [], inspections = [], theme }: Props) {
+export function SlideOverview({ project, tasks, milestones, amendments = [], inspections = [], theme }: Props) {
   const isDark = theme === 'dark'
 
   // Replicate EVM Logic from DashboardClient
@@ -23,13 +23,13 @@ export function SlideOverview({ project, tasks, milestones, suspensions = [], am
     const today = new Date()
     const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     
-    const ext = computeProjectExtension(project, suspensions, amendments)
+    const ext = computeProjectExtension(project, amendments)
     const totalDays = ext.totalDays
     const daysUsed = ext.daysUsed
     const daysRemaining = ext.daysRemaining
     const isOverrun = ext.isOverrun
 
-    const scheduledTasks = computeTaskDates(tasks, project.start_date, suspensions)
+    const scheduledTasks = computeTaskDates(tasks, project.start_date, amendments)
 
     const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
     let pvCumulative = 0
@@ -45,8 +45,8 @@ export function SlideOverview({ project, tasks, milestones, suspensions = [], am
       if (todayDateOnly >= tEnd) plannedProgress = 100
       else if (todayDateOnly < tStart) plannedProgress = 0
       else {
-        const elapsed = countWorkingDays(tStart, todayDateOnly, suspensions)
-        const total = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
+        const elapsed = countWorkingDays(tStart, todayDateOnly, amendments)
+        const total = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
         plannedProgress = (elapsed / total) * 100
       }
       
@@ -97,7 +97,7 @@ export function SlideOverview({ project, tasks, milestones, suspensions = [], am
     return {
       pvCumulative, evCumulative, svPercent, svDays, cvPercent, cvCost, done, delayed, inProgress, totalDays, daysRemaining, isOverrun
     }
-  }, [project, tasks, milestones, suspensions])
+  }, [project, tasks, milestones, amendments])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val)

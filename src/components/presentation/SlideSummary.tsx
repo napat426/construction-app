@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import type { SelectedProjectSlide } from '../PresentationClient'
 import { HardHat } from 'lucide-react'
 import { computeTaskDates, computeProjectExtension } from '@/lib/scheduler'
@@ -10,13 +10,13 @@ interface Props {
   projects: Project[]
   tasks?: WBSTask[]
   milestones?: ProjectMilestone[]
-  suspensions?: ContractSuspension[]
+  
   amendments?: ContractAmendment[]
   selectedSlides: SelectedProjectSlide[]
   theme?: 'dark' | 'light'
 }
 
-export function SlideSummary({ projects, tasks = [], milestones = [], suspensions = [], amendments = [], selectedSlides, theme = 'dark' }: Props) {
+export function SlideSummary({ projects, tasks = [], milestones = [], amendments = [], selectedSlides, theme = 'dark' }: Props) {
   const isDark = theme === 'dark'
   const presentedProjects = selectedSlides.map(s => projects.find(p => p.id === s.projectId)).filter(Boolean) as Project[]
 
@@ -34,13 +34,13 @@ export function SlideSummary({ projects, tasks = [], milestones = [], suspension
       let totalDays = 0
 
       if (start && end) {
-        const pSuspensions = suspensions.filter(s => s.project_id === project.id)
+        const pSuspensions = amendments.filter(s => s.project_id === project.id)
         const pAmendments = amendments.filter(a => a.project_id === project.id)
-        const ext = computeProjectExtension(project, pSuspensions, pAmendments)
+        const ext = computeProjectExtension(project, pAmendments)
         totalDays = ext.totalDays
       }
 
-      const pSuspensionsForTasks = suspensions.filter(s => s.project_id === project.id)
+      const pSuspensionsForTasks = amendments.filter(s => s.project_id === project.id)
       const scheduledTasks = computeTaskDates(pTasks, project.start_date, pSuspensionsForTasks)
 
       const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)

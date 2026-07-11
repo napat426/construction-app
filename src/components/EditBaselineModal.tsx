@@ -4,19 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Save, Loader2, Plus, Trash2 } from 'lucide-react'
 import { updateProjectBaseline } from '@/app/actions/projects'
 import { saveMilestones } from '@/app/actions/milestones'
-import type { Project, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
-import { SuspensionForm } from './SuspensionForm'
+import type { Project, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import { AmendmentForm } from './AmendmentForm'
 
 interface EditBaselineModalProps {
   project: Project
   milestones: ProjectMilestone[]
-  suspensions: ContractSuspension[]
   amendments: ContractAmendment[]
   onClose: () => void
 }
 
-export function EditBaselineModal({ project, milestones, suspensions, amendments, onClose }: EditBaselineModalProps) {
+export function EditBaselineModal({ project, milestones, amendments, onClose }: EditBaselineModalProps) {
   const formRef = useRef<HTMLFormElement>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -496,13 +494,7 @@ export function EditBaselineModal({ project, milestones, suspensions, amendments
             </table>
           </div>
 
-          <hr className="border-slate-100 dark:border-[#1e1e38] my-2" />
-          
-          <SuspensionForm projectId={project.id} projectStartDate={project.start_date || undefined} suspensions={suspensions} />
-          
-          <hr className="border-slate-100 dark:border-[#1e1e38] my-2" />
-
-          <AmendmentForm project={project} suspensions={suspensions} amendments={amendments} />
+          <AmendmentForm project={project} amendments={amendments} />
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-[#1e1e38]">

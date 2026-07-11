@@ -3,7 +3,7 @@ import { Header } from '@/components/Header'
 import { PortfolioClient } from '@/components/PortfolioClient'
 import { getCurrentUser } from '@/lib/auth'
 import { ReadOnlyBanner } from '@/components/ReadOnlyBanner'
-import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractSuspension, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractAmendment } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,13 +15,12 @@ export default async function PortfolioPage() {
   const user = await getCurrentUser()
 
   // Fetch all projects, tasks, milestones, punch lists, and punch items in parallel
-  const [projectsRes, tasksRes, milestonesRes, punchListsRes, punchItemsRes, suspensionsRes, amendmentsRes] = await Promise.all([
+  const [projectsRes, tasksRes, milestonesRes, punchListsRes, punchItemsRes, amendmentsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('project_milestones').select('*').order('milestone_no', { ascending: true }),
     supabase.from('punch_lists').select('*'),
     supabase.from('punch_items').select('*').order('sequence', { ascending: true }),
-    supabase.from('contract_suspensions').select('*').order('suspend_date', { ascending: true }),
     supabase.from('contract_amendments').select('*').order('amendment_no', { ascending: true })
   ])
 
@@ -30,7 +29,6 @@ export default async function PortfolioPage() {
   const milestones: ProjectMilestone[] = (milestonesRes.data as ProjectMilestone[]) ?? []
   const punchLists: PunchList[] = (punchListsRes.data as PunchList[]) ?? []
   const punchItems: PunchItem[] = (punchItemsRes.data as PunchItem[]) ?? []
-  const suspensions: ContractSuspension[] = (suspensionsRes.data as ContractSuspension[]) ?? []
   const amendments: ContractAmendment[] = (amendmentsRes.data as ContractAmendment[]) ?? []
 
   return (
@@ -50,7 +48,6 @@ export default async function PortfolioPage() {
             milestones={milestones}
             punchLists={punchLists}
             punchItems={punchItems}
-            suspensions={suspensions}
             amendments={amendments}
             user={user}
           />

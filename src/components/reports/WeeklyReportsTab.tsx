@@ -15,8 +15,8 @@ import type {
   WeeklyReport,
   WBSTask,
   ProjectMilestone,
-  ContractSuspension,
-} from "@/lib/types";
+  ContractAmendment,
+  } from "@/lib/types";
 import {
   createWeeklyReport,
   updateWeeklyReport,
@@ -32,7 +32,6 @@ interface Props {
   data: WeeklyReport[];
   tasks?: WBSTask[];
   milestones?: ProjectMilestone[];
-  suspensions?: ContractSuspension[];
   userRole?: string | null;
 }
 
@@ -132,7 +131,6 @@ export function WeeklyReportsTab({
   data,
   tasks = [],
   milestones = [],
-  suspensions = [],
   userRole,
 }: Props) {
   const [items, setItems] = useState<WeeklyReport[]>(data);
@@ -288,7 +286,6 @@ export function WeeklyReportsTab({
             item={isCreating ? null : selectedItem}
             tasks={tasks}
             milestones={milestones}
-            suspensions={suspensions}
             onClose={() => setIsCreating(false)}
             onDelete={handleDelete}
             onPrint={handlePrint}
@@ -310,7 +307,7 @@ function WeeklyReportForm({
   item,
   tasks,
   milestones,
-  suspensions,
+  amendments = [],
   onClose,
   onDelete,
   onPrint,
@@ -320,7 +317,7 @@ function WeeklyReportForm({
   item: WeeklyReport | null;
   tasks: WBSTask[];
   milestones: ProjectMilestone[];
-  suspensions?: ContractSuspension[];
+  amendments?: ContractAmendment[];
   onClose: () => void;
   onDelete: (id: string) => void;
   onPrint: () => void;
@@ -1022,17 +1019,17 @@ function WeeklyReportForm({
               <span>สถานะโครงการ: {project.status}</span>
             </div>
             
-            {suspensions && suspensions.length > 0 && (
+            {amendments && amendments.filter(a => a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open').length > 0 && (
               <div className="mt-2 text-[10px] text-red-600 dark:text-red-400 font-bold text-left bg-red-50 dark:bg-red-500/10 p-2 border border-red-100 dark:border-red-500/20 rounded">
                 * มีการระงับงาน/แก้ไขสัญญา:
                 <ul className="list-disc pl-4 mt-0.5 font-medium text-slate-700 dark:text-slate-300">
-                  {suspensions.map((s, idx) => {
-                    const suspDate = new Date(s.suspend_date).toLocaleDateString('th-TH')
+                  {amendments.filter(a => (a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open') && !!a.suspend_date).map((s, idx) => {
+                    const suspDate = new Date(s.suspend_date!).toLocaleDateString('th-TH')
                     const resumeDate = s.resume_date ? new Date(s.resume_date).toLocaleDateString('th-TH') : 'ยังไม่กำหนด'
                     
                     let daysStr = ''
                     if (s.resume_date) {
-                      const sd = new Date(s.suspend_date).getTime()
+                      const sd = new Date(s.suspend_date!).getTime()
                       const rd = new Date(s.resume_date).getTime()
                       const diff = Math.ceil((rd - sd) / (1000 * 60 * 60 * 24))
                       daysStr = ` — ขยายสัญญา ${diff} วัน`

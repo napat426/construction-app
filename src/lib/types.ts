@@ -61,20 +61,15 @@ export interface ProjectMilestone {
   created_at?: string
 }
 
-export interface ContractSuspension {
-  id?: string
-  project_id?: string
-  reason: string
-  suspend_date: string
-  resume_date: string | null
-  note: string | null
-  created_at?: string
-}
+export type AmendmentType = 'suspend_with_resume' | 'suspend_open' | 'direct'
 
 export interface ContractAmendment {
   id?: string
   project_id?: string
   amendment_no: number
+  amendment_type: AmendmentType
+  suspend_date?: string | null
+  resume_date?: string | null
   extra_days: number
   reason: string
   amendment_date: string

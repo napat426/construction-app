@@ -4,7 +4,7 @@ import { useState, useTransition, useMemo } from 'react'
 import Link from 'next/link'
 import { MapPin, User, Calendar, DollarSign, Trash2, AlertTriangle } from 'lucide-react'
 import { deleteProject } from '@/app/actions/projects'
-import type { Project, WBSTask, ContractSuspension } from '@/lib/types'
+import type { Project, WBSTask, ContractAmendment } from '@/lib/types'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
@@ -59,11 +59,11 @@ function formatDate(dateStr: string | null): string {
 interface ProjectCardProps {
   project: Project
   tasks?: WBSTask[]
-  suspensions?: ContractSuspension[]
+  amendments?: ContractAmendment[]
   user?: UserSession | null
 }
 
-export function ProjectCard({ project, tasks = [], suspensions = [], user }: ProjectCardProps) {
+export function ProjectCard({ project, tasks = [], amendments = [], user }: ProjectCardProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -82,10 +82,10 @@ export function ProjectCard({ project, tasks = [], suspensions = [], user }: Pro
     const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
     const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
 
-    const ext = computeProjectExtension(project, suspensions)
+    const ext = computeProjectExtension(project, amendments)
     let totalDays = ext.totalDays
 
-    const scheduledTasks = computeTaskDates(tasks, project.start_date, suspensions)
+    const scheduledTasks = computeTaskDates(tasks, project.start_date, amendments)
     const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
     
     let pvCumulative = 0
@@ -107,8 +107,8 @@ export function ProjectCard({ project, tasks = [], suspensions = [], user }: Pro
         } else if (todayDateOnly < tStart) {
           plannedProgress = 0
         } else {
-          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
-          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, suspensions)
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, amendments)
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
         }
 
@@ -131,8 +131,8 @@ export function ProjectCard({ project, tasks = [], suspensions = [], user }: Pro
         } else if (todayDateOnly < tStart) {
           plannedProgress = 0
         } else {
-          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
-          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, suspensions)
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, amendments)
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
         }
         totalPlanned += plannedProgress
@@ -155,7 +155,7 @@ export function ProjectCard({ project, tasks = [], suspensions = [], user }: Pro
       svDays,
       ev: evCumulative
     }
-  }, [project, tasks, suspensions])
+  }, [project, tasks, amendments])
 
   const progressClamped = svData 
     ? Math.max(0, Math.min(100, Math.round(svData.ev * 10) / 10))

@@ -18,14 +18,13 @@ export default async function PresentationPage() {
   }
 
   // Fetch all necessary data for the presentation (memory caching via Client Component)
-  const [projectsRes, tasksRes, inspectionsRes, milestonesRes, dailyRes, concreteRes, suspensionsRes, amendmentsRes] = await Promise.all([
+  const [projectsRes, tasksRes, inspectionsRes, milestonesRes, dailyRes, concreteRes, amendmentsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('inspections').select('*').order('created_at', { ascending: false }),
     supabase.from('project_milestones').select('*').order('milestone_no', { ascending: true }),
     supabase.from('daily_reports').select('project_id, photos, created_at').order('created_at', { ascending: false }),
     supabase.from('concrete_pours').select('project_id, photos, created_at').order('created_at', { ascending: false }),
-    supabase.from('contract_suspensions').select('*').order('suspend_date', { ascending: true }),
     supabase.from('contract_amendments').select('*').order('amendment_no', { ascending: true })
   ])
 
@@ -35,7 +34,6 @@ export default async function PresentationPage() {
   const milestones = milestonesRes.data ?? []
   const dailyReports = dailyRes.data ?? []
   const concretePours = concreteRes.data ?? []
-  const suspensions = suspensionsRes.data ?? []
   const amendments = (amendmentsRes.data as any[]) ?? []
 
   return (
@@ -55,7 +53,6 @@ export default async function PresentationPage() {
             initialMilestones={milestones}
             initialDailyReports={dailyReports}
             initialConcretePours={concretePours}
-            initialSuspensions={suspensions}
             initialAmendments={amendments}
             user={user}
           />

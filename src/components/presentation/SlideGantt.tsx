@@ -1,18 +1,18 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask, ContractSuspension } from '@/lib/types'
+import type { Project, WBSTask } from '@/lib/types'
 import { computeTaskDates } from '@/lib/scheduler'
 
 interface Props {
   project?: Project
   tasks: WBSTask[]
-  suspensions?: ContractSuspension[]
+  
   amendments?: import('@/lib/types').ContractAmendment[]
   theme: 'light' | 'dark'
 }
 
-export function SlideGantt({ project, tasks, suspensions = [], amendments = [], theme }: Props) {
+export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
   const isDark = theme === 'dark'
 
   // Sort and filter tasks (max 15 tasks to prevent overflow, filter level 1 WBS if too many)
@@ -36,8 +36,8 @@ export function SlideGantt({ project, tasks, suspensions = [], amendments = [], 
     }
 
     // compute dates
-    return computeTaskDates(sorted, project?.start_date || new Date().toISOString(), suspensions)
-  }, [tasks, project?.start_date, suspensions])
+    return computeTaskDates(sorted, project?.start_date || new Date().toISOString(), amendments)
+  }, [tasks, project?.start_date, amendments])
 
   const hasHiddenTasks = tasks.length > displayTasks.length
 
@@ -94,7 +94,7 @@ export function SlideGantt({ project, tasks, suspensions = [], amendments = [], 
             <div className={`w-3 h-3 rounded ${isDark ? 'bg-[#a13c9d]/85' : 'bg-purple-600/85'}`}></div>
             <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>ความคืบหน้า</span>
           </div>
-          {suspensions && suspensions.length > 0 && (
+          {amendments && amendments.filter(a => a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open').length > 0 && (
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0Pgo8cGF0aCBkPSJNMCA4TDggMFpNOCAxNkwxNiA4Wk0tOCAwTDAgLThaIiBzdHJva2U9InJnYmEoMjM5LCA2OCwgNjgsIDAuMikiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=')] border border-red-500/30 bg-red-50/10"></div>
               <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>ช่วงหยุดงาน</span>
@@ -141,8 +141,8 @@ export function SlideGantt({ project, tasks, suspensions = [], amendments = [], 
           </div>
 
           {/* Suspension Bands */}
-          {suspensions?.map((suspension, idx) => {
-            const suspDate = new Date(suspension.suspend_date)
+          {amendments?.filter(a => (a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open') && !!a.suspend_date).map((suspension, idx) => {
+            const suspDate = new Date(suspension.suspend_date!)
             suspDate.setHours(0,0,0,0)
             const resumeDate = suspension.resume_date ? new Date(suspension.resume_date) : new Date(today)
             resumeDate.setHours(0,0,0,0)

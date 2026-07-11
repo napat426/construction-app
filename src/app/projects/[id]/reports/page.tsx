@@ -10,7 +10,6 @@ import type {
   WeeklyReport,
   WBSTask,
   ProjectMilestone,
-  ContractSuspension,
   ContractAmendment
 } from '@/lib/types'
 
@@ -43,7 +42,6 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
     tasksRes,
     milestonesRes,
     concreteRes,
-    suspensionsRes,
     amendmentsRes
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
@@ -53,7 +51,6 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
     supabase.from('tasks').select('*').eq('project_id', id).order('wbs_no', { ascending: true }),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
     supabase.from('concrete_pours').select('*').eq('project_id', id).order('sequence', { ascending: true }),
-    supabase.from('contract_suspensions').select('*').eq('project_id', id).order('suspend_date', { ascending: true }),
     supabase.from('contract_amendments').select('*').eq('project_id', id).order('amendment_no', { ascending: true })
   ])
 
@@ -67,8 +64,7 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
   const tasksData = tasksRes.data
   const milestonesData = milestonesRes.data
   const concreteData = concreteRes.data
-  const suspensionsData = suspensionsRes.data
-  const amendmentsData = amendmentsRes.data
+    const amendmentsData = amendmentsRes.data
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c] print:block print:min-h-0 print:bg-white">
@@ -95,7 +91,6 @@ export default async function ProjectReportsPage({ params }: ReportsPageProps) {
             concretePours={(concreteData as any[]) || []}
             tasks={(tasksData as WBSTask[]) || []}
             milestones={(milestonesData as ProjectMilestone[]) || []}
-            suspensions={(suspensionsData as ContractSuspension[]) || []}
             amendments={(amendmentsData as ContractAmendment[]) || []}
             user={user}
           />

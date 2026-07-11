@@ -27,7 +27,8 @@ export async function saveMilestones(projectId: string, milestones: ProjectMiles
       work_scope: m.work_scope || null,
       amount: Number(m.amount) || 0,
       is_paid: !!m.is_paid,
-      payment_date: m.payment_date || null
+      payment_date: m.payment_date || null,
+      expected_payment_date: m.expected_payment_date || null
     }))
 
     const { error: insErr } = await supabase

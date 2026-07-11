@@ -978,7 +978,7 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], u
                           return (
                             <div
                               key={`susp-${idx}`}
-                              className="absolute top-0 bottom-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0Pgo8cGF0aCBkPSJNMCA4TDggMFpNOCAxNkwxNiA4Wk0tOCAwTDAgLThaIiBzdHJva2U9InJnYmEoMjM5LCA2OCwgNjgsIDAuMSkiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=')] opacity-50 z-0 border-x border-red-500/20 group/susp cursor-help"
+                              className="absolute top-0 bottom-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjQpIiBzdHJva2Utd2lkdGg9IjEuNSI+PC9wYXRoPjwvc3ZnPg==')] bg-red-500/10 dark:bg-red-500/20 z-0 border-x border-red-500/50 group/susp cursor-help"
                               style={{ left: `${leftOffset}%`, width: `${widthPct}%` }}
                             >
                               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden group-hover/susp:block bg-red-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap z-30 pointer-events-none">

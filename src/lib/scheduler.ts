@@ -35,9 +35,20 @@ function stripTime(d: Date): Date {
 // So if suspend_date = 15 July, resume_date = 20 Aug, then 15 July to 19 Aug are suspended days. 20 Aug is a working day.
 export function isDateSuspended(date: Date, suspensions: ContractSuspension[]): boolean {
   const dTime = stripTime(date).getTime()
+  const todayTime = stripTime(new Date()).getTime()
+
   for (const s of suspensions) {
     const sTime = stripTime(new Date(s.suspend_date)).getTime()
-    const rTime = s.resume_date ? stripTime(new Date(s.resume_date)).getTime() : Infinity
+    
+    let rTime = Infinity
+    if (s.resume_date) {
+      rTime = stripTime(new Date(s.resume_date)).getTime()
+    } else {
+      // To prevent infinite loops in scheduling when resume_date is null,
+      // we cap the suspension at 'today' for future projection purposes.
+      rTime = Math.max(sTime, todayTime)
+    }
+
     if (dTime >= sTime && dTime < rTime) {
       return true
     }

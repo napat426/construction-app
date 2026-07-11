@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
 import {
   LineChart,
   Line,
@@ -13,16 +13,18 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts'
-import { computeTaskDates, countWorkingDays } from '@/lib/scheduler'
+import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 
 interface Props {
   project: Project
   tasks: WBSTask[]
   milestones?: ProjectMilestone[]
+  suspensions?: ContractSuspension[]
+  amendments?: ContractAmendment[]
   theme?: 'dark' | 'light'
 }
 
-export function SlideSCurve({ project, tasks, milestones = [], suspensions = [], theme = 'dark' }: Props & { suspensions?: any[] }) {
+export function SlideSCurve({ project, tasks, milestones = [], suspensions = [], amendments = [], theme = 'dark' }: Props) {
   const isDark = theme === 'dark'
 
   const scheduledTasks = useMemo(() => {
@@ -58,8 +60,10 @@ export function SlideSCurve({ project, tasks, milestones = [], suspensions = [],
     }
     
     if (project.end_date) {
-      const projEnd = new Date(project.end_date)
-      if (projEnd > maxDate) maxDate = projEnd
+      const ext = computeProjectExtension(project, suspensions, amendments)
+      const e = new Date(project.start_date)
+      e.setDate(e.getDate() + ext.totalDays - 1)
+      if (e > maxDate) maxDate = e
     }
     
     minDate.setHours(0, 0, 0, 0)

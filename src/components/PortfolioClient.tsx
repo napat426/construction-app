@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck } from 'lucide-react'
-import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractSuspension } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractSuspension, ContractAmendment } from '@/lib/types'
 import { PaymentForecastChart } from './portfolio/PaymentForecastChart'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
@@ -12,16 +12,17 @@ interface Props {
   projects: Project[]
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
-  suspensions: ContractSuspension[]
   punchLists?: PunchList[]
   punchItems?: PunchItem[]
+  suspensions: ContractSuspension[]
+  amendments: ContractAmendment[]
   user?: UserSession | null
 }
 
 type SortField = 'name' | 'remaining' | 'ev' | 'sv'
 type SortDir = 'asc' | 'desc'
 
-export function PortfolioClient({ projects, tasks, milestones, suspensions = [], punchLists = [], punchItems = [], user }: Props) {
+export function PortfolioClient({ projects, tasks, milestones, suspensions = [], amendments = [], punchLists = [], punchItems = [], user }: Props) {
   // Checkbox status filter states
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     'กำลังดำเนินการ',
@@ -53,7 +54,8 @@ export function PortfolioClient({ projects, tasks, milestones, suspensions = [],
       let totalDays = 0
       let remainingDays = 0
       const projectSuspensions = suspensions.filter(s => s.project_id === p.id)
-      const ext = computeProjectExtension(p, projectSuspensions)
+      const projectAmendments = amendments.filter(a => a.project_id === p.id)
+      const ext = computeProjectExtension(p, projectSuspensions, projectAmendments)
       
       if (start && end) {
         totalDays = ext.totalDays

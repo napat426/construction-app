@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
 import { Calendar, DollarSign, Clock, CheckCircle2, AlertCircle, PlayCircle } from 'lucide-react'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 
@@ -10,10 +10,12 @@ interface Props {
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
   suspensions?: ContractSuspension[]
+  amendments?: ContractAmendment[]
+  inspections?: any[]
   theme: 'dark' | 'light'
 }
 
-export function SlideOverview({ project, tasks, milestones, suspensions = [], theme }: Props) {
+export function SlideOverview({ project, tasks, milestones, suspensions = [], amendments = [], inspections = [], theme }: Props) {
   const isDark = theme === 'dark'
 
   // Replicate EVM Logic from DashboardClient
@@ -21,7 +23,7 @@ export function SlideOverview({ project, tasks, milestones, suspensions = [], th
     const today = new Date()
     const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     
-    const ext = computeProjectExtension(project, suspensions)
+    const ext = computeProjectExtension(project, suspensions, amendments)
     const totalDays = ext.totalDays
     const daysUsed = ext.daysUsed
     const daysRemaining = ext.daysRemaining

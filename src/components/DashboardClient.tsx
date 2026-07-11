@@ -20,7 +20,7 @@ import {
 import Link from 'next/link'
 import { EditBaselineModal } from './EditBaselineModal'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
 interface DashboardClientProps {
@@ -28,6 +28,7 @@ interface DashboardClientProps {
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
   suspensions?: ContractSuspension[]
+  amendments?: ContractAmendment[]
   user?: UserSession | null
 }
 
@@ -49,7 +50,7 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function DashboardClient({ project, tasks, milestones, suspensions = [], user }: DashboardClientProps) {
+export function DashboardClient({ project, tasks, milestones, suspensions = [], amendments = [], user }: DashboardClientProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [paymentDate, setPaymentDate] = useState('')
@@ -58,7 +59,7 @@ export function DashboardClient({ project, tasks, milestones, suspensions = [], 
   const today = new Date()
 
   const metrics = useMemo(() => {
-    const ext = computeProjectExtension(project, suspensions)
+    const ext = computeProjectExtension(project, suspensions, amendments)
     const totalDays = ext.totalDays
     const daysUsed = ext.daysUsed
     const daysRemaining = ext.daysRemaining
@@ -675,7 +676,13 @@ export function DashboardClient({ project, tasks, milestones, suspensions = [], 
 
       {/* ── Edit baseline modal ── */}
       {showEditModal && (
-        <EditBaselineModal project={project} milestones={milestones} suspensions={suspensions || []} onClose={() => setShowEditModal(false)} />
+        <EditBaselineModal 
+          project={project} 
+          milestones={milestones} 
+          suspensions={suspensions || []} 
+          amendments={amendments || []}
+          onClose={() => setShowEditModal(false)} 
+        />
       )}
     </>
   )

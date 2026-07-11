@@ -18,14 +18,15 @@ export default async function PresentationPage() {
   }
 
   // Fetch all necessary data for the presentation (memory caching via Client Component)
-  const [projectsRes, tasksRes, inspectionsRes, milestonesRes, dailyRes, concreteRes, suspensionsRes] = await Promise.all([
+  const [projectsRes, tasksRes, inspectionsRes, milestonesRes, dailyRes, concreteRes, suspensionsRes, amendmentsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('inspections').select('*').order('created_at', { ascending: false }),
     supabase.from('project_milestones').select('*').order('milestone_no', { ascending: true }),
     supabase.from('daily_reports').select('project_id, photos, created_at').order('created_at', { ascending: false }),
     supabase.from('concrete_pours').select('project_id, photos, created_at').order('created_at', { ascending: false }),
-    supabase.from('contract_suspensions').select('*').order('suspend_date', { ascending: true })
+    supabase.from('contract_suspensions').select('*').order('suspend_date', { ascending: true }),
+    supabase.from('contract_amendments').select('*').order('amendment_no', { ascending: true })
   ])
 
   const projects = (projectsRes.data as Project[]) ?? []
@@ -35,6 +36,7 @@ export default async function PresentationPage() {
   const dailyReports = dailyRes.data ?? []
   const concretePours = concreteRes.data ?? []
   const suspensions = suspensionsRes.data ?? []
+  const amendments = (amendmentsRes.data as any[]) ?? []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -54,6 +56,7 @@ export default async function PresentationPage() {
             initialDailyReports={dailyReports}
             initialConcretePours={concretePours}
             initialSuspensions={suspensions}
+            initialAmendments={amendments}
             user={user}
           />
         </main>

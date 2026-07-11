@@ -71,6 +71,17 @@ export interface ContractSuspension {
   created_at?: string
 }
 
+export interface ContractAmendment {
+  id?: string
+  project_id?: string
+  amendment_no: number
+  extra_days: number
+  reason: string
+  amendment_date: string
+  note: string | null
+  created_at?: string
+}
+
 export type MaterialStatus = 'pending' | 'approved' | 'rejected'
 
 export interface ProjectMaterial {

@@ -3,7 +3,7 @@ import { Header } from '@/components/Header'
 import { ProjectTabs } from '@/components/ProjectTabs'
 import { DashboardClient } from '@/components/DashboardClient'
 import { notFound } from 'next/navigation'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
 
 // Force dynamic fetch for fresh real-time calculations
 export const dynamic = 'force-dynamic'
@@ -31,12 +31,14 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
     projectRes,
     tasksRes,
     milestonesRes,
-    suspensionsRes
+    suspensionsRes,
+    amendmentsRes
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*').eq('project_id', id),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
-    supabase.from('contract_suspensions').select('*').eq('project_id', id).order('suspend_date', { ascending: true })
+    supabase.from('contract_suspensions').select('*').eq('project_id', id).order('suspend_date', { ascending: true }),
+    supabase.from('contract_amendments').select('*').eq('project_id', id).order('amendment_no', { ascending: true })
   ])
 
   const projectData = projectRes.data
@@ -53,6 +55,7 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
   const tasks = (tasksData as WBSTask[]) || []
   const milestones = (milestonesData as ProjectMilestone[]) || []
   const suspensions = (suspensionsRes.data as ContractSuspension[]) || []
+  const amendments = (amendmentsRes.data as ContractAmendment[]) || []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -66,7 +69,7 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
 
         <main className="flex-1 p-6">
           <ProjectTabs projectId={project.id} />
-          <DashboardClient project={project} tasks={tasks} milestones={milestones} suspensions={suspensions} user={user} />
+          <DashboardClient project={project} tasks={tasks} milestones={milestones} suspensions={suspensions} amendments={amendments} user={user} />
         </main>
       </div>
     </div>

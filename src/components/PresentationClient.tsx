@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import type { Project, WBSTask, Inspection, ProjectMilestone, ContractSuspension } from '@/lib/types'
+import type { Project, WBSTask, Inspection, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 import { Search, Filter, Play, CheckSquare, Square, X, GripVertical, Image as ImageIcon, Moon, Sun, Save, Download, Trash2 } from 'lucide-react'
 import { computeTaskDates } from '@/lib/scheduler'
@@ -16,6 +16,7 @@ interface Props {
   initialDailyReports?: { project_id: string, photos: any[], created_at: string }[]
   initialConcretePours?: { project_id: string, photos: any[], created_at: string }[]
   initialSuspensions?: ContractSuspension[]
+  initialAmendments?: ContractAmendment[]
   user?: UserSession | null
 }
 
@@ -45,6 +46,7 @@ export function PresentationClient({
   initialDailyReports = [],
   initialConcretePours = [],
   initialSuspensions = [],
+  initialAmendments = [],
   user 
 }: Props) {
   const [projects] = useState<Project[]>(initialProjects)
@@ -298,9 +300,10 @@ export function PresentationClient({
       <PresentationEngine 
         projects={projects}
         tasks={initialTasks}
-        inspections={initialInspections}
         milestones={initialMilestones}
         suspensions={initialSuspensions}
+        amendments={initialAmendments}
+        inspections={initialInspections}
         selectedSlides={selectedSlides}
         theme={theme}
         onExit={() => setIsFullScreen(false)}

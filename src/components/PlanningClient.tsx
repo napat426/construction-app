@@ -16,7 +16,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { deleteTask } from '@/app/actions/tasks'
-import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension, ContractAmendment } from '@/lib/types'
 import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
@@ -25,6 +25,7 @@ interface PlanningClientProps {
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
   suspensions?: ContractSuspension[]
+  amendments?: ContractAmendment[]
   user?: UserSession | null
 }
 
@@ -59,7 +60,7 @@ function formatDate(dateStr: string): string {
   })
 }
 
-export function PlanningClient({ project, tasks, milestones, suspensions = [], user }: PlanningClientProps) {
+export function PlanningClient({ project, tasks, milestones, suspensions = [], amendments = [], user }: PlanningClientProps) {
   const [activeTab, setActiveTab] = useState<'wbs' | 'gantt' | 'scurve'>('wbs')
   const [isPending, startTransition] = useTransition()
   
@@ -141,8 +142,9 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], u
   }, [scheduledTasks])
 
   // 2. Timeline date range (for Gantt & S-Curve)
+  const projectExt = useMemo(() => computeProjectExtension(project, suspensions, amendments), [project, suspensions, amendments])
   const dateRange = useMemo(() => {
-    const ext = computeProjectExtension(project, suspensions)
+    const ext = projectExt
     if (scheduledTasks.length === 0) {
       const pStart = project.start_date ? new Date(project.start_date) : new Date()
       const pEnd = ext.newEndDate ? new Date(ext.newEndDate) : new Date(pStart.getTime() + 30 * 24 * 60 * 60 * 1000)
@@ -978,7 +980,7 @@ export function PlanningClient({ project, tasks, milestones, suspensions = [], u
                           return (
                             <div
                               key={`susp-${idx}`}
-                              className="absolute top-0 bottom-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjQpIiBzdHJva2Utd2lkdGg9IjEuNSI+PC9wYXRoPjwvc3ZnPg==')] bg-red-500/10 dark:bg-red-500/20 z-0 border-x border-red-500/50 group/susp cursor-help"
+                              className="absolute top-0 bottom-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjgpIiBzdHJva2Utd2lkdGg9IjIuNSI+PC9wYXRoPjwvc3ZnPg==')] bg-red-500/20 dark:bg-red-500/40 z-0 border-x-2 border-red-500/80 group/susp cursor-help"
                               style={{ left: `${leftOffset}%`, width: `${widthPct}%` }}
                             >
                               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden group-hover/susp:block bg-red-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap z-30 pointer-events-none">

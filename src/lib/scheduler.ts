@@ -235,7 +235,7 @@ export function computeTaskDates(tasks: WBSTask[], projectStartDateStr: string |
   })
 }
 
-export function computeProjectExtension(project: Project, suspensions: ContractSuspension[]) {
+export function computeProjectExtension(project: Project, suspensions: ContractSuspension[], amendments: import('@/lib/types').ContractAmendment[] = []) {
   if (!project.start_date || !project.end_date) {
     return {
       totalDays: 0,
@@ -244,6 +244,7 @@ export function computeProjectExtension(project: Project, suspensions: ContractS
       isOverrun: false,
       newEndDate: null,
       totalSuspendedDays: 0,
+      totalAmendmentDays: 0,
       isCurrentlySuspended: false,
       currentSuspension: null
     }
@@ -253,89 +254,77 @@ export function computeProjectExtension(project: Project, suspensions: ContractS
   const origEnd = stripTime(new Date(project.end_date))
   const today = stripTime(new Date())
 
-  // totalDays = Number of days in contract
-  const totalDays = Math.max(0, Math.ceil((origEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+  // totalDaysAtBaseline = จำนวนวันสัญญาตาม baseline เดิม
+  const totalDaysAtBaseline = Math.max(0, Math.ceil((origEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
 
-  let totalSuspendedDays = 0
+  let totalSuspendedDaysForEndDate = 0
+  let suspendedDaysUntilToday = 0
   let isCurrentlySuspended = false
   let currentSuspension = null
 
-  // Process suspensions sequentially to accumulate total suspended days
-  // (We assume they don't overlap as per validation)
-  for (const s of suspensions) {
-    const sDate = stripTime(new Date(s.suspend_date))
-    
-    // Only count suspensions that have started relative to today (or fully count them for total extensions?)
-    // Actually, to calculate the NEW END DATE, we must count ALL suspensions, even future ones? 
-    // Usually extensions are granted and end_date pushes out.
-    // If we only push end_date out when suspension finishes, what about today's remaining_days?
-    // User formula: 
-    // "สูตรทั่วไป: จำนวนวันสัญญาที่เหลือ ณ วันสั่งหยุด = total_days - elapsed_days_ก่อนหยุด"
-    // "วันสิ้นสุดสัญญาใหม่ = resume_date + (จำนวนวันที่เหลือ) - 1 วัน"
-    
-    const rDate = s.resume_date ? stripTime(new Date(s.resume_date)) : null
+  // Sort suspensions by date just in case
+  const sortedSuspensions = [...suspensions].sort((a, b) => new Date(a.suspend_date).getTime() - new Date(b.suspend_date).getTime())
 
-    if (!rDate) {
-      // Currently suspended open-ended
-      if (today >= sDate) {
-        totalSuspendedDays += Math.ceil((today.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24))
-        if (today >= sDate) {
-          isCurrentlySuspended = true
-          currentSuspension = s
-        }
-      }
-    } else {
-      // Completed suspension (or scheduled)
-      // Only accumulate days if we've reached it? 
-      // User says: "ถ้า resume_date ยังเป็น NULL... แสดงว่ายังไม่คำนวณ end_date ใหม่"
-      // So if resume_date is set, we fully extend end_date by the suspension duration!
-      const duration = Math.ceil((rDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24))
-      totalSuspendedDays += duration
-      
+  for (const s of sortedSuspensions) {
+    const sDate = stripTime(new Date(s.suspend_date))
+    let rDate: Date | null = null
+    
+    if (s.resume_date) {
+      rDate = stripTime(new Date(s.resume_date))
+      // For end date calculation: only count suspensions that have a resume_date
+      totalSuspendedDaysForEndDate += Math.max(0, Math.ceil((rDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
+    }
+
+    // Check if currently suspended
+    if (rDate) {
       if (today >= sDate && today < rDate) {
         isCurrentlySuspended = true
         currentSuspension = s
       }
+    } else {
+      if (today >= sDate) {
+        isCurrentlySuspended = true
+        currentSuspension = s
+      }
+    }
+
+    // For elapsed days calculation: count any suspended days that overlap with the past
+    if (sDate <= today) {
+      const endBoundary = rDate && rDate < today ? rDate : today
+      suspendedDaysUntilToday += Math.max(0, Math.ceil((endBoundary.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
     }
   }
 
-  // Calculate elapsed days (from start to today, minus suspended days)
-  let rawElapsed = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-  rawElapsed = Math.max(0, rawElapsed)
-  
-  // Calculate how many of the suspended days occurred BEFORE OR ON today
-  let suspendedDaysUntilToday = 0
-  for (const s of suspensions) {
-    const sDate = stripTime(new Date(s.suspend_date))
-    if (sDate > today) continue
-    
-    const rDate = s.resume_date ? stripTime(new Date(s.resume_date)) : today
-    const endBoundary = rDate < today ? rDate : today
-    suspendedDaysUntilToday += Math.max(0, Math.ceil((endBoundary.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
+  let totalAmendmentDays = 0
+  for (const a of amendments) {
+    totalAmendmentDays += Number(a.extra_days) || 0
   }
 
-  const daysUsed = Math.max(0, rawElapsed - suspendedDaysUntilToday)
-
-  // Calculate new end date by adding all *defined* suspension durations to origEnd
-  // (If there's an open-ended suspension, the end date is just extended by the days so far, but user says:
-  // "ถ้า resume_date ยังเป็น NULL... ระบบต้องนับวันหยุดไปเรื่อยๆ ... โดยที่ยังไม่คำนวณ end_date ใหม่")
-  // Let's implement: newEndDate = origEnd + totalSuspendedDays (which includes completed, plus ongoing up to today if null)
-  const newEndDate = new Date(origEnd.getTime() + totalSuspendedDays * 24 * 60 * 60 * 1000)
-
-  // Remaining days = totalDays - daysUsed (if we haven't passed end date)
-  // Or simply remaining = newEndDate - today (if we include all suspensions)
-  // Let's use the explicit remaining calculation
-  let daysRemaining = Math.ceil((newEndDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  // 1. Raw elapsed days = today - start_date
+  const rawElapsed = Math.max(0, Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
   
-  const isOverrun = daysRemaining < 0
+  // 2. Elapsed days (actual working days used) = raw elapsed - suspended days in the past
+  const elapsedDays = Math.max(0, rawElapsed - suspendedDaysUntilToday)
+
+  // 3. Total days current = baseline + amendment days
+  const totalDaysCurrent = Math.max(0, totalDaysAtBaseline + totalAmendmentDays)
+
+  // 4. Remaining days = totalDaysCurrent - elapsedDays
+  const remainingDaysRaw = totalDaysCurrent - elapsedDays
+  const isOverrun = remainingDaysRaw < 0
+  const daysRemaining = Math.abs(remainingDaysRaw)
+
+  // 5. New end date = origEnd + totalSuspendedDaysForEndDate + totalAmendmentDays
+  const newEndDate = new Date(origEnd.getTime() + (totalSuspendedDaysForEndDate + totalAmendmentDays) * 24 * 60 * 60 * 1000)
 
   return {
-    totalDays,
-    daysUsed,
-    daysRemaining: Math.abs(daysRemaining),
+    totalDays: totalDaysCurrent,
+    daysUsed: elapsedDays,
+    daysRemaining,
     isOverrun,
     newEndDate,
-    totalSuspendedDays,
+    totalSuspendedDays: totalSuspendedDaysForEndDate,
+    totalAmendmentDays,
     isCurrentlySuspended,
     currentSuspension
   }

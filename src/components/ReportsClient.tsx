@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ClipboardCheck, FileClock, CalendarDays, Truck } from 'lucide-react'
-import type { Project, Inspection, DailyReport, WeeklyReport, WBSTask, ProjectMilestone, ConcretePour, ContractSuspension } from '@/lib/types'
+import type { Project, Inspection, DailyReport, WeeklyReport, WBSTask, ProjectMilestone, ConcretePour, ContractSuspension, ContractAmendment } from '@/lib/types'
 
 // We will lazily load or statically import the child components
 import { InspectionsTab } from './reports/InspectionsTab'
@@ -21,6 +21,7 @@ interface Props {
   tasks?: WBSTask[]
   milestones?: ProjectMilestone[]
   suspensions?: ContractSuspension[]
+  amendments?: ContractAmendment[]
   user?: UserSession | null
 }
 
@@ -35,6 +36,7 @@ export function ReportsClient({
   tasks = [],
   milestones = [],
   suspensions = [],
+  amendments = [],
   user,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('inspections')

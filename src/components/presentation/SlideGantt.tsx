@@ -8,10 +8,11 @@ interface Props {
   project?: Project
   tasks: WBSTask[]
   suspensions?: ContractSuspension[]
+  amendments?: import('@/lib/types').ContractAmendment[]
   theme: 'light' | 'dark'
 }
 
-export function SlideGantt({ project, tasks, suspensions = [], theme }: Props) {
+export function SlideGantt({ project, tasks, suspensions = [], amendments = [], theme }: Props) {
   const isDark = theme === 'dark'
 
   // Sort and filter tasks (max 15 tasks to prevent overflow, filter level 1 WBS if too many)
@@ -155,7 +156,7 @@ export function SlideGantt({ project, tasks, suspensions = [], theme }: Props) {
             return (
               <div 
                 key={idx}
-                className="absolute inset-y-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjQpIiBzdHJva2Utd2lkdGg9IjEuNSI+PC9wYXRoPjwvc3ZnPg==')] bg-red-500/10 z-10 pointer-events-none border-x border-red-500/50"
+                className="absolute top-0 bottom-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjgpIiBzdHJva2Utd2lkdGg9IjIuNSI+PC9wYXRoPjwvc3ZnPg==')] bg-red-500/20 dark:bg-red-500/40 z-0 border-x-2 border-red-500/80 group/susp cursor-help"
                 style={{
                   left: `calc(516px + ((100% - 516px) * ${startRatio}))`,
                   width: `calc((100% - 516px) * ${widthRatio})`,

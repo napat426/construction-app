@@ -7,11 +7,12 @@ import type { ContractSuspension } from '@/lib/types'
 
 interface Props {
   projectId: string
+  projectStartDate?: string
   suspensions: ContractSuspension[]
   onSuccess?: () => void
 }
 
-export function SuspensionForm({ projectId, suspensions, onSuccess }: Props) {
+export function SuspensionForm({ projectId, projectStartDate, suspensions, onSuccess }: Props) {
   const [isPending, startTransition] = useTransition()
   const [items, setItems] = useState<Partial<ContractSuspension>[]>(
     suspensions.length > 0 ? [...suspensions] : []
@@ -44,6 +45,15 @@ export function SuspensionForm({ projectId, suspensions, onSuccess }: Props) {
     if (!item.suspend_date) {
       setError(`รายการที่ ${index + 1}: กรุณาระบุวันที่เริ่มหยุดงาน`)
       return
+    }
+    
+    if (projectStartDate) {
+      const ps = new Date(projectStartDate)
+      const isd = new Date(item.suspend_date)
+      if (isd < ps) {
+        setError(`รายการที่ ${index + 1}: วันที่สั่งหยุดงาน (${isd.toLocaleDateString('th-TH')}) ไม่สามารถย้อนไปก่อนวันเริ่มโครงการ (${ps.toLocaleDateString('th-TH')}) ได้`)
+        return
+      }
     }
 
     if (item.resume_date) {

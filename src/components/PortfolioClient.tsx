@@ -3,15 +3,16 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck } from 'lucide-react'
-import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractSuspension } from '@/lib/types'
 import { PaymentForecastChart } from './portfolio/PaymentForecastChart'
-import { computeTaskDates } from '@/lib/scheduler'
+import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
 interface Props {
   projects: Project[]
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
+  suspensions: ContractSuspension[]
   punchLists?: PunchList[]
   punchItems?: PunchItem[]
   user?: UserSession | null
@@ -20,7 +21,7 @@ interface Props {
 type SortField = 'name' | 'remaining' | 'ev' | 'sv'
 type SortDir = 'asc' | 'desc'
 
-export function PortfolioClient({ projects, tasks, milestones, punchLists = [], punchItems = [], user }: Props) {
+export function PortfolioClient({ projects, tasks, milestones, suspensions = [], punchLists = [], punchItems = [], user }: Props) {
   // Checkbox status filter states
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     'กำลังดำเนินการ',
@@ -51,11 +52,12 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
 
       let totalDays = 0
       let remainingDays = 0
+      const projectSuspensions = suspensions.filter(s => s.project_id === p.id)
+      const ext = computeProjectExtension(p, projectSuspensions)
+      
       if (start && end) {
-        const startOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-        const endOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
-        totalDays = Math.max(0, Math.ceil((endOnly.getTime() - startOnly.getTime()) / (1000 * 60 * 60 * 24)))
-        remainingDays = Math.ceil((endOnly.getTime() - todayDateOnly.getTime()) / (1000 * 60 * 60 * 24))
+        totalDays = ext.totalDays
+        remainingDays = ext.daysRemaining
       }
 
       // Calculate EV and PV
@@ -63,7 +65,7 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
       let evCumulative = 0
 
       if (projectTasks.length > 0) {
-        const scheduledTasks = computeTaskDates(projectTasks, p.start_date)
+        const scheduledTasks = computeTaskDates(projectTasks, p.start_date, projectSuspensions)
         const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
 
         if (totalWbsCost > 0) {
@@ -82,8 +84,8 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
             } else if (todayDateOnly < tStart) {
               plannedProgress = 0
             } else {
-              const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
-              const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
+              const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, projectSuspensions))
+              const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, projectSuspensions)
               plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
             }
 
@@ -107,8 +109,8 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
             } else if (todayDateOnly < tStart) {
               plannedProgress = 0
             } else {
-              const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
-              const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
+              const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, projectSuspensions))
+              const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, projectSuspensions)
               plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
             }
             totalPlanned += plannedProgress
@@ -130,9 +132,9 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
           } else if (todayDateOnly < start) {
             pvCumulative = 0
           } else {
-            const elapsed = todayDateOnly.getTime() - start.getTime()
-            const total = end.getTime() - start.getTime()
-            pvCumulative = (elapsed / Math.max(1, total)) * 100
+            const totalTaskTime = Math.max(1, countWorkingDays(start, end, projectSuspensions))
+            const elapsedTaskTime = countWorkingDays(start, todayDateOnly, projectSuspensions)
+            pvCumulative = (elapsedTaskTime / totalTaskTime) * 100
           }
         }
       }
@@ -174,7 +176,7 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
         trafficLight,
       }
     })
-  }, [projects, tasks, milestones])
+  }, [projects, tasks, milestones, suspensions])
 
   // Count badges for filters
   const filterCounts = useMemo(() => {

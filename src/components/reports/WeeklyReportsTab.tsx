@@ -14,8 +14,8 @@ import type {
   Project,
   WeeklyReport,
   WBSTask,
-  ProjectPayment,
   ProjectMilestone,
+  ContractSuspension,
 } from "@/lib/types";
 import {
   createWeeklyReport,
@@ -30,9 +30,10 @@ import type { UserSession } from "@/lib/auth";
 interface Props {
   project: Project;
   data: WeeklyReport[];
-  tasks: WBSTask[];
-  milestones: ProjectMilestone[];
-  user?: UserSession | null;
+  tasks?: WBSTask[];
+  milestones?: ProjectMilestone[];
+  suspensions?: ContractSuspension[];
+  userRole?: string | null;
 }
 
 // Custom natural sort for WBS numbers
@@ -129,9 +130,10 @@ function tryParseThaiDate(str: string): string {
 export function WeeklyReportsTab({
   project,
   data,
-  tasks,
-  milestones,
-  user,
+  tasks = [],
+  milestones = [],
+  suspensions = [],
+  userRole,
 }: Props) {
   const [items, setItems] = useState<WeeklyReport[]>(data);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -195,7 +197,7 @@ export function WeeklyReportsTab({
           <h2 className="text-lg font-black text-slate-900 dark:text-white">
             รายงานประจำสัปดาห์
           </h2>
-          {user && (user.role === 'admin' || user.role === 'editor') && (
+          {userRole && (userRole === 'admin' || userRole === 'editor') && (
             <button
               onClick={handleCreateNew}
               className="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-sm shadow-primary-500/20 cursor-pointer"
@@ -238,7 +240,7 @@ export function WeeklyReportsTab({
                       : "border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] hover:border-slate-300"
                   }`}
                 >
-                  {user && (user.role === 'admin' || user.role === 'editor') && (
+                  {userRole && (userRole === 'admin' || userRole === 'editor') && (
                     <div className="flex flex-col items-center gap-0.5">
                       <button
                         onClick={(e) => {
@@ -286,10 +288,11 @@ export function WeeklyReportsTab({
             item={isCreating ? null : selectedItem}
             tasks={tasks}
             milestones={milestones}
+            suspensions={suspensions}
             onClose={() => setIsCreating(false)}
             onDelete={handleDelete}
             onPrint={handlePrint}
-            user={user}
+            userRole={userRole}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 print:hidden">
@@ -307,19 +310,21 @@ function WeeklyReportForm({
   item,
   tasks,
   milestones,
+  suspensions,
   onClose,
   onDelete,
   onPrint,
-  user,
+  userRole,
 }: {
   project: Project;
   item: WeeklyReport | null;
   tasks: WBSTask[];
   milestones: ProjectMilestone[];
+  suspensions?: ContractSuspension[];
   onClose: () => void;
   onDelete: (id: string) => void;
   onPrint: () => void;
-  user?: UserSession | null;
+  userRole?: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(
@@ -956,7 +961,7 @@ function WeeklyReportForm({
             {item ? "แก้ไขรายงานประจำสัปดาห์" : "สร้างรายงานประจำสัปดาห์"}
           </h3>
           <div className="flex items-center gap-2">
-            {item && user && (
+            {item && userRole && (
               <button
                 type="button"
                 onClick={onPrint}
@@ -965,7 +970,7 @@ function WeeklyReportForm({
                 <Printer size={14} /> พิมพ์รายงาน (รวมกราฟ)
               </button>
             )}
-            {item && user && (user.role === 'admin' || user.role === 'editor') && (
+            {item && userRole && (userRole === 'admin' || userRole === 'editor') && (
               <button
                 type="button"
                 onClick={() => onDelete(item.id)}
@@ -975,7 +980,7 @@ function WeeklyReportForm({
                 <Trash2 size={14} /> ลบ
               </button>
             )}
-            {user && (user.role === 'admin' || user.role === 'editor') && (
+            {userRole && (userRole === 'admin' || userRole === 'editor') && (
               <button
                 type="submit"
                 disabled={isPending}
@@ -988,7 +993,7 @@ function WeeklyReportForm({
         </div>
 
         <fieldset
-          disabled={!(user && (user.role === 'admin' || user.role === 'editor'))}
+          disabled={!(userRole && (userRole === 'admin' || userRole === 'editor'))}
           className="flex-1 overflow-y-auto p-6 space-y-6 print:overflow-visible print:p-0 print:space-y-2 print:block print:w-full print:h-auto"
         >
           {item && !item.snapshot && (
@@ -1016,6 +1021,32 @@ function WeeklyReportForm({
               <span>ประจำวันที่: {item?.date_range || "-"}</span>
               <span>สถานะโครงการ: {project.status}</span>
             </div>
+            
+            {suspensions && suspensions.length > 0 && (
+              <div className="mt-2 text-[10px] text-red-600 dark:text-red-400 font-bold text-left bg-red-50 dark:bg-red-500/10 p-2 border border-red-100 dark:border-red-500/20 rounded">
+                * มีการระงับงาน/แก้ไขสัญญา:
+                <ul className="list-disc pl-4 mt-0.5 font-medium text-slate-700 dark:text-slate-300">
+                  {suspensions.map((s, idx) => {
+                    const suspDate = new Date(s.suspend_date).toLocaleDateString('th-TH')
+                    const resumeDate = s.resume_date ? new Date(s.resume_date).toLocaleDateString('th-TH') : 'ยังไม่กำหนด'
+                    
+                    let daysStr = ''
+                    if (s.resume_date) {
+                      const sd = new Date(s.suspend_date).getTime()
+                      const rd = new Date(s.resume_date).getTime()
+                      const diff = Math.ceil((rd - sd) / (1000 * 60 * 60 * 24))
+                      daysStr = ` — ขยายสัญญา ${diff} วัน`
+                    }
+
+                    return (
+                      <li key={idx}>
+                        หยุดงาน {suspDate}-{resumeDate} ({s.reason}){daysStr}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* --- EVM Dashboard Cards (Visible on Screen & Print) --- */}

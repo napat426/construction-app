@@ -3,7 +3,7 @@ import { Header } from '@/components/Header'
 import { ProjectTabs } from '@/components/ProjectTabs'
 import { PlanningClient } from '@/components/PlanningClient'
 import { notFound } from 'next/navigation'
-import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,11 +29,13 @@ export default async function ProjectPlanningPage({ params }: PlanningPageProps)
   const [
     projectRes,
     tasksRes,
-    milestonesRes
+    milestonesRes,
+    suspensionsRes
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*').eq('project_id', id).order('wbs_no', { ascending: true }),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
+    supabase.from('contract_suspensions').select('*').eq('project_id', id).order('suspend_date', { ascending: true })
   ])
 
   const projectData = projectRes.data
@@ -49,6 +51,7 @@ export default async function ProjectPlanningPage({ params }: PlanningPageProps)
   const project = projectData as Project
   const tasks = (tasksData as WBSTask[]) || []
   const milestones = (milestonesData as ProjectMilestone[]) || []
+  const suspensions = (suspensionsRes.data as ContractSuspension[]) || []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -62,7 +65,7 @@ export default async function ProjectPlanningPage({ params }: PlanningPageProps)
 
         <main className="flex-1 p-6">
           <ProjectTabs projectId={project.id} />
-          <PlanningClient project={project} tasks={tasks} milestones={milestones} user={user} />
+          <PlanningClient project={project} tasks={tasks} milestones={milestones} suspensions={suspensions} user={user} />
         </main>
       </div>
     </div>

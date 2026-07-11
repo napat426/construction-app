@@ -61,6 +61,16 @@ export interface ProjectMilestone {
   created_at?: string
 }
 
+export interface ContractSuspension {
+  id?: string
+  project_id?: string
+  reason: string
+  suspend_date: string
+  resume_date: string | null
+  note: string | null
+  created_at?: string
+}
+
 export type MaterialStatus = 'pending' | 'approved' | 'rejected'
 
 export interface ProjectMaterial {

@@ -19,14 +19,15 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { EditBaselineModal } from './EditBaselineModal'
-import { computeTaskDates } from '@/lib/scheduler'
-import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
+import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
 interface DashboardClientProps {
   project: Project
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
+  suspensions?: ContractSuspension[]
   user?: UserSession | null
 }
 
@@ -48,7 +49,7 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function DashboardClient({ project, tasks, milestones, user }: DashboardClientProps) {
+export function DashboardClient({ project, tasks, milestones, suspensions = [], user }: DashboardClientProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [paymentDate, setPaymentDate] = useState('')
@@ -57,33 +58,13 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
   const today = new Date()
 
   const metrics = useMemo(() => {
-    const start = project.start_date ? new Date(project.start_date) : null
-    const end = project.end_date ? new Date(project.end_date) : null
+    const ext = computeProjectExtension(project, suspensions)
+    const totalDays = ext.totalDays
+    const daysUsed = ext.daysUsed
+    const daysRemaining = ext.daysRemaining
+    const isOverrun = ext.isOverrun
 
-    let totalDays = 0
-    let daysUsed = 0
-    let daysRemaining = 0
-    let isOverrun = false
-
-    if (start && end) {
-      const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-      const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
-      const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-
-      totalDays = Math.ceil((endDateOnly.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24))
-      totalDays = Math.max(0, totalDays)
-
-      daysUsed = Math.ceil((todayDateOnly.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24))
-      daysUsed = Math.max(0, daysUsed)
-
-      daysRemaining = Math.ceil((endDateOnly.getTime() - todayDateOnly.getTime()) / (1000 * 60 * 60 * 24))
-      
-      if (daysRemaining < 0) {
-        isOverrun = true
-      }
-    }
-
-    const scheduledTasks = computeTaskDates(tasks, project.start_date)
+    const scheduledTasks = computeTaskDates(tasks, project.start_date, suspensions)
     const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
     
     let pvCumulative = 0
@@ -107,8 +88,8 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
         } else if (todayDateOnly < tStart) {
           plannedProgress = 0
         } else {
-          const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
-          const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, suspensions)
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
         }
 
@@ -131,8 +112,8 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
         } else if (todayDateOnly < tStart) {
           plannedProgress = 0
         } else {
-          const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
-          const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, suspensions)
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
         }
         totalPlanned += plannedProgress
@@ -201,8 +182,8 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
       } else if (todayDateOnly < tStart) {
         plannedProgress = 0
       } else {
-        const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
-        const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
+        const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
+        const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, suspensions)
         plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
       }
 
@@ -225,6 +206,7 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
     }
 
     return {
+      ext,
       totalDays,
       daysUsed,
       daysRemaining: Math.abs(daysRemaining),
@@ -253,7 +235,7 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
       cvCurrency,
       taskStats,
     }
-  }, [project, tasks, milestones, today])
+  }, [project, tasks, milestones, suspensions, today])
 
   const labelCls = 'text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider'
 
@@ -301,6 +283,13 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
                 {project.description}
               </p>
             )}
+            
+            {metrics.ext.isCurrentlySuspended && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-lg text-sm font-semibold">
+                <AlertTriangle size={16} />
+                ⏸ หยุดงาน — {metrics.ext.currentSuspension?.reason} (ตั้งแต่ {formatDate(metrics.ext.currentSuspension?.suspend_date || '')})
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4 bg-slate-50 dark:bg-[#1a1a32] border border-slate-100 dark:border-[#252548] p-4 rounded-xl w-full md:w-auto">
@@ -318,8 +307,8 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
           </div>
         </div>
 
-        {/* ══ ROW 1: เวลาสัญญา (3 col) ══ */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* ══ ROW 1: เวลาสัญญา (4 col) ══ */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
 
           {/* วันเริ่มต้น */}
           <div className="card rounded-2xl p-5 flex items-center gap-4">
@@ -362,6 +351,24 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
               </div>
             </div>
           </div>
+
+          {/* ค่าปรับ */}
+          {metrics.isOverrun && (
+            <div className="card rounded-2xl p-5 flex flex-col justify-center border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-500/5">
+              <div className="flex items-center gap-2 mb-1 text-red-600 dark:text-red-400">
+                <AlertOctagon size={16} />
+                <p className="text-xs font-bold uppercase tracking-wider">ค่าปรับ (LD)</p>
+              </div>
+              <p className="text-lg font-black text-red-600 dark:text-red-400 mt-1">
+                {formatCurrency(metrics.totalPenalty)}
+              </p>
+              {metrics.ext.totalSuspendedDays > 0 && (
+                <p className="text-[10px] text-red-500/80 dark:text-red-400/80 mt-1 font-semibold leading-tight">
+                  *หัก {metrics.ext.totalSuspendedDays} วันจากช่วงหยุดงาน/แก้ไขสัญญา
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ══ ROW 2: ความก้าวหน้า (col-span-2) + EVM (col-span-1) ══ */}
@@ -668,7 +675,7 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
 
       {/* ── Edit baseline modal ── */}
       {showEditModal && (
-        <EditBaselineModal project={project} milestones={milestones} onClose={() => setShowEditModal(false)} />
+        <EditBaselineModal project={project} milestones={milestones} suspensions={suspensions || []} onClose={() => setShowEditModal(false)} />
       )}
     </>
   )

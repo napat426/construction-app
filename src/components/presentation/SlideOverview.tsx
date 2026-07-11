@@ -1,18 +1,19 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
 import { Calendar, DollarSign, Clock, CheckCircle2, AlertCircle, PlayCircle } from 'lucide-react'
-import { computeTaskDates } from '@/lib/scheduler'
+import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 
 interface Props {
   project: Project
   tasks: WBSTask[]
-  milestones?: ProjectMilestone[]
-  theme?: 'dark' | 'light'
+  milestones: ProjectMilestone[]
+  suspensions?: ContractSuspension[]
+  theme: 'dark' | 'light'
 }
 
-export function SlideOverview({ project, tasks, milestones = [], theme = 'dark' }: Props) {
+export function SlideOverview({ project, tasks, milestones, suspensions = [], theme }: Props) {
   const isDark = theme === 'dark'
 
   // Replicate EVM Logic from DashboardClient
@@ -20,30 +21,13 @@ export function SlideOverview({ project, tasks, milestones = [], theme = 'dark' 
     const today = new Date()
     const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     
-    const start = project.start_date ? new Date(project.start_date) : null
-    const end = project.end_date ? new Date(project.end_date) : null
-    
-    let totalDays = 0
-    let daysUsed = 0
-    let daysRemaining = 0
-    let isOverrun = false
+    const ext = computeProjectExtension(project, suspensions)
+    const totalDays = ext.totalDays
+    const daysUsed = ext.daysUsed
+    const daysRemaining = ext.daysRemaining
+    const isOverrun = ext.isOverrun
 
-    if (start && end) {
-      start.setHours(0, 0, 0, 0)
-      end.setHours(0, 0, 0, 0)
-      const diffTime = end.getTime() - start.getTime()
-      totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      
-      const diffUsed = todayDateOnly.getTime() - start.getTime()
-      daysUsed = Math.ceil(diffUsed / (1000 * 60 * 60 * 24))
-      
-      daysRemaining = totalDays - daysUsed
-      if (daysRemaining < 0) {
-        isOverrun = true
-      }
-    }
-
-    const scheduledTasks = computeTaskDates(tasks, project.start_date)
+    const scheduledTasks = computeTaskDates(tasks, project.start_date, suspensions)
 
     const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
     let pvCumulative = 0
@@ -54,16 +38,14 @@ export function SlideOverview({ project, tasks, milestones = [], theme = 'dark' 
       
       const tStart = new Date(t.computedStartDate)
       const tEnd = new Date(t.computedEndDate)
-      tStart.setHours(0,0,0,0)
-      tEnd.setHours(0,0,0,0)
       
       let plannedProgress = 0
       if (todayDateOnly >= tEnd) plannedProgress = 100
       else if (todayDateOnly < tStart) plannedProgress = 0
       else {
-        const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
-        const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
-        plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
+        const elapsed = countWorkingDays(tStart, todayDateOnly, suspensions)
+        const total = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
+        plannedProgress = (elapsed / total) * 100
       }
       
       pvCumulative += plannedProgress * w
@@ -113,7 +95,7 @@ export function SlideOverview({ project, tasks, milestones = [], theme = 'dark' 
     return {
       pvCumulative, evCumulative, svPercent, svDays, cvPercent, cvCost, done, delayed, inProgress, totalDays, daysRemaining, isOverrun
     }
-  }, [project, tasks, milestones])
+  }, [project, tasks, milestones, suspensions])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val)

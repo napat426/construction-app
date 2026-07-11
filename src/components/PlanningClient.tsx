@@ -16,14 +16,15 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { deleteTask } from '@/app/actions/tasks'
-import { computeTaskDates } from '@/lib/scheduler'
-import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractSuspension } from '@/lib/types'
+import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
 interface PlanningClientProps {
   project: Project
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
+  suspensions?: ContractSuspension[]
   user?: UserSession | null
 }
 
@@ -58,7 +59,7 @@ function formatDate(dateStr: string): string {
   })
 }
 
-export function PlanningClient({ project, tasks, milestones, user }: PlanningClientProps) {
+export function PlanningClient({ project, tasks, milestones, suspensions = [], user }: PlanningClientProps) {
   const [activeTab, setActiveTab] = useState<'wbs' | 'gantt' | 'scurve'>('wbs')
   const [isPending, startTransition] = useTransition()
   
@@ -81,8 +82,8 @@ export function PlanningClient({ project, tasks, milestones, user }: PlanningCli
   // Sort tasks naturally by WBS No. and calculate dynamic schedule dates
   const scheduledTasks = useMemo(() => {
     const sorted = [...tasks].sort((a, b) => sortWBS(a.wbs_no, b.wbs_no))
-    return computeTaskDates(sorted, project.start_date)
-  }, [tasks, project.start_date])
+    return computeTaskDates(sorted, project.start_date, suspensions)
+  }, [tasks, project.start_date, suspensions])
 
   // Helper: compute task status badge
   const todayForStatus = new Date()
@@ -100,8 +101,8 @@ export function PlanningClient({ project, tasks, milestones, user }: PlanningCli
     if (tStart > todayForStatus) {
       return { label: 'ในอนาคต', cls: 'bg-slate-100 dark:bg-[#1e1e38] text-slate-500 dark:text-slate-400 border-slate-300 dark:border-[#252548]' }
     }
-    const totalDur = Math.max(1, tEnd.getTime() - tStart.getTime())
-    const elapsed = todayForStatus.getTime() - tStart.getTime()
+    const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
+    const elapsed = countWorkingDays(tStart, todayForStatus, suspensions)
     const plannedPct = Math.min(100, (elapsed / totalDur) * 100)
     if (plannedPct - (t.actual_progress || 0) >= 5) {
       return { label: 'ล่าช้า', cls: 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-300 dark:border-red-500/30' }
@@ -138,9 +139,10 @@ export function PlanningClient({ project, tasks, milestones, user }: PlanningCli
 
   // 2. Timeline date range (for Gantt & S-Curve)
   const dateRange = useMemo(() => {
+    const ext = computeProjectExtension(project, suspensions)
     if (scheduledTasks.length === 0) {
       const pStart = project.start_date ? new Date(project.start_date) : new Date()
-      const pEnd = project.end_date ? new Date(project.end_date) : new Date(pStart.getTime() + 30 * 24 * 60 * 60 * 1000)
+      const pEnd = ext.newEndDate ? new Date(ext.newEndDate) : new Date(pStart.getTime() + 30 * 24 * 60 * 60 * 1000)
       return { start: pStart, end: pEnd, durationDays: Math.ceil((pEnd.getTime() - pStart.getTime()) / (24 * 60 * 60 * 1000)) }
     }
 
@@ -159,7 +161,7 @@ export function PlanningClient({ project, tasks, milestones, user }: PlanningCli
 
     const durationDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (24 * 60 * 60 * 1000)))
     return { start: minDate, end: maxDate, durationDays }
-  }, [scheduledTasks, project])
+  }, [scheduledTasks, project, suspensions])
 
   // Today marker left position for Gantt chart
   const todayLeft = useMemo(() => {
@@ -244,8 +246,9 @@ export function PlanningClient({ project, tasks, milestones, user }: PlanningCli
         if (currDate >= tEnd) {
           plannedSum += taskWeightValue
         } else if (currDate >= tStart) {
-          const elapsed = (currDate.getTime() - tStart.getTime()) / (24 * 60 * 60 * 1000)
-          plannedSum += taskWeightValue * (elapsed / t.duration)
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
+          const elapsed = countWorkingDays(tStart, currDate, suspensions)
+          plannedSum += taskWeightValue * (elapsed / totalDur)
         }
       }
 

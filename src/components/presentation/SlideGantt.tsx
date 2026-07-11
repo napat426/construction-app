@@ -1,16 +1,17 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { Project, WBSTask } from '@/lib/types'
+import type { Project, WBSTask, ContractSuspension } from '@/lib/types'
 import { computeTaskDates } from '@/lib/scheduler'
 
 interface Props {
-  project: Project
+  project?: Project
   tasks: WBSTask[]
-  theme: 'dark' | 'light'
+  suspensions?: ContractSuspension[]
+  theme: 'light' | 'dark'
 }
 
-export function SlideGantt({ project, tasks, theme }: Props) {
+export function SlideGantt({ project, tasks, suspensions = [], theme }: Props) {
   const isDark = theme === 'dark'
 
   // Sort and filter tasks (max 15 tasks to prevent overflow, filter level 1 WBS if too many)
@@ -34,20 +35,20 @@ export function SlideGantt({ project, tasks, theme }: Props) {
     }
 
     // compute dates
-    return computeTaskDates(sorted, project.start_date)
-  }, [tasks, project.start_date])
+    return computeTaskDates(sorted, project?.start_date || new Date().toISOString(), suspensions)
+  }, [tasks, project?.start_date, suspensions])
 
   const hasHiddenTasks = tasks.length > displayTasks.length
 
   // Calculate grid and bounds
   const { minDate, maxDate, totalDays } = useMemo(() => {
-    if (displayTasks.length === 0 || !project.start_date) return { minDate: new Date(), maxDate: new Date(), totalDays: 1 }
+    if (displayTasks.length === 0 || !project?.start_date) return { minDate: new Date(), maxDate: new Date(), totalDays: 1 }
 
     let min = new Date(project.start_date)
     min.setHours(0,0,0,0)
     let max = new Date(min)
 
-    if (project.end_date) {
+    if (project?.end_date) {
       const e = new Date(project.end_date)
       e.setHours(0,0,0,0)
       if (e > max) max = e
@@ -71,7 +72,7 @@ export function SlideGantt({ project, tasks, theme }: Props) {
     const totalDays = Math.ceil((max.getTime() - min.getTime()) / (1000 * 60 * 60 * 24))
 
     return { minDate: min, maxDate: max, totalDays: totalDays > 0 ? totalDays : 1 }
-  }, [displayTasks, project.start_date, project.end_date])
+  }, [displayTasks, project?.start_date, project?.end_date])
 
   const today = new Date()
   today.setHours(0,0,0,0)
@@ -81,7 +82,23 @@ export function SlideGantt({ project, tasks, theme }: Props) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>แผนการดำเนินงาน (Gantt Chart)</h2>
-          <p className={`text-lg mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>โครงการ: {project.name}</p>
+          <p className={`text-lg mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>โครงการ: {project?.name}</p>
+        </div>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded ${isDark ? 'bg-white/20' : 'bg-slate-300'}`}></div>
+            <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>แผนงาน</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded ${isDark ? 'bg-[#a13c9d]/85' : 'bg-purple-600/85'}`}></div>
+            <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>ความคืบหน้า</span>
+          </div>
+          {suspensions && suspensions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0Pgo8cGF0aCBkPSJNMCA4TDggMFpNOCAxNkwxNiA4Wk0tOCAwTDAgLThaIiBzdHJva2U9InJnYmEoMjM5LCA2OCwgNjgsIDAuMikiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=')] border border-red-500/30 bg-red-50/10"></div>
+              <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>ช่วงหยุดงาน</span>
+            </div>
+          )}
         </div>
         {hasHiddenTasks && (
           <div className={`px-4 py-2 rounded-full text-sm font-bold ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700'}`}>
@@ -121,6 +138,31 @@ export function SlideGantt({ project, tasks, theme }: Props) {
               <div key={i} className={`flex-1 border-r ${isDark ? 'border-white/5' : 'border-black/5'} h-full`} />
             ))}
           </div>
+
+          {/* Suspension Bands */}
+          {suspensions?.map((suspension, idx) => {
+            const suspDate = new Date(suspension.suspend_date)
+            suspDate.setHours(0,0,0,0)
+            const resumeDate = suspension.resume_date ? new Date(suspension.resume_date) : new Date(today)
+            resumeDate.setHours(0,0,0,0)
+            
+            if (resumeDate < minDate || suspDate > maxDate) return null
+            
+            const startRatio = Math.max(0, (suspDate.getTime() - minDate.getTime()) / (totalDays * 24 * 60 * 60 * 1000))
+            const endRatio = Math.min(1, (resumeDate.getTime() - minDate.getTime()) / (totalDays * 24 * 60 * 60 * 1000))
+            const widthRatio = endRatio - startRatio
+
+            return (
+              <div 
+                key={idx}
+                className="absolute inset-y-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0Pgo8cGF0aCBkPSJNMCA4TDggMFpNOCAxNkwxNiA4Wk0tOCAwTDAgLThaIiBzdHJva2U9InJnYmEoMjM5LCA2OCwgNjgsIDAuMSkiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=')] opacity-50 z-10 pointer-events-none border-x border-red-500/20"
+                style={{
+                  left: `calc(516px + ((100% - 516px) * ${startRatio}))`,
+                  width: `calc((100% - 516px) * ${widthRatio})`,
+                }}
+              />
+            )
+          })}
 
           {/* Today Line */}
           {today >= minDate && today <= maxDate && (

@@ -13,7 +13,7 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts'
-import { computeTaskDates } from '@/lib/scheduler'
+import { computeTaskDates, countWorkingDays } from '@/lib/scheduler'
 
 interface Props {
   project: Project
@@ -22,7 +22,7 @@ interface Props {
   theme?: 'dark' | 'light'
 }
 
-export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }: Props) {
+export function SlideSCurve({ project, tasks, milestones = [], suspensions = [], theme = 'dark' }: Props & { suspensions?: any[] }) {
   const isDark = theme === 'dark'
 
   const scheduledTasks = useMemo(() => {
@@ -36,8 +36,8 @@ export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }:
       }
       return 0
     })
-    return computeTaskDates(sorted, project.start_date)
-  }, [tasks, project.start_date])
+    return computeTaskDates(sorted, project.start_date, suspensions)
+  }, [tasks, project.start_date, suspensions])
 
   const chartData = useMemo(() => {
     if (scheduledTasks.length === 0 || !project.start_date) return []
@@ -136,8 +136,9 @@ export function SlideSCurve({ project, tasks, milestones = [], theme = 'dark' }:
         if (currDate >= tEnd) {
           plannedSum += taskWeightValue
         } else if (currDate >= tStart) {
-          const elapsed = (currDate.getTime() - tStart.getTime()) / (24 * 60 * 60 * 1000)
-          plannedSum += taskWeightValue * (elapsed / t.duration)
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, suspensions))
+          const elapsed = countWorkingDays(tStart, currDate, suspensions)
+          plannedSum += taskWeightValue * (elapsed / totalDur)
         }
       }
 

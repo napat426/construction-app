@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import type { Project, WBSTask, Inspection, ProjectMilestone } from '@/lib/types'
+import type { Project, WBSTask, Inspection, ProjectMilestone, ContractSuspension } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 import { Search, Filter, Play, CheckSquare, Square, X, GripVertical, Image as ImageIcon, Moon, Sun, Save, Download, Trash2 } from 'lucide-react'
 import { computeTaskDates } from '@/lib/scheduler'
@@ -15,6 +15,7 @@ interface Props {
   initialMilestones: ProjectMilestone[]
   initialDailyReports?: { project_id: string, photos: any[], created_at: string }[]
   initialConcretePours?: { project_id: string, photos: any[], created_at: string }[]
+  initialSuspensions?: ContractSuspension[]
   user?: UserSession | null
 }
 
@@ -43,6 +44,7 @@ export function PresentationClient({
   initialMilestones, 
   initialDailyReports = [],
   initialConcretePours = [],
+  initialSuspensions = [],
   user 
 }: Props) {
   const [projects] = useState<Project[]>(initialProjects)
@@ -191,7 +193,6 @@ export function PresentationClient({
   }, [projects])
 
   // Handlers
-  // Handlers
   const applyGlobalToggles = (key: keyof typeof globalToggles, val: boolean) => {
     const nextToggles = { ...globalToggles, [key]: val }
     setGlobalToggles(nextToggles)
@@ -299,6 +300,7 @@ export function PresentationClient({
         tasks={initialTasks}
         inspections={initialInspections}
         milestones={initialMilestones}
+        suspensions={initialSuspensions}
         selectedSlides={selectedSlides}
         theme={theme}
         onExit={() => setIsFullScreen(false)}

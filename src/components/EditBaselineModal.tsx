@@ -4,15 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Save, Loader2, Plus, Trash2 } from 'lucide-react'
 import { updateProjectBaseline } from '@/app/actions/projects'
 import { saveMilestones } from '@/app/actions/milestones'
-import type { Project, ProjectMilestone } from '@/lib/types'
+import type { Project, ProjectMilestone, ContractSuspension } from '@/lib/types'
+import { SuspensionForm } from './SuspensionForm'
 
 interface EditBaselineModalProps {
   project: Project
   milestones: ProjectMilestone[]
+  suspensions: ContractSuspension[]
   onClose: () => void
 }
 
-export function EditBaselineModal({ project, milestones, onClose }: EditBaselineModalProps) {
+export function EditBaselineModal({ project, milestones, suspensions, onClose }: EditBaselineModalProps) {
   const formRef = useRef<HTMLFormElement>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -385,7 +387,7 @@ export function EditBaselineModal({ project, milestones, onClose }: EditBaseline
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-primary-600 dark:text-primary-400">งวดงาน & การจ่ายเงิน</h3>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
                 Payment Milestones — ติ๊ก "ส่งแล้ว" + วันที่ → สร้างเส้น AC (สีส้ม) และคำนวณ % เบิกจ่ายอัตโนมัติ
               </p>
             </div>
@@ -491,6 +493,10 @@ export function EditBaselineModal({ project, milestones, onClose }: EditBaseline
               </tbody>
             </table>
           </div>
+
+          <hr className="border-slate-100 dark:border-[#1e1e38] my-2" />
+          
+          <SuspensionForm projectId={project.id} suspensions={suspensions} />
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-[#1e1e38]">

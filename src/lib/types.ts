@@ -57,6 +57,7 @@ export interface ProjectMilestone {
   amount: number
   is_paid: boolean
   payment_date: string | null
+  expected_payment_date?: string | null
   created_at?: string
 }
 

@@ -25,9 +25,9 @@ export function EditBaselineModal({ project, milestones, onClose }: EditBaseline
     milestones.length > 0
       ? milestones
       : [
-          { milestone_no: 1, name: 'งวดที่ 1', work_scope: '', amount: 0, is_paid: false, payment_date: null },
-          { milestone_no: 2, name: 'งวดที่ 2', work_scope: '', amount: 0, is_paid: false, payment_date: null },
-          { milestone_no: 3, name: 'งวดที่ 3', work_scope: '', amount: 0, is_paid: false, payment_date: null }
+          { milestone_no: 1, name: 'งวดที่ 1', work_scope: '', amount: 0, is_paid: false, payment_date: null, expected_payment_date: null },
+          { milestone_no: 2, name: 'งวดที่ 2', work_scope: '', amount: 0, is_paid: false, payment_date: null, expected_payment_date: null },
+          { milestone_no: 3, name: 'งวดที่ 3', work_scope: '', amount: 0, is_paid: false, payment_date: null, expected_payment_date: null }
         ]
   )
 
@@ -76,7 +76,8 @@ export function EditBaselineModal({ project, milestones, onClose }: EditBaseline
         work_scope: '',
         amount: 0,
         is_paid: false,
-        payment_date: null
+        payment_date: null,
+        expected_payment_date: null
       }
     ])
   }
@@ -406,8 +407,9 @@ export function EditBaselineModal({ project, milestones, onClose }: EditBaseline
                   <th className="p-3">ครอบคลุมงาน</th>
                   <th className="p-3 w-36">มูลค่างวด (฿)</th>
                   <th className="p-3 w-16 text-center">ส่งแล้ว</th>
-                  <th className="p-3 w-36">วันที่ส่งมอบ</th>
-                  <th className="p-3 w-32">จ่ายสะสม</th>
+                  <th className="p-3 w-32">คาดการณ์เบิกจ่าย</th>
+                  <th className="p-3 w-32">จ่ายจริง</th>
+                  <th className="p-3 w-28">จ่ายสะสม</th>
                   <th className="p-3 w-10"></th>
                 </tr>
               </thead>
@@ -451,6 +453,15 @@ export function EditBaselineModal({ project, milestones, onClose }: EditBaseline
                           checked={m.is_paid}
                           onChange={(e) => handleUpdateMilestone(idx, 'is_paid', e.target.checked)}
                           className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 w-4 h-4 bg-transparent"
+                        />
+                      </td>
+                      <td className="p-3">
+                        <input
+                          type="date"
+                          value={m.expected_payment_date || ''}
+                          disabled={m.is_paid}
+                          onChange={(e) => handleUpdateMilestone(idx, 'expected_payment_date', e.target.value)}
+                          className="w-full bg-transparent border-0 focus:ring-0 p-0 text-slate-950 dark:text-white disabled:opacity-30 disabled:cursor-not-allowed text-xs focus:outline-none"
                         />
                       </td>
                       <td className="p-3">

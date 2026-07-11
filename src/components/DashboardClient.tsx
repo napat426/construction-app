@@ -566,6 +566,33 @@ export function DashboardClient({ project, tasks, milestones, user }: DashboardC
                 ))}
               </div>
             )}
+            
+            {/* Payment Forecast (คาดการณ์เบิกจ่าย) */}
+            {milestones.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#1e1e38]">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Calendar size={12} />
+                  คาดการณ์เบิกจ่าย (ยังไม่ส่งมอบ)
+                </h4>
+                <div className="space-y-2">
+                  {milestones.filter(m => !m.is_paid).map((m, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-700 dark:text-slate-300">{m.name}</span>
+                      {m.expected_payment_date ? (
+                        <span className="text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">
+                          {new Date(m.expected_payment_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+                        </span>
+                      ) : (
+                        <span className="text-amber-500 font-medium bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded">ยังไม่ระบุกำหนดการ</span>
+                      )}
+                    </div>
+                  ))}
+                  {milestones.filter(m => !m.is_paid).length === 0 && (
+                    <div className="text-xs text-slate-400 italic text-center py-2 bg-slate-50 dark:bg-[#1e1e38] rounded-lg">ไม่มีงวดที่รอเบิกจ่าย</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* สรุปสถานะงานย่อย — 1 col */}

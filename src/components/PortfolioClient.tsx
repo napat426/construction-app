@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck } from 'lucide-react'
 import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem } from '@/lib/types'
+import { PaymentForecastChart } from './portfolio/PaymentForecastChart'
 import { computeTaskDates } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
@@ -540,6 +541,11 @@ export function PortfolioClient({ projects, tasks, milestones, punchLists = [], 
             </p>
           </div>
         </div>
+      </div>
+
+      {/* ── PART 2.5: PAYMENT FORECAST CHART ── */}
+      <div className="mb-6 no-print">
+        <PaymentForecastChart milestones={milestones} projects={projects} />
       </div>
 
       {/* ── PART 3: COMPARISON TABLE ── */}

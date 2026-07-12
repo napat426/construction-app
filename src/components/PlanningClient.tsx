@@ -1031,26 +1031,28 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                             return (
                               <div
                                 key={sIdx}
-                                className={`absolute inset-y-0 h-4 my-1 bg-slate-200 dark:bg-[#1e1e38] shadow-sm flex items-center overflow-hidden group cursor-pointer hover:bg-slate-300 dark:hover:bg-[#2c2c4d] transition-all ${sIdx === 0 ? 'rounded-l' : ''} ${sIdx === segments.length - 1 ? 'rounded-r' : ''}`}
+                                className="absolute inset-y-0 my-1 group cursor-pointer z-10 hover:z-40"
                                 style={{
                                   left: `${Math.min(99, Math.max(0, segLeft))}%`,
                                   width: `${Math.max(0.5, segWidth)}%`,
                                 }}
                               >
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg pointer-events-none whitespace-nowrap z-30 border border-slate-700/50">
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-slate-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg pointer-events-none whitespace-nowrap border border-slate-700/50" style={{ zIndex: 100 }}>
                                   {formatDate(t.computedStartDate)} - {formatDate(t.computedEndDate)}
                                 </div>
 
-                                <div
-                                  className="absolute inset-y-0 left-0 progress-fill"
-                                  style={{ width: `${fillPct}%` }}
-                                />
-                                
-                                {sIdx === 0 && (
-                                  <span className="absolute z-10 text-[9px] font-extrabold text-primary-950 dark:text-white pl-1.5 whitespace-nowrap">
-                                    {t.actual_progress}%
-                                  </span>
-                                )}
+                                <div className={`relative w-full h-4 bg-slate-200 dark:bg-[#1e1e38] shadow-sm flex items-center overflow-hidden hover:bg-slate-300 dark:hover:bg-[#2c2c4d] transition-all ${sIdx === 0 ? 'rounded-l' : ''} ${sIdx === segments.length - 1 ? 'rounded-r' : ''}`}>
+                                  <div
+                                    className="absolute inset-y-0 left-0 progress-fill"
+                                    style={{ width: `${fillPct}%` }}
+                                  />
+                                  
+                                  {sIdx === 0 && (
+                                    <span className="absolute z-10 text-[9px] font-extrabold text-primary-950 dark:text-white pl-1.5 whitespace-nowrap">
+                                      {t.actual_progress}%
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             )
                           })

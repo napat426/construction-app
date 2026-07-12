@@ -960,9 +960,11 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           const sStart = new Date(s.suspend_date!)
                           sStart.setHours(0, 0, 0, 0)
                           
-                          // If no resume_date, extend to the end of the timeline
+                          // If no resume_date, cap at today (not end of timeline)
                           const isOngoing = !s.resume_date
-                          const sEnd = s.resume_date ? new Date(s.resume_date) : dateRange.end
+                          const todayMidnight = new Date()
+                          todayMidnight.setHours(0, 0, 0, 0)
+                          const sEnd = s.resume_date ? new Date(s.resume_date) : todayMidnight
                           sEnd.setHours(0, 0, 0, 0)
 
                           if (sEnd < dateRange.start || sStart > dateRange.end) return null
@@ -984,7 +986,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               style={{ left: `${leftOffset}%`, width: `${widthPct}%` }}
                             >
                               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden group-hover/susp:block bg-red-900 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap z-30 pointer-events-none">
-                                ⏸ หยุดงาน ({formatDate(s.suspend_date!)} - {isOngoing ? 'ยังไม่กำหนด' : formatDate(s.resume_date!)})
+                                ⏸ หยุดงาน ({formatDate(s.suspend_date!)} - {isOngoing ? 'ยังไม่กำหนด (ถึงวันนี้)' : formatDate(s.resume_date!)})
                               </div>
                             </div>
                           )

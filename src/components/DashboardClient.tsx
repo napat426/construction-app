@@ -16,6 +16,7 @@ import {
   CheckCircle,
   Plus,
   Trash2,
+  FileText,
 } from 'lucide-react'
 import Link from 'next/link'
 import { EditBaselineModal } from './EditBaselineModal'
@@ -319,8 +320,8 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
           </div>
         </div>
 
-        {/* ══ ROW 1: เวลาสัญญา (4 col) ══ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {/* ══ ROW 1: เวลาสัญญา (4 col, 5 col if overrun) ══ */}
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${metrics.isOverrun ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4`}>
 
           {/* วันเริ่มต้น */}
           <div className="card rounded-2xl p-5 flex items-center gap-4">
@@ -361,6 +362,19 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
                   style={{ width: `${Math.min(100, metrics.totalDays > 0 ? (metrics.daysUsed / metrics.totalDays) * 100 : 0)}%` }}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* วันทำงานทั้งหมด (สัญญารวม) */}
+          <div className="card rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+              <FileText size={18} />
+            </div>
+            <div>
+              <p className={labelCls}>วันทำงานทั้งหมด</p>
+              <p className="text-base font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                {metrics.totalDays} วัน
+              </p>
             </div>
           </div>
 

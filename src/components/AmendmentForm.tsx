@@ -187,6 +187,9 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
               </div>
             </div>
 
+            {/* Hidden field to always include extra_days in FormData */}
+            <input type="hidden" name="extra_days" value="0" />
+
             <div className="p-3 bg-slate-50/50 dark:bg-[#14142a]/50 rounded-lg border border-slate-100 dark:border-[#2a2a4a]">
               {(amendmentType === 'suspend_with_resume' || amendmentType === 'suspend_open') && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

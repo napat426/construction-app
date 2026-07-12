@@ -16,15 +16,17 @@ import { getCurrentUser } from '@/lib/auth'
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const [projectsRes, tasksRes, settingsRes] = await Promise.all([
+  const [projectsRes, tasksRes, settingsRes, amendmentsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
-    supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single()
+    supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single(),
+    supabase.from('contract_amendments').select('*')
   ])
 
   const projects: Project[] = (projectsRes.data as Project[]) ?? []
   const error = projectsRes.error
   const tasks = tasksRes.data ?? []
+  const amendments = amendmentsRes.data ?? []
   const aiEnabled = settingsRes.data?.value === 'true' || settingsRes.data?.value === true
 
   return (
@@ -61,7 +63,7 @@ export default async function ProjectsPage() {
             </div>
           )}
 
-          <ProjectsClient initialProjects={projects} initialTasks={tasks} user={user} aiEnabled={aiEnabled} />
+          <ProjectsClient initialProjects={projects} initialTasks={tasks} amendments={amendments} user={user} aiEnabled={aiEnabled} />
         </main>
       </div>
     </div>

@@ -6,17 +6,18 @@ import Link from 'next/link'
 import { ProjectCard } from './ProjectCard'
 import { CreateProjectModal } from './CreateProjectModal'
 import { AIAssistantSection } from './ai/AIAssistantSection'
-import type { Project, WBSTask } from '@/lib/types'
+import type { Project, WBSTask, ContractAmendment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
 interface ProjectsClientProps {
   initialProjects: Project[]
   initialTasks: WBSTask[]
+  amendments?: ContractAmendment[]
   user?: UserSession | null
   aiEnabled?: boolean
 }
 
-export function ProjectsClient({ initialProjects, initialTasks, user, aiEnabled = false }: ProjectsClientProps) {
+export function ProjectsClient({ initialProjects, initialTasks, amendments = [], user, aiEnabled = false }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSupervisor, setSelectedSupervisor] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -186,6 +187,7 @@ export function ProjectsClient({ initialProjects, initialTasks, user, aiEnabled 
               key={project.id}
               project={project}
               tasks={initialTasks.filter((t) => t.project_id === project.id)}
+              amendments={amendments.filter((a) => a.project_id === project.id)}
               user={user}
             />
           ))}

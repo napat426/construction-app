@@ -69,6 +69,8 @@ export function ProjectCard({ project, tasks = [], amendments = [], user }: Proj
 
   const status = STATUS_MAP[project.status] ?? STATUS_MAP['รอดำเนินการ']
 
+  const ext = useMemo(() => computeProjectExtension(project, amendments), [project, amendments])
+
   const svData = useMemo(() => {
     if (!tasks || tasks.length === 0) return null
     
@@ -82,7 +84,6 @@ export function ProjectCard({ project, tasks = [], amendments = [], user }: Proj
     const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
     const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
 
-    const ext = computeProjectExtension(project, amendments)
     let totalDays = ext.totalDays
 
     const scheduledTasks = computeTaskDates(tasks, project.start_date, amendments)
@@ -211,7 +212,7 @@ export function ProjectCard({ project, tasks = [], amendments = [], user }: Proj
           {(project.start_date || project.end_date) && (
             <DetailRow
               icon={<Calendar size={13} />}
-              value={`${formatDate(project.start_date)} – ${formatDate(project.end_date)}`}
+              value={`${formatDate(project.start_date)} – ${ext.newEndDate ? formatDate(ext.newEndDate.toISOString()) : formatDate(project.end_date)}`}
             />
           )}
         </div>

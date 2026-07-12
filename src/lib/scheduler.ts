@@ -298,9 +298,7 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
 
   let totalAmendmentDays = 0
   for (const a of amendments) {
-    if (a.amendment_type === 'direct') {
-      totalAmendmentDays += Number(a.extra_days) || 0
-    }
+    totalAmendmentDays += Number(a.extra_days) || 0
   }
 
   // 1. Raw elapsed days = today - start_date

@@ -96,35 +96,28 @@ export function AmendmentForm({ project, amendments, onUpdate }: {
     if (!form.amendment_date) { setError('กรุณาระบุวันที่แก้ไขสัญญา'); return }
     if (!form.reason.trim()) { setError('กรุณาระบุเหตุผล'); return }
 
-    let extra_days = 0
+    let extra_days = form.extra_days ? parseInt(form.extra_days, 10) : 0
+    if (isNaN(extra_days)) { setError('จำนวนวันที่ขยาย/ลดไม่ถูกต้อง'); return }
     let resume_date_to_save = ''
 
-    if (form.amendment_type === 'direct') {
-      extra_days = parseInt(form.extra_days, 10)
-      if (isNaN(extra_days)) { setError('กรุณาระบุจำนวนวัน'); return }
-    } else if (form.amendment_type === 'suspend_with_resume') {
+    if (form.amendment_type === 'suspend_with_resume') {
       if (!form.suspend_date) { setError('กรุณาระบุวันที่เริ่มหยุดงาน'); return }
       if (!form.last_stop_date) { setError('กรุณาระบุวันสุดท้ายที่หยุดงาน'); return }
       if (new Date(form.last_stop_date) < new Date(form.suspend_date)) {
         setError('วันสุดท้ายที่หยุดต้องไม่ก่อนวันที่เริ่มหยุดงาน')
         return
       }
-      // extra_days = inclusive days: (lastStop - suspend + 1)
-      const msPerDay = 1000 * 60 * 60 * 24
-      const diffTime = new Date(form.last_stop_date).getTime() - new Date(form.suspend_date).getTime()
-      extra_days = Math.round(diffTime / msPerDay) + 1
       resume_date_to_save = lastStopToResume(form.last_stop_date)
     } else if (form.amendment_type === 'suspend_open') {
       if (!form.suspend_date) { setError('กรุณาระบุวันที่เริ่มหยุดงาน'); return }
-      extra_days = 0
       resume_date_to_save = ''
     }
 
-    if (form.amendment_type === 'direct' && extra_days < 0) {
+    if (extra_days < 0) {
       const tempAmendments = amendments.filter(a => a.id !== form.id).concat([{
         project_id: project.id,
         extra_days,
-        amendment_type: 'direct' as AmendmentType,
+        amendment_type: form.amendment_type,
         amendment_no: 999,
         amendment_date: new Date().toISOString(),
         reason: 'temp',
@@ -302,23 +295,21 @@ export function AmendmentForm({ project, amendments, onUpdate }: {
                 <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/10 rounded-lg px-3 py-2 border border-amber-200 dark:border-amber-800/30">
                   <Calendar size={13} className="text-amber-500" />
                   <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                    ระยะหยุดงาน: <span className="text-base">{suspensionDaysPreview}</span> วัน
+                    ระยะเวลาที่หยุดงานจริง: <span className="text-base">{suspensionDaysPreview}</span> วัน
                   </span>
-                  <span className="text-[10px] text-slate-400 ml-1">(คำนวณอัตโนมัติ)</span>
+                  <span className="text-[10px] text-slate-400 ml-1">(ข้อมูลอ้างอิง)</span>
                 </div>
               )}
 
-              {/* Direct extra_days */}
-              {form.amendment_type === 'direct' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>จำนวนวันที่ขยาย/ลด (วัน) *</label>
-                    <input type="number" value={form.extra_days}
-                      onChange={e => updateField('extra_days', e.target.value)}
-                      className={inputCls} placeholder="เช่น 30 หรือ -5 (ลดวัน)" />
-                  </div>
+              {/* Universal extra_days */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-200 dark:border-slate-700/50 pt-3 mt-1">
+                <div>
+                  <label className={labelCls}>จำนวนวันที่ขยาย/ลดวันสัญญา (วัน)</label>
+                  <input type="number" value={form.extra_days}
+                    onChange={e => updateField('extra_days', e.target.value)}
+                    className={inputCls} placeholder="เช่น 30 หรือ -5 (ไม่ต้องใส่หากไม่มี)" />
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Reason & Note */}
@@ -387,7 +378,7 @@ export function AmendmentForm({ project, amendments, onUpdate }: {
                           <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10 rounded px-2 py-1 inline-flex items-center gap-1.5 mb-1.5 border border-blue-100 dark:border-blue-800/30">
                             <PauseCircle size={11} />
                             หยุดงาน {fmtDate(a.suspend_date)} – {fmtDate(lastStopDisplay)}
-                            <span className="font-bold">({a.extra_days} วัน)</span>
+                            <span className="font-bold">({Math.round((new Date(lastStopDisplay).getTime() - new Date(a.suspend_date).getTime()) / (1000 * 60 * 60 * 24)) + 1} วัน)</span>
                             → กลับงานวันที่ {fmtDate(a.resume_date)}
                           </div>
                         )}
@@ -395,6 +386,12 @@ export function AmendmentForm({ project, amendments, onUpdate }: {
                           <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/10 rounded px-2 py-1 inline-flex items-center gap-1.5 mb-1.5 border border-rose-100 dark:border-rose-800/30">
                             <Clock size={11} />
                             หยุดงานตั้งแต่ {fmtDate(a.suspend_date)} — ยังไม่กำหนดวันกลับ
+                          </div>
+                        )}
+                        {a.amendment_type !== 'direct' && (a.extra_days ?? 0) !== 0 && (
+                          <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/10 rounded px-2 py-1 inline-flex items-center gap-1.5 mb-1.5 ml-1.5 border border-amber-100 dark:border-amber-800/30">
+                            <FastForward size={11} />
+                            {a.extra_days > 0 ? `ขยาย +${a.extra_days} วัน` : `ลด ${a.extra_days} วัน`}
                           </div>
                         )}
                         {a.amendment_type === 'direct' && (

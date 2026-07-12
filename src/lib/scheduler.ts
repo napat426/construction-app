@@ -88,7 +88,7 @@ export function countWorkingDays(startDate: Date, endDate: Date, amendments: Con
   let current = stripTime(startDate)
   const end = stripTime(endDate)
   
-  while (current < end) {
+  while (current <= end) {
     if (!isDateSuspended(current, amendments)) {
       count++
     }
@@ -249,8 +249,8 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
   const origEnd = stripTime(new Date(project.end_date))
   const today = stripTime(new Date())
 
-  // totalDaysAtBaseline = จำนวนวันสัญญาตาม baseline เดิม
-  const totalDaysAtBaseline = Math.max(0, Math.ceil((origEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+  // totalDaysAtBaseline = จำนวนวันสัญญาตาม baseline เดิม (บวก 1 เพื่อให้นับรวมหัวท้าย)
+  const totalDaysAtBaseline = Math.max(0, Math.ceil((origEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
 
   let totalSuspendedDaysForEndDate = 0
   let suspendedDaysUntilToday = 0
@@ -291,7 +291,10 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
 
     // For elapsed days calculation: count any suspended days that overlap with the past
     if (sDate <= today) {
-      const endBoundary = rDate && rDate < today ? rDate : today
+      // Use an exclusive boundary for calculation
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const endBoundary = rDate && rDate <= today ? rDate : tomorrow
       suspendedDaysUntilToday += Math.max(0, Math.ceil((endBoundary.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
     }
   }
@@ -301,8 +304,8 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
     totalAmendmentDays += Number(a.extra_days) || 0
   }
 
-  // 1. Raw elapsed days = today - start_date
-  const rawElapsed = Math.max(0, Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+  // 1. Raw elapsed days = today - start_date (บวก 1 ให้นับรวมหัวท้าย)
+  const rawElapsed = Math.max(0, Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
   
   // 2. Elapsed days (actual working days used) = raw elapsed - suspended days in the past
   const elapsedDays = Math.max(0, rawElapsed - suspendedDaysUntilToday)

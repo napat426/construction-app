@@ -341,7 +341,9 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
             </div>
             <div>
               <p className={labelCls}>วันสิ้นสุดสัญญา</p>
-              <p className={`text-base font-bold mt-0.5 ${metrics.isOverrun ? 'text-red-500' : 'text-slate-800 dark:text-slate-200'}`}>{formatDate(project.end_date)}</p>
+              <p className={`text-base font-bold mt-0.5 ${metrics.isOverrun ? 'text-red-500' : 'text-slate-800 dark:text-slate-200'}`}>
+                {metrics.ext.newEndDate ? formatDate(metrics.ext.newEndDate.toISOString()) : formatDate(project.end_date)}
+              </p>
             </div>
           </div>
 

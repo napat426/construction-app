@@ -6,56 +6,74 @@ import { saveAmendment, deleteAmendment } from '@/app/actions/amendments'
 import type { Project, ContractAmendment, AmendmentType } from '@/lib/types'
 import { computeProjectExtension } from '@/lib/scheduler'
 
+interface FormState {
+  amendment_no: number
+  amendment_date: string
+  amendment_type: AmendmentType
+  suspend_date: string
+  resume_date: string
+  extra_days: string
+  reason: string
+  note: string
+}
+
+const defaultForm = (nextNo: number): FormState => ({
+  amendment_no: nextNo,
+  amendment_date: '',
+  amendment_type: 'direct',
+  suspend_date: '',
+  resume_date: '',
+  extra_days: '',
+  reason: '',
+  note: '',
+})
+
 export function AmendmentForm({ project, amendments, onUpdate }: { project: Project, amendments: ContractAmendment[], onUpdate?: () => void }) {
   const [isPending, startTransition] = useTransition()
   const [isAdding, setIsAdding] = useState(false)
   const [error, setError] = useState('')
-  const [amendmentType, setAmendmentType] = useState<AmendmentType>('direct')
+  const [form, setForm] = useState<FormState>(() => defaultForm(amendments.length + 1))
 
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const updateField = (key: keyof FormState, value: string | number) => {
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleSave = () => {
     setError('')
-    const formData = new FormData(e.currentTarget)
-    
-    const suspend_date = formData.get('suspend_date') as string
-    const resume_date = formData.get('resume_date') as string
-    
+
+    // Validation
+    if (!form.amendment_date) { setError('กรุณาระบุวันที่แก้ไขสัญญา'); return }
+    if (!form.reason.trim()) { setError('กรุณาระบุเหตุผล'); return }
+
     let extra_days = 0
-    if (amendmentType === 'direct') {
-      extra_days = parseInt(formData.get('extra_days') as string, 10) || 0
-    } else if (amendmentType === 'suspend_with_resume') {
-      if (!suspend_date || !resume_date) {
-        setError('กรุณาระบุวันที่เริ่มหยุดงานและวันที่กลับมาเริ่มงาน')
-        return
-      }
-      if (new Date(resume_date) <= new Date(suspend_date)) {
+
+    if (form.amendment_type === 'direct') {
+      extra_days = parseInt(form.extra_days, 10)
+      if (isNaN(extra_days)) { setError('กรุณาระบุจำนวนวัน'); return }
+    } else if (form.amendment_type === 'suspend_with_resume') {
+      if (!form.suspend_date) { setError('กรุณาระบุวันที่สั่งหยุด'); return }
+      if (!form.resume_date) { setError('กรุณาระบุวันที่กลับมาเริ่มงาน'); return }
+      if (new Date(form.resume_date) <= new Date(form.suspend_date)) {
         setError('วันที่กลับมาเริ่มงานต้องมากกว่าวันที่สั่งหยุด')
         return
       }
-      // Calculate extra_days dynamically
-      const diffTime = Math.abs(new Date(resume_date).getTime() - new Date(suspend_date).getTime())
+      const diffTime = Math.abs(new Date(form.resume_date).getTime() - new Date(form.suspend_date).getTime())
       extra_days = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      formData.set('extra_days', extra_days.toString())
-    } else if (amendmentType === 'suspend_open') {
-      if (!suspend_date) {
-        setError('กรุณาระบุวันที่เริ่มหยุดงาน')
-        return
-      }
+    } else if (form.amendment_type === 'suspend_open') {
+      if (!form.suspend_date) { setError('กรุณาระบุวันที่สั่งหยุด'); return }
       extra_days = 0
-      formData.set('extra_days', '0')
     }
 
-    if (amendmentType === 'direct' && extra_days < 0) {
-      // Simulate adding this amendment
-      const tempAmendments = [...amendments, { 
-        project_id: project.id, 
-        extra_days, 
-        amendment_type: 'direct',
+    if (form.amendment_type === 'direct' && extra_days < 0) {
+      const tempAmendments = [...amendments, {
+        project_id: project.id,
+        extra_days,
+        amendment_type: 'direct' as AmendmentType,
         amendment_no: 999,
         amendment_date: new Date().toISOString(),
-        reason: 'temp'
-      } as ContractAmendment]
-      
+        reason: 'temp',
+        note: null,
+      }]
       const ext = computeProjectExtension(project, tempAmendments)
       if (ext.totalDays < 0) {
         setError(`ไม่สามารถลดวันได้ (${extra_days} วัน) เพราะจะทำให้จำนวนวันรวมของโครงการติดลบ`)
@@ -67,18 +85,28 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
       }
     }
 
-    if (suspend_date && project.start_date && new Date(suspend_date) < new Date(project.start_date)) {
+    if (form.suspend_date && project.start_date && new Date(form.suspend_date) < new Date(project.start_date)) {
       setError('วันที่สั่งหยุดต้องไม่ก่อนวันเริ่มโครงการ')
       return
     }
-    
+
+    const formData = new FormData()
+    formData.set('amendment_no', form.amendment_no.toString())
+    formData.set('amendment_date', form.amendment_date)
+    formData.set('amendment_type', form.amendment_type)
+    formData.set('suspend_date', form.suspend_date)
+    formData.set('resume_date', form.resume_date)
+    formData.set('extra_days', extra_days.toString())
+    formData.set('reason', form.reason)
+    formData.set('note', form.note)
+
     startTransition(async () => {
       const result = await saveAmendment(project.id, formData)
       if (result.error) {
         setError(result.error)
       } else {
         setIsAdding(false)
-        setAmendmentType('direct')
+        setForm(defaultForm(amendments.length + 2))
         if (onUpdate) onUpdate()
       }
     })
@@ -96,7 +124,6 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
     })
   }
 
-  // Helper to render icon for type
   const getTypeIcon = (type: AmendmentType) => {
     switch (type) {
       case 'suspend_with_resume': return <PauseCircle size={16} className="text-blue-500" />
@@ -113,6 +140,9 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
     }
   }
 
+  const inputCls = "w-full bg-white dark:bg-[#1e1e38] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+  const labelCls = "block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+
   return (
     <div className="mt-6 border border-amber-200 dark:border-amber-900/30 rounded-xl overflow-hidden bg-amber-50/30 dark:bg-[#14142a]/30">
       <div className="bg-amber-100/50 dark:bg-amber-900/20 px-4 py-3 flex items-center justify-between border-b border-amber-200 dark:border-amber-900/30">
@@ -128,7 +158,7 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
         {!isAdding && (
           <button
             type="button"
-            onClick={() => setIsAdding(true)}
+            onClick={() => { setForm(defaultForm(amendments.length + 1)); setError(''); setIsAdding(true) }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-200/50 dark:bg-amber-500/10 hover:bg-amber-200 dark:hover:bg-amber-500/20 transition-colors border border-amber-300/50 dark:border-amber-500/20"
           >
             <Plus size={13} />
@@ -145,40 +175,38 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
         )}
 
         {isAdding && (
-          <form onSubmit={handleSave} className="bg-white dark:bg-[#1e1e38] p-4 rounded-xl border border-amber-200 dark:border-amber-900/30 space-y-4 shadow-sm">
+          <div className="bg-white dark:bg-[#1e1e38] p-4 rounded-xl border border-amber-200 dark:border-amber-900/30 space-y-4 shadow-sm">
             <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 border-b border-slate-100 dark:border-[#2a2a4a] pb-2">
               <Plus size={14} className="text-amber-500" />
               เพิ่มรายการแก้ไขสัญญา / หยุดงาน
             </h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">แก้ไขสัญญาครั้งที่ *</label>
+                <label className={labelCls}>แก้ไขสัญญาครั้งที่ *</label>
                 <input
-                  name="amendment_no"
                   type="number"
                   min="1"
-                  required
-                  defaultValue={amendments.length + 1}
-                  className="w-full bg-slate-50 dark:bg-[#14142a] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                  value={form.amendment_no}
+                  onChange={e => updateField('amendment_no', e.target.value)}
+                  className={inputCls}
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">วันที่แก้ไขสัญญา/อนุมัติ *</label>
+                <label className={labelCls}>วันที่แก้ไขสัญญา/อนุมัติ *</label>
                 <input
-                  name="amendment_date"
                   type="date"
-                  required
-                  className="w-full bg-slate-50 dark:bg-[#14142a] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                  value={form.amendment_date}
+                  onChange={e => updateField('amendment_date', e.target.value)}
+                  className={inputCls}
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">ประเภท *</label>
+                <label className={labelCls}>ประเภท *</label>
                 <select
-                  name="amendment_type"
-                  value={amendmentType}
-                  onChange={(e) => setAmendmentType(e.target.value as AmendmentType)}
-                  className="w-full bg-slate-50 dark:bg-[#14142a] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                  value={form.amendment_type}
+                  onChange={e => updateField('amendment_type', e.target.value)}
+                  className={inputCls}
                 >
                   <option value="direct">ขยาย/ลดวันสัญญาโดยตรง (ไม่มีการหยุดงาน)</option>
                   <option value="suspend_with_resume">หยุดงาน (มีกำหนดวันกลับ)</option>
@@ -187,35 +215,32 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
               </div>
             </div>
 
-            {/* Hidden field to always include extra_days in FormData */}
-            <input type="hidden" name="extra_days" value="0" />
-
             <div className="p-3 bg-slate-50/50 dark:bg-[#14142a]/50 rounded-lg border border-slate-100 dark:border-[#2a2a4a]">
-              {(amendmentType === 'suspend_with_resume' || amendmentType === 'suspend_open') && (
+              {(form.amendment_type === 'suspend_with_resume' || form.amendment_type === 'suspend_open') && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">วันที่สั่งหยุด *</label>
+                    <label className={labelCls}>วันที่สั่งหยุด *</label>
                     <input
-                      name="suspend_date"
                       type="date"
-                      required
-                      className="w-full bg-white dark:bg-[#1e1e38] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                      value={form.suspend_date}
+                      onChange={e => updateField('suspend_date', e.target.value)}
+                      className={inputCls}
                     />
                   </div>
-                  {amendmentType === 'suspend_with_resume' && (
+                  {form.amendment_type === 'suspend_with_resume' && (
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">วันที่กลับมาเริ่มงาน *</label>
+                      <label className={labelCls}>วันที่กลับมาเริ่มงาน *</label>
                       <input
-                        name="resume_date"
                         type="date"
-                        required
-                        className="w-full bg-white dark:bg-[#1e1e38] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                        value={form.resume_date}
+                        onChange={e => updateField('resume_date', e.target.value)}
+                        className={inputCls}
                       />
                     </div>
                   )}
-                  {amendmentType === 'suspend_open' && (
+                  {form.amendment_type === 'suspend_open' && (
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">วันที่กลับมาเริ่มงาน</label>
+                      <label className={labelCls}>วันที่กลับมาเริ่มงาน</label>
                       <div className="w-full bg-slate-100 dark:bg-[#14142a] text-slate-400 border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm cursor-not-allowed">
                         ยังไม่กำหนด
                       </div>
@@ -224,39 +249,46 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
                 </div>
               )}
 
-              {amendmentType === 'direct' && (
+              {form.amendment_type === 'direct' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">จำนวนวันที่ขยายเพิ่ม (วัน) *</label>
+                    <label className={labelCls}>จำนวนวันที่ขยายเพิ่ม (วัน) *</label>
                     <input
-                      name="extra_days"
                       type="number"
-                      required
-                      className="w-full bg-white dark:bg-[#1e1e38] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                      value={form.extra_days}
+                      onChange={e => updateField('extra_days', e.target.value)}
+                      className={inputCls}
                       placeholder="เช่น 30, 60 (ใส่ติดลบได้ถ้าลดวัน)"
                     />
                   </div>
                 </div>
               )}
+
+              {(form.amendment_type === 'suspend_with_resume' && form.suspend_date && form.resume_date) && (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-400 font-medium">
+                  📅 ระยะหยุดงาน: {Math.ceil(Math.abs(new Date(form.resume_date).getTime() - new Date(form.suspend_date).getTime()) / (1000 * 60 * 60 * 24))} วัน (คำนวณอัตโนมัติ)
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">เหตุผล *</label>
+              <label className={labelCls}>เหตุผล *</label>
               <textarea
-                name="reason"
-                required
+                value={form.reason}
+                onChange={e => updateField('reason', e.target.value)}
                 rows={2}
-                className="w-full bg-slate-50 dark:bg-[#14142a] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                className={inputCls}
                 placeholder="เช่น รอส่งมอบพื้นที่, ขยายเวลาตามมาตรการช่วยเหลือ..."
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">หมายเหตุ (ถ้ามี)</label>
+              <label className={labelCls}>หมายเหตุ (ถ้ามี)</label>
               <input
-                name="note"
                 type="text"
-                className="w-full bg-slate-50 dark:bg-[#14142a] border border-slate-200 dark:border-[#2a2a4a] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                value={form.note}
+                onChange={e => updateField('note', e.target.value)}
+                className={inputCls}
               />
             </div>
 
@@ -269,7 +301,8 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
                 ยกเลิก
               </button>
               <button
-                type="submit"
+                type="button"
+                onClick={handleSave}
                 disabled={isPending}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold text-amber-900 bg-amber-400 hover:bg-amber-500 transition-colors disabled:opacity-50"
               >
@@ -277,7 +310,7 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
                 บันทึกรายการ
               </button>
             </div>
-          </form>
+          </div>
         )}
 
         {amendments.length === 0 && !isAdding ? (
@@ -287,10 +320,9 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
           </div>
         ) : (
           <div className="space-y-3">
-            {amendments.sort((a, b) => new Date(a.amendment_date).getTime() - new Date(b.amendment_date).getTime()).map((a) => (
+            {[...amendments].sort((a, b) => new Date(a.amendment_date).getTime() - new Date(b.amendment_date).getTime()).map((a) => (
               <div key={a.id} className="bg-white dark:bg-[#1e1e38] p-4 rounded-xl border border-amber-100 dark:border-amber-900/20 shadow-sm relative group transition-all hover:border-amber-300 dark:hover:border-amber-700/50">
                 <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
-                  
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800/50">
@@ -301,7 +333,7 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
                         {new Date(a.amendment_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 mb-1.5">
                       {getTypeIcon(a.amendment_type)}
                       <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
@@ -322,7 +354,6 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
                     <p className="text-sm font-semibold text-slate-900 dark:text-white mb-1 leading-snug">
                       เหตุผล: {a.reason}
                     </p>
-                    
                     {a.note && (
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic before:content-['—_']">
                         {a.note}
@@ -337,13 +368,10 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
                         {a.amendment_type === 'suspend_open' ? (
                           <span className="text-sm">รอประเมิน</span>
                         ) : (
-                          <>
-                            {a.extra_days > 0 ? `+${a.extra_days}` : a.extra_days} <span className="text-xs font-medium">วัน</span>
-                          </>
+                          <>{a.extra_days > 0 ? `+${a.extra_days}` : a.extra_days} <span className="text-xs font-medium">วัน</span></>
                         )}
                       </p>
                     </div>
-                    
                     <button
                       type="button"
                       onClick={() => a.id && handleDelete(a.id)}
@@ -354,7 +382,6 @@ export function AmendmentForm({ project, amendments, onUpdate }: { project: Proj
                       <Trash2 size={14} />
                     </button>
                   </div>
-
                 </div>
               </div>
             ))}

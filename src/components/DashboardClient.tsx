@@ -288,7 +288,18 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
             {metrics.ext.isCurrentlySuspended && (
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-lg text-sm font-semibold">
                 <AlertTriangle size={16} />
-                ⏸ หยุดงาน — {metrics.ext.currentSuspension?.reason} (ตั้งแต่ {formatDate(metrics.ext.currentSuspension?.suspend_date || '')})
+                ⏸ หยุดงาน — {metrics.ext.currentSuspension?.reason}
+                {' '}
+                ({' '}ตั้งแต่ {formatDate(metrics.ext.currentSuspension?.suspend_date || '')}
+                {metrics.ext.currentSuspension?.resume_date
+                  ? (() => {
+                      const lastStop = new Date(metrics.ext.currentSuspension!.resume_date!)
+                      lastStop.setDate(lastStop.getDate() - 1)
+                      return ` ถึง ${formatDate(lastStop.toISOString())}`
+                    })()
+                  : ' — ยังไม่กำหนดวันกลับ'
+                }
+                {' '})
               </div>
             )}
           </div>

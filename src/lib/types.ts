@@ -260,3 +260,17 @@ export interface SystemSetting {
   key: string
   value: any
 }
+
+export interface Employee {
+  id: string;
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  position: string;
+  department: string;
+  retirement_year: number | null;
+  phone_number: string | null;
+  other_info: string | null;
+  created_at: string;
+  updated_at: string;
+}

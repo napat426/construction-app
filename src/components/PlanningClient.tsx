@@ -352,13 +352,14 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       if (todayDateOnly >= tEnd) {
         plannedSum += taskWeightValue
       } else if (todayDateOnly >= tStart) {
-        const elapsed = (todayDateOnly.getTime() - tStart.getTime()) / (24 * 60 * 60 * 1000)
-        plannedSum += taskWeightValue * (elapsed / t.duration)
+        const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+        const elapsed = countWorkingDays(tStart, todayDateOnly, amendments)
+        plannedSum += taskWeightValue * (elapsed / totalDur)
       }
     }
     const plannedPercentAtToday = (plannedSum / totalWeightDenominator) * 100
     return summary.actualProgressRaw - plannedPercentAtToday
-  }, [scheduledTasks, summary])
+  }, [scheduledTasks, summary, amendments])
 
   // 4. Gantt Timeline columns (10 divisions)
   const ganttHeaders = useMemo(() => {

@@ -153,14 +153,18 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
       const acPercent = Number(p.budget) > 0 ? (totalPaidMilestonesAmount / Number(p.budget)) * 100 : 0
       const CV = evCumulative - acPercent
 
-      // Traffic Light color:
-      // 🟢 EV >= PV (SV >= 0) and CV >= 0
-      // 🔴 Both SV < 0 and CV < 0 (critical)
-      // 🟡 One is negative (warning)
+      // SPI and CPI calculation
+      const SPI = pvCumulative > 0 ? evCumulative / pvCumulative : 1.0
+      const CPI = acPercent > 0 ? evCumulative / acPercent : 1.0
+
+      // EVM Traffic Light color:
+      // 🟢 Green: SPI >= 1.0 and CPI >= 1.0 (on track or ahead)
+      // 🔴 Red: SPI < 0.9 or CPI < 0.9 (critical delay or budget overrun)
+      // 🟡 Yellow: Warning (one or both index is between 0.9 and 1.0)
       let trafficLight: 'green' | 'yellow' | 'red' = 'green'
-      if (SV < 0 && CV < 0) {
+      if (SPI < 0.9 || CPI < 0.9) {
         trafficLight = 'red'
-      } else if (SV < 0 || CV < 0) {
+      } else if (SPI < 1.0 || CPI < 1.0) {
         trafficLight = 'yellow'
       }
 
@@ -170,6 +174,8 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
         evCumulative,
         SV,
         CV,
+        SPI,
+        CPI,
         remainingDays,
         totalDays,
         totalMilestones,
@@ -377,6 +383,10 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
           .bg-amber-500\\/10 {
             background-color: #fffbeb !important;
             color: #d97706 !important;
+          }
+          .bg-red-500\\/10 {
+            background-color: #fef2f2 !important;
+            color: #dc2626 !important;
           }
           .bg-slate-100 {
             background-color: #f1f5f9 !important;
@@ -607,7 +617,9 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                   <th className="py-4 px-3 w-20 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('sv')}>
                     SV {sortBy === 'sv' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
                   </th>
+                  <th className="py-4 px-3 w-16">SPI</th>
                   <th className="py-4 px-3 w-24 hidden md:table-cell">CV</th>
+                  <th className="py-4 px-3 w-16 hidden md:table-cell">CPI</th>
                   <th className="py-4 px-3 w-28 hidden md:table-cell">งบรวม</th>
                   <th className="py-4 px-3 w-32 hidden md:table-cell">การจ่ายเงิน (% Paid)</th>
                   <th className="py-4 px-5 pr-5 w-20 text-center no-print">เปิด</th>
@@ -648,9 +660,9 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                       {/* Traffic Light Dot Column */}
                       <td className="py-4 pl-5 pr-1 text-center">
                         <div className={`w-3 h-3 rounded-full ${trafficLightDot}`} title={
-                          p.trafficLight === 'red' ? 'วิกฤต (ทั้ง SV และ CV ติดลบ)' :
-                          p.trafficLight === 'yellow' ? 'เฝ้าระวัง (SV หรือ CV ติดลบ)' :
-                          'ปกติ (แผนงานและงบประมาณราบรื่น)'
+                          p.trafficLight === 'red' ? 'วิกฤต (SPI หรือ CPI ต่ำกว่า 0.90)' :
+                          p.trafficLight === 'yellow' ? 'เฝ้าระวัง (SPI หรือ CPI ต่ำกว่า 1.00)' :
+                          'ปกติ (ดัชนีชี้วัดแผนงานและงบประมาณราบรื่น >= 1.00)'
                         } />
                       </td>
 
@@ -704,9 +716,31 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                         </span>
                       </td>
 
+                      {/* SPI */}
+                      <td className="py-4 px-3 font-mono">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
+                          p.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                          p.SPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+                          'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                        }`}>
+                          {p.SPI.toFixed(2)}
+                        </span>
+                      </td>
+
                       {/* CV */}
                       <td className={`py-4 px-3 font-mono hidden md:table-cell ${cvColor}`}>
                         {p.CV >= 0 ? '+' : ''}{p.CV.toFixed(1)}%
+                      </td>
+
+                      {/* CPI */}
+                      <td className="py-4 px-3 font-mono hidden md:table-cell">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
+                          p.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                          p.CPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+                          'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                        }`}>
+                          {p.CPI.toFixed(2)}
+                        </span>
                       </td>
 
                       {/* Budget */}

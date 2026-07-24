@@ -81,8 +81,8 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
         if (tStart > todayDateOnly) {
           inProgress++
         } else {
-          const totalDur = Math.max(1, tEnd.getTime() - tStart.getTime())
-          const elapsed = todayDateOnly.getTime() - tStart.getTime()
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+          const elapsed = countWorkingDays(tStart, todayDateOnly, amendments)
           const plannedPct = Math.min(100, (elapsed / totalDur) * 100)
           
           if (plannedPct - (t.actual_progress || 0) >= 5) {

@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import type { SelectedProjectSlide } from '../PresentationClient'
 import { HardHat } from 'lucide-react'
-import { computeTaskDates, computeProjectExtension } from '@/lib/scheduler'
+import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 
 interface Props {
   projects: Project[]
@@ -59,8 +59,8 @@ export function SlideSummary({ projects, tasks = [], milestones = [], amendments
         if (todayDateOnly >= tEnd) plannedProgress = 100
         else if (todayDateOnly < tStart) plannedProgress = 0
         else {
-          const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime())
-          const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime()
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, pSuspensionsForTasks))
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, pSuspensionsForTasks)
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100
         }
         

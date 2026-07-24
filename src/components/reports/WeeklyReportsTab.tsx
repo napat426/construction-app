@@ -23,7 +23,7 @@ import {
   deleteWeeklyReport,
   updateWeeklyReportsOrder,
 } from "@/app/actions/reports";
-import { computeTaskDates } from "@/lib/scheduler";
+import { computeTaskDates, countWorkingDays, computeProjectExtension } from "@/lib/scheduler";
 
 import type { UserSession } from "@/lib/auth";
 
@@ -33,6 +33,7 @@ interface Props {
   tasks?: WBSTask[];
   milestones?: ProjectMilestone[];
   userRole?: string | null;
+  amendments?: ContractAmendment[];
 }
 
 // Custom natural sort for WBS numbers
@@ -132,6 +133,7 @@ export function WeeklyReportsTab({
   tasks = [],
   milestones = [],
   userRole,
+  amendments = [],
 }: Props) {
   const [items, setItems] = useState<WeeklyReport[]>(data);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -424,8 +426,8 @@ function WeeklyReportForm({
   // --- Calculate Dashboard / EVM Data for Print ---
   const scheduledTasks = useMemo(() => {
     const sorted = [...tasks].sort((a, b) => sortWBS(a.wbs_no, b.wbs_no));
-    return computeTaskDates(sorted, project.start_date);
-  }, [tasks, project.start_date]);
+    return computeTaskDates(sorted, project.start_date, amendments);
+  }, [tasks, project.start_date, amendments]);
 
   const evm = useMemo(() => {
     const today = new Date();
@@ -452,8 +454,8 @@ function WeeklyReportForm({
         } else if (todayDateOnly < tStart) {
           plannedProgress = 0;
         } else {
-          const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime());
-          const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime();
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, amendments));
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, amendments);
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100;
         }
 
@@ -476,8 +478,8 @@ function WeeklyReportForm({
         } else if (todayDateOnly < tStart) {
           plannedProgress = 0;
         } else {
-          const totalTaskTime = Math.max(1, tEnd.getTime() - tStart.getTime());
-          const elapsedTaskTime = todayDateOnly.getTime() - tStart.getTime();
+          const totalTaskTime = Math.max(1, countWorkingDays(tStart, tEnd, amendments));
+          const elapsedTaskTime = countWorkingDays(tStart, todayDateOnly, amendments);
           plannedProgress = (elapsedTaskTime / totalTaskTime) * 100;
         }
         totalPlanned += plannedProgress;
@@ -502,14 +504,9 @@ function WeeklyReportForm({
     const SV = EV - PV;
     const CV = EV - AC;
 
-    const start = project.start_date ? new Date(project.start_date) : null;
-    const end = project.end_date ? new Date(project.end_date) : null;
-    let totalDays = 0;
-    if (start && end) {
-      const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-      const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-      totalDays = Math.max(0, Math.ceil((endDateOnly.getTime() - startDateOnly.getTime()) / (1000 * 60 * 60 * 24)));
-    }
+    const ext = computeProjectExtension(project, amendments);
+    const totalDays = ext.totalDays;
+
     const SV_percent = evCumulative - pvCumulative;
     let svDays = 0;
     if (totalDays > 0) {
@@ -517,7 +514,7 @@ function WeeklyReportForm({
     }
 
     return { PV, EV, AC, SV, CV, svDays, pvCumulative, evCumulative, acPercent, SV_percent, totalDays };
-  }, [scheduledTasks, milestones, project]);
+  }, [scheduledTasks, milestones, project, amendments]);
 
   const summary = useMemo(() => {
     const totalWBSCost = scheduledTasks.reduce(

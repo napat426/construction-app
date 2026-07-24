@@ -207,6 +207,9 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
       future: futureTasksCount,
     }
 
+    const SPI = pvCumulative > 0 ? evCumulative / pvCumulative : 1.0
+    const CPI = acPercent > 0 ? evCumulative / acPercent : 1.0
+
     return {
       ext,
       totalDays,
@@ -226,6 +229,8 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
       acCumulative: acPercent,
       sv: SV,
       cv: CV,
+      SPI,
+      CPI,
       svDays,
       progressDiff,
       progressDaysDiff,
@@ -521,26 +526,74 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
               <TrendingUp size={16} className="text-primary-600 dark:text-primary-400" />
               วิเคราะห์ EVM
             </h3>
-            <div className="flex-1 space-y-3">
-              {[
-                { label: 'PV แผนสะสม', value: `${metrics.pvCumulative.toFixed(1)}%`, color: 'text-slate-500 dark:text-slate-400' },
-                { label: 'EV ผลงานจริง', value: `${metrics.evCumulative.toFixed(1)}%`, color: 'text-primary-600 dark:text-primary-400' },
-                { label: 'AC ต้นทุนจริง', value: `${metrics.acCumulative.toFixed(1)}%`, color: 'text-amber-500 dark:text-amber-400' },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="flex items-center justify-between py-2.5 border-b border-slate-100 dark:border-[#1e1e38] last:border-0">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{label}</span>
-                  <span className={`text-base font-black font-mono ${color}`}>{value}</span>
+            
+            <div className="flex-1 space-y-3.5">
+              {/* SPI Index */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1a1a32] border border-slate-100 dark:border-[#252548] flex flex-col gap-1 shadow-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SPI (ดัชนีแผนงาน)</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                    metrics.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                    metrics.SPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+                    'bg-red-500/10 text-red-600 dark:text-red-400'
+                  }`}>
+                    {metrics.SPI >= 1.0 ? 'เร็วกว่าแผน' : metrics.SPI >= 0.9 ? 'ล่าช้าเล็กน้อย' : 'ล่าช้าวิกฤต'}
+                  </span>
                 </div>
-              ))}
+                <div className="flex items-baseline gap-1.5">
+                  <span className={`text-2xl font-black font-mono leading-none ${
+                    metrics.SPI >= 1.0 ? 'text-emerald-600 dark:text-emerald-400' :
+                    metrics.SPI >= 0.9 ? 'text-amber-500' :
+                    'text-red-500'
+                  }`}>
+                    {metrics.SPI.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">
+                    (PV {metrics.pvCumulative.toFixed(0)}% vs EV {metrics.evCumulative.toFixed(0)}%)
+                  </span>
+                </div>
+              </div>
+
+              {/* CPI Index */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1a1a32] border border-slate-100 dark:border-[#252548] flex flex-col gap-1 shadow-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CPI (ดัชนีต้นทุน)</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                    metrics.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                    metrics.CPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+                    'bg-red-500/10 text-red-600 dark:text-red-400'
+                  }`}>
+                    {metrics.CPI >= 1.0 ? 'ประหยัดงบ' : metrics.CPI >= 0.9 ? 'เกินงบเล็กน้อย' : 'เกินงบวิกฤต'}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className={`text-2xl font-black font-mono leading-none ${
+                    metrics.CPI >= 1.0 ? 'text-emerald-600 dark:text-emerald-400' :
+                    metrics.CPI >= 0.9 ? 'text-amber-500' :
+                    'text-red-500'
+                  }`}>
+                    {metrics.CPI.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">
+                    (EV {metrics.evCumulative.toFixed(0)}% vs AC {metrics.acCumulative.toFixed(0)}%)
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className={`text-center py-2 rounded-xl text-xs font-bold ${
-              metrics.progressStatus === 'ahead'
+
+            {/* Overall Status Pill */}
+            <div className={`text-center py-2.5 rounded-xl text-xs font-bold ${
+              metrics.SPI >= 1.0 && metrics.CPI >= 1.0
                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : metrics.progressStatus === 'behind'
-                ? 'bg-red-500/10 text-red-500'
-                : 'bg-slate-100 dark:bg-[#1e1e38] text-slate-500'
+                : metrics.SPI < 0.9 || metrics.CPI < 0.9
+                ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
             }`}>
-              {metrics.progressStatus === 'ahead' ? '✓ เร็วกว่าแผน' : metrics.progressStatus === 'behind' ? '⚠ ล่าช้ากว่าแผน' : '● ตรงตามแผน'}
+              {metrics.SPI >= 1.0 && metrics.CPI >= 1.0 
+                ? '● สุขภาพโครงการดี (Healthy)' 
+                : metrics.SPI < 0.9 || metrics.CPI < 0.9 
+                ? '⚠ วิกฤต (Critical Alert)' 
+                : '⚠ เฝ้าระวัง (Warning)'}
             </div>
           </div>
         </div>

@@ -235,8 +235,14 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
   const summaryKpis = useMemo(() => {
     const totalBudget = filteredProjects.reduce((sum, p) => sum + (p.budget || 0), 0)
     const totalEVWeighted = filteredProjects.reduce((sum, p) => sum + (p.evCumulative * (p.budget || 0)), 0)
+    const totalPVWeighted = filteredProjects.reduce((sum, p) => sum + (p.pvCumulative * (p.budget || 0)), 0)
+    const totalAC = filteredProjects.reduce((sum, p) => sum + ((p.acPercent / 100) * (p.budget || 0)), 0)
 
-    const averageEV = totalBudget > 0 ? totalEVWeighted / totalBudget : (filteredProjects.length > 0 ? filteredProjects.reduce((sum, p) => sum + p.evCumulative, 0) / filteredProjects.length : 0)
+    const averageEV = totalBudget > 0 ? totalEVWeighted / totalBudget : 0
+    const averagePV = totalBudget > 0 ? totalPVWeighted / totalBudget : 0
+
+    const totalEV = totalEVWeighted / 100
+    const totalPV = totalPVWeighted / 100
 
     const lateCount = filteredProjects.filter((p) => p.SV < 0).length
     const doneCount = filteredProjects.filter((p) => p.status === 'เสร็จสิ้น').length
@@ -244,6 +250,10 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
     return {
       totalBudget,
       averageEV,
+      averagePV,
+      totalPV,
+      totalEV,
+      totalAC,
       lateCount,
       doneCount,
     }
@@ -534,52 +544,74 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
           </div>
         </div>
 
-        {/* average EV */}
+        {/* average Progress */}
         <div className="card rounded-2xl p-5 border border-slate-200 dark:border-[#1c1c34] flex items-center gap-4 bg-white dark:bg-[#14142a] print:card">
           <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center print:hidden flex-shrink-0">
             <TrendingUp size={20} />
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">EV เฉลี่ยความก้าวหน้าสะสม</p>
-            <p className="text-lg font-black text-slate-900 dark:text-white mt-1">
-              {summaryKpis.averageEV.toFixed(1)}%
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">เฉลี่ยความก้าวหน้าโครงการ</p>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-lg font-black text-purple-600 dark:text-purple-400">
+                EV {summaryKpis.averageEV.toFixed(1)}%
+              </span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">
+                (แผน PV {summaryKpis.averagePV.toFixed(1)}%)
+              </span>
+            </div>
+            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-1">
+              ดัชนีแผนงานเฉลี่ย (SPI) = {(summaryKpis.averagePV > 0 ? summaryKpis.averageEV / summaryKpis.averagePV : 1).toFixed(2)}
             </p>
           </div>
         </div>
 
-        {/* delayed projects */}
+        {/* EVM values */}
+        <div className="card rounded-2xl p-5 border border-slate-200 dark:border-[#1c1c34] flex items-center gap-4 bg-white dark:bg-[#14142a] print:card col-span-1">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center print:hidden flex-shrink-0">
+            <ClipboardCheck size={20} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">วิเคราะห์มูลค่าสะสม (EVM)</p>
+            <div className="grid grid-cols-3 gap-1.5 mt-1.5 text-[9px] font-bold">
+              <div className="bg-slate-50 dark:bg-[#1a1a32] p-1.5 rounded border border-slate-100 dark:border-[#252548] min-w-0">
+                <span className="text-slate-400 truncate block">PV แผน</span>
+                <p className="font-black text-slate-700 dark:text-slate-300 font-mono mt-0.5 truncate">{formatBudget(summaryKpis.totalPV)}</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-[#1a1a32] p-1.5 rounded border border-slate-100 dark:border-[#252548] min-w-0">
+                <span className="text-purple-600 truncate block">EV ผลงาน</span>
+                <p className="font-black text-purple-600 font-mono mt-0.5 truncate">{formatBudget(summaryKpis.totalEV)}</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-[#1a1a32] p-1.5 rounded border border-slate-100 dark:border-[#252548] min-w-0">
+                <span className="text-amber-600 truncate block">AC จ่ายจริง</span>
+                <p className="font-black text-amber-500 font-mono mt-0.5 truncate">{formatBudget(summaryKpis.totalAC)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Project Status Summary */}
         <div className="card rounded-2xl p-5 border border-slate-200 dark:border-[#1c1c34] flex items-center gap-4 bg-white dark:bg-[#14142a] print:card">
-          <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center print:hidden flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center print:hidden flex-shrink-0">
             <AlertTriangle size={20} />
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">โครงการล่าช้ากว่าแผน</p>
-            <p className="text-lg font-black text-red-600 dark:text-red-400 mt-1">
-              {summaryKpis.lateCount} โครงการ
-            </p>
-          </div>
-        </div>
-
-        {/* completed projects */}
-        <div className="card rounded-2xl p-5 border border-slate-200 dark:border-[#1c1c34] flex items-center gap-4 bg-white dark:bg-[#14142a] print:card">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center print:hidden flex-shrink-0">
-            <CheckCircle size={20} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">โครงการเสร็จสิ้น</p>
-            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-1">
-              {summaryKpis.doneCount} โครงการ
-            </p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">สถานะสุขภาพโครงการ</p>
+            <div className="flex items-center gap-4 mt-2">
+              <div>
+                <span className="text-[10px] text-slate-400">เสร็จสิ้น</span>
+                <p className="text-base font-black text-emerald-600">{summaryKpis.doneCount} โครงการ</p>
+              </div>
+              <div className="w-px h-6 bg-slate-200 dark:bg-[#252548]" />
+              <div>
+                <span className="text-[10px] text-slate-400">ล่าช้ากว่าแผน</span>
+                <p className="text-base font-black text-red-500">{summaryKpis.lateCount} โครงการ</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── PART 2.5: PAYMENT FORECAST CHART ── */}
-      <div className={`mb-6 ${includePrintForecast ? 'print:block' : 'no-print'}`}>
-        <PaymentForecastChart milestones={milestones} projects={projects} />
-      </div>
-
-      {/* ── PART 3: COMPARISON TABLE ── */}
+      {/* ── PART 3: COMPARISON TABLE (Moved to top) ── */}
       <div className="card rounded-2xl border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] overflow-hidden print:card shadow-sm">
         {filteredProjects.length === 0 ? (
           <div className="text-center py-20">
@@ -600,18 +632,9 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                   <th className="py-4 px-3 w-32 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('remaining')}>
                     วันคงเหลือ {sortBy === 'remaining' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
                   </th>
-                  <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('ev')}>
+                  <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300 w-[180px]" onClick={() => handleSort('ev')}>
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span>Progress</span>
-                      <span className="text-[9px] font-normal text-slate-400 lowercase tracking-normal print:text-slate-600">
-                        (
-                        <span className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full inline-block align-middle mr-0.5"></span>
-                        PV แผน / 
-                        <span className="w-1.5 h-1.5 bg-purple-600 rounded-full inline-block align-middle ml-1 mr-0.5"></span>
-                        EV จริง
-                        )
-                      </span>
-                      {sortBy === 'ev' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1 flex-shrink-0" />}
+                      <span>ความก้าวหน้า {sortBy === 'ev' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1 flex-shrink-0" />}</span>
                     </div>
                   </th>
                   <th className="py-4 px-3 w-20 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('sv')}>
@@ -688,24 +711,31 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                         </span>
                       </td>
 
-                      {/* Overlapping Progress Bar (PV and EV in single track) */}
-                      <td className="py-4 px-3 pr-4">
-                        <div className="flex items-center gap-3 w-full">
-                          <div className="relative flex-1 h-3.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-300/50 dark:border-[#252548]">
-                            {/* PV bar (gray) */}
-                            <div
-                              className="absolute top-0 bottom-0 left-0 bg-slate-400 dark:bg-slate-500 rounded-full"
-                              style={{ width: `${Math.min(100, p.pvCumulative)}%` }}
-                            />
-                            {/* EV bar (purple) */}
-                            <div
-                              className="absolute top-0 bottom-0 left-0 bg-purple-600 dark:bg-purple-500 rounded-full"
-                              style={{ width: `${Math.min(100, p.evCumulative)}%` }}
-                            />
+                      {/* Stacked Progress Bar (PV and EV in separate tracks) */}
+                      <td className="py-3 px-3 pr-4">
+                        <div className="flex flex-col gap-1 w-full min-w-[120px]">
+                          {/* PV Bar (Planned) */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 w-4 tracking-wider">PV</span>
+                            <div className="relative flex-1 h-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]/30">
+                              <div
+                                className="absolute top-0 bottom-0 left-0 bg-slate-400 dark:bg-slate-500 rounded-full"
+                                style={{ width: `${Math.min(100, p.pvCumulative)}%` }}
+                              />
+                            </div>
+                            <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 w-7 text-right">{p.pvCumulative.toFixed(0)}%</span>
                           </div>
-                          <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 flex-shrink-0">
-                            PV {p.pvCumulative.toFixed(0)}% / EV {p.evCumulative.toFixed(0)}%
-                          </span>
+                          {/* EV Bar (Actual) */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[8px] font-bold text-purple-600 dark:text-purple-400 w-4 tracking-wider">EV</span>
+                            <div className="relative flex-1 h-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]/30">
+                              <div
+                                className="absolute top-0 bottom-0 left-0 bg-purple-600 dark:bg-purple-500 rounded-full"
+                                style={{ width: `${Math.min(100, p.evCumulative)}%` }}
+                              />
+                            </div>
+                            <span className="text-[9px] font-mono text-purple-600 dark:text-purple-400 w-7 text-right">{p.evCumulative.toFixed(0)}%</span>
+                          </div>
                         </div>
                       </td>
 
@@ -782,47 +812,10 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
         )}
       </div>
 
-      {/* ── PART 4: HORIZONTAL COMPARISON BAR CHART (Hidden in print) ── */}
-      {filteredProjects.length > 0 && (
-        <div className="card rounded-2xl p-6 border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] no-print shadow-sm">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-6 flex items-center gap-1.5">
-            <TrendingUp size={15} />
-            เปรียบเทียบความก้าวหน้าจริงสะสม (EV%) ของแต่ละโครงการ
-          </h4>
-
-          <div className="space-y-4 max-w-4xl">
-
-            {filteredProjects.map((p) => {
-              // Bar color matches status
-              let barColor = 'bg-slate-400 dark:bg-slate-600'
-              if (p.status === 'กำลังดำเนินการ') {
-                barColor = p.SV < 0 ? 'bg-red-500' : 'bg-blue-500'
-              } else if (p.status === 'เสร็จสิ้น') {
-                barColor = 'bg-emerald-500'
-              } else if (p.status === 'ระงับ') {
-                barColor = 'bg-amber-500'
-              }
-
-              return (
-                <div key={p.id} className="flex items-center gap-4">
-                  <div className="w-1/4 text-xs font-black truncate text-slate-700 dark:text-slate-300" title={p.name}>
-                    {p.name}
-                  </div>
-                  <div className="flex-1 bg-slate-100 dark:bg-[#1e1e38] h-6 rounded-lg overflow-hidden relative border border-slate-200/50 dark:border-[#252548]">
-                    <div
-                      className={`h-full rounded-lg transition-all duration-500 opacity-90 ${barColor}`}
-                      style={{ width: `${Math.min(100, p.evCumulative)}%` }}
-                    />
-                    <span className="absolute inset-y-0 right-3 flex items-center text-[10px] font-mono font-black text-slate-600 dark:text-slate-300">
-                      {p.evCumulative.toFixed(1)}% EV
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+      {/* ── PART 2.5: PAYMENT FORECAST CHART (Moved to bottom) ── */}
+      <div className={`mt-6 mb-6 ${includePrintForecast ? 'print:block' : 'no-print'}`}>
+        <PaymentForecastChart milestones={milestones} projects={projects} />
+      </div>
 
 
     </div>

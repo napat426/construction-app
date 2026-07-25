@@ -677,9 +677,9 @@ function WeeklyReportForm({
         if (currDate >= tEnd) {
           plannedSum += taskWeightValue;
         } else if (currDate >= tStart) {
-          const elapsed =
-            (currDate.getTime() - tStart.getTime()) / (24 * 60 * 60 * 1000);
-          plannedSum += taskWeightValue * (elapsed / t.duration);
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments));
+          const elapsed = countWorkingDays(tStart, currDate, amendments);
+          plannedSum += taskWeightValue * (elapsed / totalDur);
         }
       }
 
@@ -771,7 +771,7 @@ function WeeklyReportForm({
       });
     });
     return list;
-  }, [scheduledTasks, dateRange, summary, project, milestones, item]);
+  }, [scheduledTasks, dateRange, summary, project, milestones, item, amendments]);
 
   const ganttHeaders = useMemo(() => {
     const list: string[] = [];

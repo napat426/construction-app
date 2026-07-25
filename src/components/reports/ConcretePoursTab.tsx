@@ -81,8 +81,8 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
     
     let status = 'normal' // 🟢
     if (diffDays < 0) status = 'passed' // ✓
-    else if (diffDays === 0 || diffDays === 1) status = 'critical' // 🔴
-    else if (diffDays <= 3) status = 'warning' // 🟡
+    else if (diffDays === 0) status = 'critical' // 🔴
+    else if (diffDays > 0 && diffDays <= 3) status = 'warning' // 🟡
     
     return { targetDate, diffDays, status }
   }

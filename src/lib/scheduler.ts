@@ -67,17 +67,30 @@ export function isDateSuspended(date: Date, amendments: ContractAmendment[]): bo
 }
 
 // Add working days to a start date, skipping suspended days
+// Add working days to a start date, skipping suspended days (supports positive and negative lag)
 export function addWorkingDays(startDate: Date, daysToAdd: number, amendments: ContractAmendment[]): Date {
   let currentDate = stripTime(startDate)
-  let remainingDays = Math.max(0, daysToAdd) // duration
-
-  while (remainingDays > 0) {
-    // If the day is suspended, it doesn't count towards the duration
-    if (!isDateSuspended(currentDate, amendments)) {
-      remainingDays--
+  
+  if (daysToAdd >= 0) {
+    let remainingDays = daysToAdd
+    while (remainingDays > 0) {
+      // If the day is suspended, it doesn't count towards the duration
+      if (!isDateSuspended(currentDate, amendments)) {
+        remainingDays--
+      }
+      if (remainingDays > 0) {
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
     }
-    if (remainingDays > 0) {
-      currentDate.setDate(currentDate.getDate() + 1)
+  } else {
+    let remainingDays = Math.abs(daysToAdd)
+    while (remainingDays > 0) {
+      if (!isDateSuspended(currentDate, amendments)) {
+        remainingDays--
+      }
+      if (remainingDays > 0) {
+        currentDate.setDate(currentDate.getDate() - 1)
+      }
     }
   }
   return currentDate

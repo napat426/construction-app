@@ -261,15 +261,9 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
             {/* Model Selector */}
             <div className="px-4 py-3 border-b border-slate-200 dark:border-[#252548] flex-shrink-0">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">โมเดล AI</span>
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full text-xs font-semibold bg-white dark:bg-[#1a1a32] border border-slate-200 dark:border-[#252548] rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer"
-              >
-                <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash (แนะนำ)</option>
-                <option value="gemini-2.5-flash-lite">💨 Gemini 2.5 Flash Lite (เบา/เร็ว)</option>
-                <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro (ขั้นสูง)</option>
-              </select>
+              <div className="w-full text-xs font-semibold bg-slate-100 dark:bg-[#1a1a32] border border-slate-200 dark:border-[#252548] rounded-lg px-2.5 py-1.5 text-slate-500 dark:text-slate-400 select-none">
+                ⚡ Gemini 2.5 Flash
+              </div>
             </div>
 
             {/* RAG Sources */}

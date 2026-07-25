@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { deleteTask } from '@/app/actions/tasks'
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
-import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended } from '@/lib/scheduler'
+import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended, parsePredecessor } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
 interface PlanningClientProps {
@@ -79,6 +79,28 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
   const [inputDuration, setInputDuration] = useState<string | number>('')
   const [inputStartDate, setInputStartDate] = useState('')
   const [inputPredecessors, setInputPredecessors] = useState('')
+  const [inputPredWbs, setInputPredWbs] = useState('')
+  const [inputPredType, setInputPredType] = useState<'FS' | 'SS' | 'FF' | 'SF'>('FS')
+  const [inputPredLag, setInputPredLag] = useState<number | ''>('')
+
+  // Helper to re-calculate computed predecessor string
+  const updatePredecessorString = (wbs: string, type: 'FS' | 'SS' | 'FF' | 'SF', lag: number | '') => {
+    if (!wbs.trim()) {
+      setInputPredecessors('')
+      return
+    }
+    let val = wbs.trim()
+    if (type !== 'FS') {
+      val += type
+    }
+    const lagNum = Number(lag) || 0
+    if (lagNum > 0) {
+      val += `+${lagNum}`
+    } else if (lagNum < 0) {
+      val += `${lagNum}`
+    }
+    setInputPredecessors(val)
+  }
   const [inputCost, setInputCost] = useState<string | number>('')
   const [inputProgress, setInputProgress] = useState<string | number>('')
   const [inputIsMilestone, setInputIsMilestone] = useState(false)
@@ -381,6 +403,10 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     setInputDuration(task.duration)
     setInputStartDate(task.start_date || '')
     setInputPredecessors(task.predecessors || '')
+    const initialPred = task.predecessors ? parsePredecessor(task.predecessors) : null
+    setInputPredWbs(initialPred?.wbsNo || '')
+    setInputPredType(initialPred?.type || 'FS')
+    setInputPredLag(initialPred !== null ? initialPred.lagDays : '')
     setInputCost(task.cost)
     setInputProgress(task.actual_progress)
     setInputIsMilestone(task.is_milestone)
@@ -393,6 +419,9 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     setInputDuration('')
     setInputStartDate('')
     setInputPredecessors('')
+    setInputPredWbs('')
+    setInputPredType('FS')
+    setInputPredLag('')
     setInputCost('')
     setInputProgress('')
     setInputIsMilestone(false)
@@ -628,12 +657,45 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                             {formatDate(t.computedEndDate)}
                           </td>
                           <td className="py-2 px-2">
-                            <input
-                              type="text"
-                              className="input-base w-full px-1.5 py-1 text-xs font-mono"
-                              value={inputPredecessors}
-                              onChange={(e) => setInputPredecessors(e.target.value)}
-                            />
+                            <div className="flex items-center gap-1 min-w-[160px]">
+                              <input
+                                type="text"
+                                className="input-base w-12 px-1 py-0.5 text-xs text-center font-mono"
+                                value={inputPredWbs}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  setInputPredWbs(val)
+                                  updatePredecessorString(val, inputPredType, inputPredLag)
+                                }}
+                                placeholder="เลขงาน"
+                              />
+                              <select
+                                className="input-base w-14 px-1 py-0.5 text-xs"
+                                value={inputPredType}
+                                onChange={(e) => {
+                                  const val = e.target.value as any
+                                  setInputPredType(val)
+                                  updatePredecessorString(inputPredWbs, val, inputPredLag)
+                                }}
+                              >
+                                <option value="FS">FS</option>
+                                <option value="SS">SS</option>
+                                <option value="FF">FF</option>
+                                <option value="SF">SF</option>
+                              </select>
+                              <input
+                                type="number"
+                                className="input-base w-12 px-1 py-0.5 text-xs text-center"
+                                value={inputPredLag}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  const num = val === '' ? '' : Number(val)
+                                  setInputPredLag(num)
+                                  updatePredecessorString(inputPredWbs, inputPredType, num)
+                                }}
+                                placeholder="0"
+                              />
+                            </div>
                           </td>
                           <td className="py-2 px-2">
                             <input
@@ -838,15 +900,47 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       )}
                     </td>
                     <td className="py-2 px-2 font-mono text-slate-400 text-xs">—</td>{/* end date placeholder */}
-                    <td className="py-2 px-2">
-                      <input
-                        type="text"
-                        placeholder="งานก่อนหน้า"
-                        className="input-base w-full px-1.5 py-1 text-xs font-mono"
-                        value={inputPredecessors}
-                        onChange={(e) => setInputPredecessors(e.target.value)}
-                      />
-                    </td>
+                     <td className="py-2 px-2">
+                       <div className="flex items-center gap-1 min-w-[160px]">
+                         <input
+                           type="text"
+                           className="input-base w-12 px-1 py-0.5 text-xs text-center font-mono"
+                           value={inputPredWbs}
+                           onChange={(e) => {
+                             const val = e.target.value
+                             setInputPredWbs(val)
+                             updatePredecessorString(val, inputPredType, inputPredLag)
+                           }}
+                           placeholder="เลขงาน"
+                         />
+                         <select
+                           className="input-base w-14 px-1 py-0.5 text-xs"
+                           value={inputPredType}
+                           onChange={(e) => {
+                             const val = e.target.value as any
+                             setInputPredType(val)
+                             updatePredecessorString(inputPredWbs, val, inputPredLag)
+                           }}
+                         >
+                           <option value="FS">FS</option>
+                           <option value="SS">SS</option>
+                           <option value="FF">FF</option>
+                           <option value="SF">SF</option>
+                         </select>
+                         <input
+                           type="number"
+                           className="input-base w-12 px-1 py-0.5 text-xs text-center"
+                           value={inputPredLag}
+                           onChange={(e) => {
+                             const val = e.target.value
+                             const num = val === '' ? '' : Number(val)
+                             setInputPredLag(num)
+                             updatePredecessorString(inputPredWbs, inputPredType, num)
+                           }}
+                           placeholder="0"
+                         />
+                       </div>
+                     </td>
                     <td className="py-2 px-2">
                       <input
                         type="number"

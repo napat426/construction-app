@@ -2,23 +2,25 @@ import type { WBSTask, ContractAmendment, Project } from '@/lib/types'
 
 interface ParsedPredecessor {
   wbsNo: string
+  type: 'FS' | 'SS' | 'FF' | 'SF'
   lagDays: number
 }
 
-// Parses predecessor strings like "1.1", "1.1+10", "1.1-5"
+// Parses predecessor strings like "1.1", "1.1SS", "1.1FF+10", "4-20"
 export function parsePredecessor(predStr: string | null): ParsedPredecessor | null {
   if (!predStr) return null
   const clean = predStr.trim().replace(/\s+/g, '')
   
-  const match = clean.match(/^([0-9.]+)(?:([+-])(\d+))?$/)
+  const match = clean.match(/^([0-9.]+)(FS|SS|FF|SF)?(?:([+-])(\d+))?$/i)
   if (!match) return null
   
   const wbsNo = match[1]
-  const sign = match[2]
-  const amount = match[3] ? parseInt(match[3], 10) : 0
+  const type = (match[2]?.toUpperCase() || 'FS') as 'FS' | 'SS' | 'FF' | 'SF'
+  const sign = match[3]
+  const amount = match[4] ? parseInt(match[4], 10) : 0
   
   const lagDays = sign === '-' ? -amount : amount
-  return { wbsNo, lagDays }
+  return { wbsNo, type, lagDays }
 }
 
 export interface TaskSegment {
@@ -203,16 +205,30 @@ export function computeTaskDates(tasks: WBSTask[], projectStartDate: string | nu
 
     const parsed = parsePredecessor(task.predecessors)
     let startDate: Date
+    const durationDays = task.duration || 1
 
     if (parsed && taskMap.has(parsed.wbsNo)) {
       const predDates = getDates(parsed.wbsNo, visiting)
-      const baseDate = predDates.end
-      startDate = addWorkingDays(baseDate, parsed.lagDays, amendments)
+      const predStart = predDates.start
+      const predEnd = predDates.end
+      const lag = parsed.lagDays
+
+      if (parsed.type === 'SS') {
+        startDate = addWorkingDays(predStart, lag, amendments)
+      } else if (parsed.type === 'FF') {
+        const endDate = addWorkingDays(predEnd, lag, amendments)
+        startDate = addWorkingDays(endDate, -durationDays, amendments)
+      } else if (parsed.type === 'SF') {
+        const endDate = addWorkingDays(predStart, lag, amendments)
+        startDate = addWorkingDays(endDate, -durationDays, amendments)
+      } else {
+        // FS (Default)
+        startDate = addWorkingDays(predEnd, lag, amendments)
+      }
     } else {
       startDate = task.start_date ? new Date(task.start_date) : fallbackProjectStart
     }
 
-    const durationDays = task.duration || 1
     const endDate = addWorkingDays(startDate, durationDays, amendments)
 
     visiting.delete(wbsNo)

@@ -4,6 +4,7 @@ import { useEffect, useRef, useActionState, useState } from 'react'
 import { X, Save, Plus, Loader2 } from 'lucide-react'
 import { createTask, updateTask } from '@/app/actions/tasks'
 import type { WBSTask, ActionState } from '@/lib/types'
+import { parsePredecessor } from '@/lib/scheduler'
 
 interface TaskModalProps {
   projectId: string
@@ -38,6 +39,35 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
     if (task) return task.actual_progress ?? ''
     return ''
   })
+
+  // Predecessor parsing and state
+  const [predWbs, setPredWbs] = useState(() => {
+    const initialPred = task?.predecessors ? parsePredecessor(task.predecessors) : null
+    return initialPred?.wbsNo || ''
+  })
+  const [predType, setPredType] = useState<'FS' | 'SS' | 'FF' | 'SF'>(() => {
+    const initialPred = task?.predecessors ? parsePredecessor(task.predecessors) : null
+    return initialPred?.type || 'FS'
+  })
+  const [predLag, setPredLag] = useState<number | ''>(() => {
+    const initialPred = task?.predecessors ? parsePredecessor(task.predecessors) : null
+    return initialPred !== null ? initialPred.lagDays : ''
+  })
+
+  const predecessorsValue = (() => {
+    if (!predWbs.trim()) return ''
+    let val = predWbs.trim()
+    if (predType !== 'FS') {
+      val += predType
+    }
+    const lagNum = Number(predLag) || 0
+    if (lagNum > 0) {
+      val += `+${lagNum}`
+    } else if (lagNum < 0) {
+      val += `${lagNum}`
+    }
+    return val
+  })()
 
   // Close modal on success
   useEffect(() => {
@@ -206,36 +236,75 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 items-center pt-2">
-            {/* งานก่อนหน้า (Predecessors) */}
-            <div>
-              <label className={labelCls} htmlFor="predecessors">
-                งานก่อนหน้า (WBS No.)
-              </label>
-              <input
-                id="predecessors"
-                name="predecessors"
-                type="text"
-                defaultValue={task?.predecessors || ''}
-                placeholder="เช่น 1.1 หรือ 1.2, 2.1"
-                className={inputCls}
-              />
+          {/* งานก่อนหน้า (Predecessors) */}
+          <div className="border border-slate-200 dark:border-[#252548] p-4 rounded-2xl space-y-3 bg-slate-50/50 dark:bg-[#1a1a32]/10">
+            <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              กำหนดความสัมพันธ์งานก่อนหน้า (Predecessor)
+            </h4>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={labelCls} htmlFor="pred_wbs">
+                  งานก่อนหน้า (WBS)
+                </label>
+                <input
+                  id="pred_wbs"
+                  type="text"
+                  value={predWbs}
+                  onChange={(e) => setPredWbs(e.target.value)}
+                  placeholder="เช่น 1.1 หรือ 4"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls} htmlFor="pred_type">
+                  ประเภท
+                </label>
+                <select
+                  id="pred_type"
+                  value={predType}
+                  onChange={(e) => setPredType(e.target.value as any)}
+                  className={inputCls}
+                >
+                  <option value="FS">FS (เสร็จ-ค่อยเริ่ม)</option>
+                  <option value="SS">SS (เริ่มพร้อมกัน)</option>
+                  <option value="FF">FF (เสร็จพร้อมกัน)</option>
+                  <option value="SF">SF (เริ่ม-ค่อยเสร็จ)</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls} htmlFor="pred_lag">
+                  วันเหลื่อม (+/- วัน)
+                </label>
+                <input
+                  id="pred_lag"
+                  type="number"
+                  value={predLag}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setPredLag(val === '' ? '' : Number(val))
+                  }}
+                  placeholder="0"
+                  className={inputCls}
+                />
+              </div>
             </div>
-            
-            {/* Milestone Checkbox */}
-            <div className="flex items-center gap-2 mt-4 select-none">
-              <input
-                id="is_milestone"
-                name="is_milestone"
-                type="checkbox"
-                value="true"
-                defaultChecked={task?.is_milestone || false}
-                className="w-4.5 h-4.5 text-primary-600 border-slate-200 dark:border-[#252548] rounded focus:ring-primary-500"
-              />
-              <label htmlFor="is_milestone" className="text-xs font-bold text-slate-600 dark:text-slate-400 cursor-pointer">
-                เป็นกิจกรรมสำคัญ (Milestone)
-              </label>
-            </div>
+            {/* Hidden Input to submit computed predecessor string */}
+            <input type="hidden" name="predecessors" value={predecessorsValue} />
+          </div>
+          
+          {/* Milestone Checkbox */}
+          <div className="flex items-center gap-2 select-none pt-2">
+            <input
+              id="is_milestone"
+              name="is_milestone"
+              type="checkbox"
+              value="true"
+              defaultChecked={task?.is_milestone || false}
+              className="w-4.5 h-4.5 text-primary-600 border-slate-200 dark:border-[#252548] rounded focus:ring-primary-500"
+            />
+            <label htmlFor="is_milestone" className="text-xs font-bold text-slate-600 dark:text-slate-400 cursor-pointer">
+              เป็นกิจกรรมสำคัญ (Milestone)
+            </label>
           </div>
 
           {/* Actions */}

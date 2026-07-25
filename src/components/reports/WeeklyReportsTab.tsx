@@ -329,6 +329,7 @@ function WeeklyReportForm({
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(
     null,
   );
+  const [lockSnapshot, setLockSnapshot] = useState(true);
 
   useEffect(() => {
     const handleBeforePrint = () => {
@@ -405,12 +406,17 @@ function WeeklyReportForm({
       s_curve_data: sCurveData,
     };
 
+    let finalSnapshot = snapshot;
+    if (item && lockSnapshot && item.snapshot) {
+      finalSnapshot = item.snapshot as any;
+    }
+
     const payload = {
       date_range: formatDateRange(fd.get("date_start") as string, fd.get("date_end") as string),
       summary: fd.get("summary") || null,
       delayed_tasks: fd.get("delayed_tasks") || null,
       look_ahead: fd.get("look_ahead") || null,
-      snapshot,
+      snapshot: finalSnapshot,
     };
 
     startTransition(async () => {
@@ -998,6 +1004,30 @@ function WeeklyReportForm({
               <span className="bg-amber-500 text-white px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-wider">
                 ค่าปัจจุบัน
               </span>
+            </div>
+          )}
+
+          {/* Lock Snapshot Checkbox (Checked by default for existing reports) */}
+          {item && (
+            <div className="bg-slate-50 dark:bg-[#1a1a32]/20 border border-slate-200 dark:border-[#252548] p-4 rounded-2xl flex items-start gap-3 print:hidden select-none">
+              <input
+                id="lock_snapshot"
+                type="checkbox"
+                checked={lockSnapshot}
+                onChange={(e) => setLockSnapshot(e.target.checked)}
+                className="mt-1 w-4.5 h-4.5 text-primary-600 border-slate-200 dark:border-[#252548] rounded focus:ring-primary-500 cursor-pointer"
+              />
+              <div>
+                <label
+                  htmlFor="lock_snapshot"
+                  className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer block"
+                >
+                  🔒 ล็อกค่าสถิติความก้าวหน้าโครงการ (EVM/Dashboard) ของสัปดาห์นี้ไว้
+                </label>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                  เมื่อทำเครื่องหมายถูก ระบบจะไม่คำนวณข้อมูลสถิติใหม่เมื่อกดบันทึก ช่วยให้แก้ไขข้อความทั่วไปได้โดยข้อมูลสถิติประวัติศาสตร์ย้อนหลังไม่ถูกเขียนทับ (หากต้องการอัปเดตเป็นสถิติล่าสุดให้เอาเครื่องหมายถูกออกก่อนบันทึก)
+                </span>
+              </div>
             </div>
           )}
 

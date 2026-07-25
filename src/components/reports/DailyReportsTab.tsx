@@ -95,7 +95,8 @@ export function DailyReportsTab({ project, data, user }: Props) {
 
   // Calculate calendar days
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
-  const firstDayOffset = new Date(currentYear, currentMonth, 1).getDay() // 0 = Sunday, 1 = Monday, etc.
+  const rawOffset = new Date(currentYear, currentMonth, 1).getDay() // 0 = Sunday, 1 = Monday, etc.
+  const firstDayOffset = rawOffset === 0 ? 6 : rawOffset - 1
 
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
@@ -256,13 +257,13 @@ export function DailyReportsTab({ project, data, user }: Props) {
         <div className="flex-1 bg-slate-50/50 dark:bg-white/5 rounded-3xl p-4 border border-slate-200 dark:border-slate-800 overflow-y-auto">
           {/* Calendar day names */}
           <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-            <span>อา</span>
             <span>จ</span>
             <span>อ</span>
             <span>พ</span>
             <span>พฤ</span>
             <span>ศ</span>
             <span>ส</span>
+            <span>อา</span>
           </div>
 
           {/* Grid cells */}

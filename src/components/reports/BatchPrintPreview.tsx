@@ -236,6 +236,10 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
       </div>
 
       <style jsx global>{`
+        @page {
+          size: A4;
+          margin: 8mm 12mm !important;
+        }
         @media print {
           body {
             background: white !important;
@@ -248,12 +252,73 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
             box-shadow: none !important;
             background: white !important;
             width: 100% !important;
-            min-height: 297mm !important;
+            min-height: calc(297mm - 16mm) !important;
+            height: calc(297mm - 16mm) !important;
             page-break-after: always !important;
+            page-break-inside: avoid !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: space-between !important;
+            box-sizing: border-box !important;
           }
+          
+          /* Compact print overrides */
+          .print-day-container .mb-4 {
+            margin-bottom: 6px !important;
+          }
+          .print-day-container .p-3 {
+            padding: 6px 10px !important;
+            border-radius: 8px !important;
+          }
+          .print-day-container .p-4 {
+            padding: 8px 12px !important;
+            border-radius: 8px !important;
+          }
+          .print-day-container .gap-4 {
+            gap: 8px !important;
+          }
+          .print-day-container .mt-4 {
+            margin-top: 8px !important;
+            padding-top: 8px !important;
+          }
+          .print-day-container .mt-8 {
+            margin-top: 12px !important;
+            padding-top: 8px !important;
+          }
+          .print-day-container .mb-8 {
+            margin-bottom: 16px !important;
+          }
+          .print-day-container .pb-3 {
+            padding-bottom: 4px !important;
+            margin-bottom: 8px !important;
+          }
+          
+          /* Scale down photos for printing */
+          .print-day-container .grid-cols-3 .aspect-\[4\/3\] {
+            height: 90px !important;
+            border-radius: 8px !important;
+          }
+          
+          /* Header compacting */
+          .print-day-container h1 {
+            font-size: 16px !important;
+          }
+          .print-day-container h2 {
+            font-size: 11px !important;
+          }
+          .print-day-container p, 
+          .print-day-container span, 
+          .print-day-container div {
+            font-size: 10px !important;
+            line-height: 1.3 !important;
+          }
+          .print-day-container .text-[9px] {
+            font-size: 8px !important;
+          }
+          .print-day-container .text-base {
+            font-size: 11px !important;
+          }
+
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;

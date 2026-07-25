@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Sparkles, BarChart2, AlertTriangle, GitCompare, Calendar, FileText, Send, ChevronDown, ChevronUp, Copy, Check, ExternalLink, Search, Loader2 } from 'lucide-react'
+import { Sparkles, BarChart2, AlertTriangle, Calendar, FileText, Send, ChevronDown, ChevronUp, Copy, Check, ExternalLink, Search, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import type { Project, WBSTask, ProjectMaterial, DailyReport, Inspection } from '@/lib/types'
@@ -28,6 +28,7 @@ interface ChatMessage {
 export function AIAssistantSection({ projects, user }: AIAssistantProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash')
   const [messages, setMessages] = useState<ChatMessage[]>([{
     id: '1',
     role: 'assistant',
@@ -159,10 +160,18 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
     setMessages(prev => [...prev, { id: botMsgId, role: 'assistant', content: '', isTyping: true, actionType, originalText: text }])
 
     try {
+      // Build conversation history from existing messages for multi-turn memory
+      const currentMessages = messages.filter(m => m.id !== '1' && !m.isTyping && m.content)
+      const conversationHistory = currentMessages.map(m => ({
+        role: m.role,
+        content: m.content,
+        isTyping: false
+      }))
+
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actionType, projectIds: selectedIds, question: text, userId: user?.id, forceRefresh })
+        body: JSON.stringify({ actionType, projectIds: selectedIds, question: text, userId: user?.id, forceRefresh, conversationHistory, selectedModel })
       })
       const data = await res.json()
       
@@ -249,6 +258,21 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
               <p className="text-xs text-slate-400 mt-3 text-center font-medium">เลือกแล้ว {selectedIds.length} โครงการ</p>
             </div>
 
+            {/* Model Selector */}
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-[#252548] flex-shrink-0">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">โมเดล AI</span>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="w-full text-xs font-semibold bg-white dark:bg-[#1a1a32] border border-slate-200 dark:border-[#252548] rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer"
+              >
+                <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash (แนะนำ)</option>
+                <option value="gemini-2.0-flash">🔥 Gemini 2.0 Flash</option>
+                <option value="gemini-1.5-flash">💨 Gemini 1.5 Flash (เร็ว)</option>
+                <option value="gemini-1.5-pro">🧠 Gemini 1.5 Pro (ขั้นสูง)</option>
+              </select>
+            </div>
+
             {/* RAG Sources */}
             <div className="p-4 bg-slate-100/50 dark:bg-[#1a1a32] border-t border-slate-200 dark:border-[#252548]">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">แหล่งข้อมูลที่ AI ค้นพบ (RAG)</span>
@@ -313,7 +337,6 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
             <div className="p-3 border-b border-slate-200 dark:border-[#252548] bg-slate-50/50 dark:bg-[#1a1a36] flex gap-2 overflow-x-auto custom-scrollbar">
               <QuickBtn icon={<BarChart2 size={14}/>} label="สรุปสถานะ" onClick={() => sendQuery('ช่วยสรุปสถานะโครงการ', 'summary')} disabled={selectedIds.length === 0} />
               <QuickBtn icon={<AlertTriangle size={14}/>} label="วิเคราะห์ความเสี่ยง" onClick={() => sendQuery('วิเคราะห์ความเสี่ยง', 'risk')} disabled={selectedIds.length === 0} />
-              <QuickBtn icon={<GitCompare size={14}/>} label="เปรียบเทียบโครงการ" onClick={() => sendQuery('เปรียบเทียบโครงการ', 'compare')} disabled={selectedIds.length < 2} title={selectedIds.length < 2 ? 'เลือกอย่างน้อย 2 โครงการ' : ''} />
               <QuickBtn icon={<Calendar size={14}/>} label="สิ่งที่ต้องทำสัปดาห์นี้" onClick={() => sendQuery('สิ่งที่ต้องทำสัปดาห์นี้', 'tasks')} disabled={selectedIds.length === 0} />
               <QuickBtn icon={<FileText size={14}/>} label="ร่างรายงานผู้บริหาร" onClick={() => sendQuery('ร่างรายงานผู้บริหาร', 'report')} disabled={selectedIds.length === 0} />
             </div>
@@ -360,7 +383,7 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
                         
                         {m.cachedAt && (
                           <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                            <span>วิเคราะห์เมื่อ {new Date(m.cachedAt).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span>วิเคราะห์เมื่อ {new Date(m.cachedAt).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit', timeZone: 'Asia/Bangkok'})}</span>
                             <button 
                               onClick={() => sendQuery(m.originalText || m.actionType || 'summary', m.actionType || 'summary', true)}
                               className="flex items-center gap-1 text-primary-600 hover:text-primary-700 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded font-medium"

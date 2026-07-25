@@ -18,6 +18,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
   const [pours, setPours] = useState<ConcretePour[]>(initialPours)
   const [modalOpen, setModalOpen] = useState(false)
   const [editData, setEditData] = useState<ConcretePour | null>(null)
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => initialPours.map((p) => p.id))
   
   // Drag and Drop State
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
@@ -27,6 +28,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
     // Sort by sequence or created_at
     const sorted = [...initialPours].sort((a, b) => a.sequence - b.sequence)
     setPours(sorted)
+    setSelectedIds(sorted.map((p) => p.id))
   }, [initialPours])
 
   const handleDragStart = (e: React.DragEvent, idx: number) => {
@@ -140,6 +142,20 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
             <thead className="bg-slate-50 dark:bg-[#1e1e38] text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-[#252548] print:bg-transparent print:text-black">
               <tr>
+                <th className="px-4 py-3 w-10 text-center print:hidden">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === pours.length && pours.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedIds(pours.map(p => p.id))
+                      } else {
+                        setSelectedIds([])
+                      }
+                    }}
+                    className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                  />
+                </th>
                 {user && (user.role === 'admin' || user.role === 'editor') && (
                   <th className="px-4 py-3 w-10 text-center print:hidden"></th>
                 )}
@@ -156,7 +172,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
             <tbody className="divide-y divide-slate-100 dark:divide-[#1e1e38]">
               {pours.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
                     <Info className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                     <p>ยังไม่มีบันทึกการเทคอนกรีต</p>
                   </td>
@@ -175,6 +191,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                 const curing28 = calculateCuring(pour.pour_date, 28)
                 const curing7 = calculateCuring(pour.pour_date, 7)
                 const curing14 = calculateCuring(pour.pour_date, 14)
+                const isSelected = selectedIds.includes(pour.id)
 
                 return (
                   <tr 
@@ -183,8 +200,23 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                     onDragStart={(e) => handleDragStart(e, idx)}
                     onDragOver={(e) => handleDragOver(e, idx)}
                     onDrop={handleDrop}
-                    className={`${draggedIdx === idx ? 'opacity-50 bg-slate-50 dark:bg-[#1e1e38]' : 'hover:bg-slate-50 dark:hover:bg-[#1e1e38]/50'} transition-colors print:break-inside-avoid print:border-b print:border-slate-200`}
+                    className={`${draggedIdx === idx ? 'opacity-50 bg-slate-50 dark:bg-[#1e1e38]' : 'hover:bg-slate-50 dark:hover:bg-[#1e1e38]/50'} ${!isSelected ? 'print:hidden' : ''} transition-colors print:break-inside-avoid print:border-b print:border-slate-200`}
                   >
+                    {/* Checkbox for Print Selection */}
+                    <td className="px-4 py-3 text-center print:hidden">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds([...selectedIds, pour.id])
+                          } else {
+                            setSelectedIds(selectedIds.filter(id => id !== pour.id))
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                      />
+                    </td>
                     {user && (user.role === 'admin' || user.role === 'editor') && (
                       <td className="px-4 py-3 text-center print:hidden">
                         <div className="cursor-grab hover:text-primary-500 text-slate-300 dark:text-slate-600 flex justify-center">
@@ -227,30 +259,71 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                       ) : '-'}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold w-10">28 วัน</span>
-                          <div 
-                            className="text-xs font-medium px-2 py-0.5 rounded-full"
+                      <div className="flex flex-col gap-1.5 max-w-[240px]">
+                        {/* 7 Days Curing */}
+                        <div className="flex items-center justify-between text-xs gap-3">
+                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 w-10 uppercase">7 วัน</span>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {curing7.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                          </span>
+                          <span 
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full w-24 text-center"
                             style={{
-                              backgroundColor: curing28.status === 'passed' ? '#f0fdf4' : curing28.status === 'critical' ? '#fef2f2' : curing28.status === 'warning' ? '#fefce8' : '#f8fafc',
-                              color: curing28.status === 'passed' ? '#166534' : curing28.status === 'critical' ? '#991b1b' : curing28.status === 'warning' ? '#854d0e' : '#475569',
+                              backgroundColor: curing7.status === 'passed' ? '#f0fdf4' : curing7.status === 'critical' ? '#fef2f2' : curing7.status === 'warning' ? '#fefce8' : '#f8fafc',
+                              color: curing7.status === 'passed' ? '#15803d' : curing7.status === 'critical' ? '#b91c1c' : curing7.status === 'warning' ? '#a16207' : '#475569',
                               WebkitPrintColorAdjust: 'exact',
                               printColorAdjust: 'exact'
                             }}
                           >
-                            {curing28.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
-                            {curing28.status !== 'passed' && curing28.diffDays > 0 && ` (เหลือ ${curing28.diffDays} วัน)`}
-                            {curing28.status === 'passed' && ' (ผ่านแล้ว)'}
-                            {curing28.status === 'critical' && ' (ครบกำหนด)'}
-                          </div>
+                            {curing7.status === 'passed' && '✓ ผ่านแล้ว'}
+                            {curing7.status === 'critical' && '🔴 ครบกำหนด'}
+                            {curing7.status === 'warning' && `🟡 เหลือ ${curing7.diffDays} วัน`}
+                            {curing7.status === 'normal' && `เหลือ ${curing7.diffDays} วัน`}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                          <span className="w-10 text-right">7 วัน:</span>
-                          <span>{curing7.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}</span>
-                          <span className="mx-1">|</span>
-                          <span>14 วัน:</span>
-                          <span>{curing14.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}</span>
+
+                        {/* 14 Days Curing */}
+                        <div className="flex items-center justify-between text-xs gap-3 border-t border-slate-100 dark:border-[#1e1e38]/50 pt-1">
+                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 w-10 uppercase">14 วัน</span>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {curing14.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                          </span>
+                          <span 
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full w-24 text-center"
+                            style={{
+                              backgroundColor: curing14.status === 'passed' ? '#f0fdf4' : curing14.status === 'critical' ? '#fef2f2' : curing14.status === 'warning' ? '#fefce8' : '#f8fafc',
+                              color: curing14.status === 'passed' ? '#15803d' : curing14.status === 'critical' ? '#b91c1c' : curing14.status === 'warning' ? '#a16207' : '#475569',
+                              WebkitPrintColorAdjust: 'exact',
+                              printColorAdjust: 'exact'
+                            }}
+                          >
+                            {curing14.status === 'passed' && '✓ ผ่านแล้ว'}
+                            {curing14.status === 'critical' && '🔴 ครบกำหนด'}
+                            {curing14.status === 'warning' && `🟡 เหลือ ${curing14.diffDays} วัน`}
+                            {curing14.status === 'normal' && `เหลือ ${curing14.diffDays} วัน`}
+                          </span>
+                        </div>
+
+                        {/* 28 Days Curing */}
+                        <div className="flex items-center justify-between text-xs gap-3 border-t border-slate-100 dark:border-[#1e1e38]/50 pt-1">
+                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 w-10 uppercase">28 วัน</span>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {curing28.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                          </span>
+                          <span 
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full w-24 text-center"
+                            style={{
+                              backgroundColor: curing28.status === 'passed' ? '#f0fdf4' : curing28.status === 'critical' ? '#fef2f2' : curing28.status === 'warning' ? '#fefce8' : '#f8fafc',
+                              color: curing28.status === 'passed' ? '#15803d' : curing28.status === 'critical' ? '#b91c1c' : curing28.status === 'warning' ? '#a16207' : '#475569',
+                              WebkitPrintColorAdjust: 'exact',
+                              printColorAdjust: 'exact'
+                            }}
+                          >
+                            {curing28.status === 'passed' && '✓ ผ่านแล้ว'}
+                            {curing28.status === 'critical' && '🔴 ครบกำหนด'}
+                            {curing28.status === 'warning' && `🟡 เหลือ ${curing28.diffDays} วัน`}
+                            {curing28.status === 'normal' && `เหลือ ${curing28.diffDays} วัน`}
+                          </span>
                         </div>
                       </div>
                     </td>
@@ -289,6 +362,8 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
         <div className="grid grid-cols-2 gap-4">
           {pours.map(pour => {
             if (!pour.photos || pour.photos.length === 0) return null
+            const isSelected = selectedIds.includes(pour.id)
+            if (!isSelected) return null
             return (
               <div key={`photo-${pour.id}`} className="print:break-inside-avoid mb-6">
                 <p className="font-bold mb-2">{pour.pour_no} - {pour.structure_element}</p>

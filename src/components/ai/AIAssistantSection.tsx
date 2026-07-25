@@ -267,9 +267,8 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
                 className="w-full text-xs font-semibold bg-white dark:bg-[#1a1a32] border border-slate-200 dark:border-[#252548] rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer"
               >
                 <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash (แนะนำ)</option>
-                <option value="gemini-2.0-flash">🔥 Gemini 2.0 Flash</option>
-                <option value="gemini-1.5-flash">💨 Gemini 1.5 Flash (เร็ว)</option>
-                <option value="gemini-1.5-pro">🧠 Gemini 1.5 Pro (ขั้นสูง)</option>
+                <option value="gemini-2.5-flash-lite">💨 Gemini 2.5 Flash Lite (เบา/เร็ว)</option>
+                <option value="gemini-2.5-pro">🧠 Gemini 2.5 Pro (ขั้นสูง)</option>
               </select>
             </div>
 

@@ -93,32 +93,148 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fetch live data
+    // Fetch live data (including new types: amendments & punch items)
     const { data: projectsData } = await supabase.from('projects').select('*').in('id', projectIds)
     const projects = projectsData || []
 
     const { data: tasksData } = await supabase.from('tasks').select('*').in('project_id', projectIds)
     const { data: materialsData } = await supabase.from('materials').select('*').in('project_id', projectIds)
     const { data: milestonesData } = await supabase.from('project_milestones').select('*').in('project_id', projectIds)
+    const { data: amendmentsData } = await supabase.from('contract_amendments').select('*').in('project_id', projectIds).order('amendment_no', { ascending: true })
+    const { data: punchItemsData } = await supabase.from('punch_items').select('*, punch_lists!inner(project_id)').in('punch_lists.project_id', projectIds)
 
     const tasks = tasksData || []
     const materials = materialsData || []
     const milestones = milestonesData || []
+    const amendments = amendmentsData || []
+    const punchItems = (punchItemsData as any[]) || []
 
-    // Fetch extra textual data for better context
-    const { data: inspections } = await supabase.from('inspections').select('inspection_no, work_type, status, request_date, note').in('project_id', projectIds).order('created_at', { ascending: false }).limit(10)
-    const { data: pours } = await supabase.from('concrete_pours').select('pour_no, pour_date, structure_element, concrete_grade, volume, supplier').in('project_id', projectIds).order('created_at', { ascending: false }).limit(10)
-    const { data: dailyReports } = await supabase.from('daily_reports').select('report_date, weather, manpower, machinery, work_done, issues').in('project_id', projectIds).order('report_date', { ascending: false }).limit(10)
+    // Fetch extra textual data with expanded limits for rich calculations
+    const { data: inspectionsData } = await supabase.from('inspections').select('project_id, inspection_no, work_type, status, request_date, note').in('project_id', projectIds).order('created_at', { ascending: false }).limit(50)
+    const { data: poursData } = await supabase.from('concrete_pours').select('project_id, pour_no, pour_date, structure_element, concrete_grade, volume, supplier').in('project_id', projectIds).order('created_at', { ascending: false }).limit(50)
+    const { data: dailyReportsData } = await supabase.from('daily_reports').select('project_id, report_date, weather, manpower, machinery, work_done, issues').in('project_id', projectIds).order('report_date', { ascending: false }).limit(30)
     
+    const inspections = inspectionsData || []
+    const pours = poursData || []
+    const dailyReports = dailyReportsData || []
+
+    // 1. Calculate and compile Rich Aggregated Context per project
+    let richAnalyticsContext = ''
+    projects.forEach(p => {
+      const pTasks = tasks.filter(t => t.project_id === p.id)
+      const pMaterials = materials.filter(m => m.project_id === p.id)
+      const pMilestones = milestones.filter(m => m.project_id === p.id)
+      const pAmendments = amendments.filter(a => a.project_id === p.id)
+      const pPunchItems = punchItems.filter(item => item.punch_lists?.project_id === p.id)
+      const pInspections = inspections.filter(i => i.project_id === p.id)
+      const pPours = pours.filter(pour => pour.project_id === p.id)
+      const pDailyReports = dailyReports.filter(d => d.project_id === p.id)
+
+      // A. Financials & Payment Progress (Milestones)
+      const totalBudget = p.budget || 0
+      const totalMilestoneValue = pMilestones.reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
+      const totalPaidAmount = pMilestones.filter(m => m.is_paid).reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
+      const totalUnpaidAmount = totalMilestoneValue - totalPaidAmount
+      const paymentProgressPct = totalMilestoneValue > 0 ? (totalPaidAmount / totalMilestoneValue) * 100 : 0
+      const paidMilestonesCount = pMilestones.filter(m => m.is_paid).length
+
+      // B. Contract Amendments & Extensions
+      const amendmentCount = pAmendments.length
+      const totalExtraDays = pAmendments.reduce((sum, a) => sum + (Number(a.extra_days) || 0), 0)
+      const amendmentDetails = pAmendments.map(a => `- ครั้งที่ ${a.amendment_no}: เพิ่ม ${a.extra_days} วัน (${a.reason})`).join('\n  ')
+
+      // C. Quality Control / Defect Logs (Punch List)
+      const totalPunch = pPunchItems.length
+      const punchOpen = pPunchItems.filter(item => item.status === 'open' || item.status === 'in_progress').length
+      const punchClosed = pPunchItems.filter(item => item.status === 'done').length
+      const punchCategories = pPunchItems.reduce((acc: any, item) => {
+        const cat = item.category || 'อื่นๆ'
+        acc[cat] = (acc[cat] || 0) + 1
+        return acc
+      }, {})
+      const punchCatText = Object.entries(punchCategories).map(([cat, count]) => `${cat}: ${count} รายการ`).join(', ')
+
+      // D. Quality Inspections Pass Rate (Last 50)
+      const totalInsp = pInspections.length
+      const approvedInsp = pInspections.filter(i => i.status === 'approved').length
+      const rejectedInsp = pInspections.filter(i => i.status === 'rejected').length
+      const pendingInsp = pInspections.filter(i => i.status === 'pending' || i.status === 'submitted').length
+      const completedInsp = approvedInsp + rejectedInsp
+      const passRatePct = completedInsp > 0 ? (approvedInsp / completedInsp) * 100 : 0
+
+      // E. Concrete Pour volume & suppliers
+      const totalPoursCount = pPours.length
+      const totalVolumePoured = pPours.reduce((sum, pour) => sum + (Number(pour.volume) || 0), 0)
+      const suppliers = Array.from(new Set(pPours.map(pour => pour.supplier).filter(Boolean)))
+
+      // F. Daily Reports Aggregated Statistics (Last 30 Days)
+      const reportedDays = pDailyReports.length
+      const weatherCounts = pDailyReports.reduce((acc: any, d) => {
+        const w = d.weather || 'ไม่ระบุ'
+        acc[w] = (acc[w] || 0) + 1
+        return acc
+      }, {})
+      const weatherText = Object.entries(weatherCounts).map(([w, count]) => `${w} ${count} วัน`).join(', ')
+
+      // Average manpower per day
+      let totalWorkers = 0
+      let totalWorkerDays = 0
+      pDailyReports.forEach(d => {
+        if (Array.isArray(d.manpower)) {
+          const dayWorkers = d.manpower.reduce((sum, m) => sum + (Number(m.quantity) || 0), 0)
+          if (dayWorkers > 0) {
+            totalWorkers += dayWorkers
+            totalWorkerDays++
+          }
+        }
+      })
+      const avgWorkersPerDay = totalWorkerDays > 0 ? (totalWorkers / totalWorkerDays).toFixed(1) : '0'
+      const recentIssues = Array.from(new Set(pDailyReports.map(d => d.issues).filter(Boolean))).slice(0, 5)
+
+      richAnalyticsContext += `
+--- สถิติวิเคราะห์สะสมเชิงลึก (โครงการ: ${p.name}) ---
+💰 ด้านการเงินและแผนการชำระเงิน:
+  - งบประมาณทั้งหมด: ${totalBudget.toLocaleString('th-TH')} บาท
+  - ยอดเบิกจ่ายแล้วสะสม: ${totalPaidAmount.toLocaleString('th-TH')} บาท (${paymentProgressPct.toFixed(1)}% ของมูลค่างวดทั้งหมด)
+  - ยอดค้างรับ/รอเบิกจ่าย: ${totalUnpaidAmount.toLocaleString('th-TH')} บาท
+  - จำนวนงวดงานทั้งหมด: ${pMilestones.length} งวด (ชำระเงินแล้ว ${paidMilestonesCount} งวด)
+
+⏳ การขยายสัญญาและปรับแก้:
+  - ปรับแก้สัญญา: ${amendmentCount} ครั้ง | รวมขยายเวลาสัญญาเพิ่ม: ${totalExtraDays} วัน
+  ${amendmentCount > 0 ? `รายละเอียดงานขยายเวลาสัญญาเพิ่มเติม:\n  ${amendmentDetails}` : ''}
+
+🔧 งานแก้ไขและบกพร่องสะสม (Punch List):
+  - จำนวนแจ้งแก้สะสม: ${totalPunch} รายการ (กำลังแก้ไข: ${punchOpen} รายการ | แก้เสร็จสิ้น: ${punchClosed} รายการ)
+  - สรุปแยกตามประเภทงานบกพร่อง: ${punchCatText || 'ไม่มีรายการแก้ไขค้างอยู่'}
+
+📋 ประสิทธิภาพงานตรวจสอบคุณภาพ (Inspection Pass Rate):
+  - ยอดส่งตรวจสอบสะสม (สูงสุด 50 รายการล่าสุด): ${totalInsp} รายการ
+  - ตรวจผ่านอนุมัติ: ${approvedInsp} ครั้ง | ตรวจตก/ไม่อนุมัติ: ${rejectedInsp} ครั้ง | รอตรวจสอบ: ${pendingInsp} ครั้ง
+  - อัตราส่วนผ่านการตรวจ (Pass Rate): ${passRatePct.toFixed(1)}%
+
+🏗️ งานเทคอนกรีตโครงสร้างสะสม (สูงสุด 50 รายการล่าสุด):
+  - จำนวนการเทปูนสะสม: ${totalPoursCount} ครั้ง | ปริมาตรรวม: ${totalVolumePoured.toLocaleString('th-TH')} ลูกบาศก์เมตร (คิว)
+  - แหล่งจัดส่งปูน (Suppliers): ${suppliers.join(', ') || 'ไม่มีรายละเอียด'}
+
+📅 บันทึกข้อมูลสภาพแวดล้อมและแรงงาน (ช่วง 30 วันที่ผ่านมา):
+  - จำนวนวันบันทึกรายงาน: ${reportedDays} วัน
+  - สรุปสภาพอากาศที่พบ: ${weatherText || 'ไม่มีรายละเอียด'}
+  - แรงงานเข้าทำงานเฉลี่ยต่อวัน: ${avgWorkersPerDay} คน
+  - รายการปัญหาและอุปสรรคสำคัญที่รายงาน:
+    ${recentIssues.length > 0 ? recentIssues.map(issue => `* ${issue}`).join('\n    ') : '* ไม่มีรายงานอุปสรรค'}
+`
+    })
+
+    // 2. Build detail snippets for recent items (sliced for context readability)
     let extraContext = ''
     if (inspections && inspections.length > 0) {
-      extraContext += `\nรายการตรวจสอบล่าสุด:\n` + inspections.map((i: any) => `- เลขที่: ${i.inspection_no}, งาน: ${i.work_type}, สถานะ: ${i.status}, หมายเหตุ: ${i.note || '-'}`).join('\n')
+      extraContext += `\nรายการตรวจสอบล่าสุด:\n` + inspections.slice(0, 8).map((i: any) => `- เลขที่: ${i.inspection_no}, งาน: ${i.work_type}, สถานะ: ${i.status}, หมายเหตุ: ${i.note || '-'}`).join('\n')
     }
     if (pours && pours.length > 0) {
-      extraContext += `\n\nรายการเทคอนกรีตล่าสุด:\n` + pours.map((p: any) => `- วันที่: ${new Date(p.pour_date).toLocaleDateString('th-TH')}, ส่วนโครงสร้าง: ${p.structure_element}, เกรด: ${p.concrete_grade}, ปริมาตร: ${p.volume} คิว`).join('\n')
+      extraContext += `\n\nรายการเทคอนกรีตล่าสุด:\n` + pours.slice(0, 8).map((p: any) => `- วันที่: ${new Date(p.pour_date).toLocaleDateString('th-TH')}, ส่วนโครงสร้าง: ${p.structure_element}, เกรด: ${p.concrete_grade}, ปริมาตร: ${p.volume} คิว`).join('\n')
     }
     if (dailyReports && dailyReports.length > 0) {
-      extraContext += `\n\nรายงานประจำวันล่าสุด:\n` + dailyReports.map((d: any) => {
+      extraContext += `\n\nรายงานประจำวันล่าสุด:\n` + dailyReports.slice(0, 5).map((d: any) => {
         const manStr = Array.isArray(d.manpower) ? d.manpower.map((m: any) => `${m.name}=${m.quantity}`).join(', ') : '-'
         return `- วันที่: ${new Date(d.report_date).toLocaleDateString('th-TH')}, สภาพอากาศ: ${d.weather}, แรงงาน: [${manStr}], งานที่ทำ: ${d.work_done || '-'}`
       }).join('\n')
@@ -203,9 +319,14 @@ export async function POST(req: Request) {
       rawContext = `ข้อมูลครบถ้วนของโครงการที่เลือก:\n${fullSummaries.join('\n')}`
     }
 
+    // Append rich analytics context for ALL queries (Option 1 & 3)
+    if (richAnalyticsContext) {
+      rawContext += `\n\n${richAnalyticsContext}`
+    }
+
     // Append extra context for ALL questions
     if (extraContext) {
-      rawContext += `\n\n--- ข้อมูลบันทึกโครงการล่าสุด (ใช้อ้างอิงหากผู้ใช้ถาม) ---\n${extraContext}`
+      rawContext += `\n\n--- ข้อมูลดิบและประวัติบันทึกโครงการล่าสุด ---\n${extraContext}`
     }
 
     // 2. Call Gemini API

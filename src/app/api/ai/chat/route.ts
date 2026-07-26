@@ -94,7 +94,10 @@ export async function POST(req: Request) {
     }
 
     // Fetch live data (including new types: amendments & punch items)
+    const { data: allProjectsData } = await supabase.from('projects').select('id, name, supervisor, status, budget')
     const { data: projectsData } = await supabase.from('projects').select('*').in('id', projectIds)
+    
+    const allProjects = allProjectsData || []
     const projects = projectsData || []
 
     const { data: tasksData } = await supabase.from('tasks').select('*').in('project_id', projectIds)
@@ -192,35 +195,51 @@ export async function POST(req: Request) {
       const recentIssues = Array.from(new Set(pDailyReports.map(d => d.issues).filter(Boolean))).slice(0, 5)
 
       richAnalyticsContext += `
---- สถิติวิเคราะห์สะสมเชิงลึก (โครงการ: ${p.name}) ---
-💰 ด้านการเงินและแผนการชำระเงิน:
-  - งบประมาณทั้งหมด: ${totalBudget.toLocaleString('th-TH')} บาท
-  - ยอดเบิกจ่ายแล้วสะสม: ${totalPaidAmount.toLocaleString('th-TH')} บาท (${paymentProgressPct.toFixed(1)}% ของมูลค่างวดทั้งหมด)
-  - ยอดค้างรับ/รอเบิกจ่าย: ${totalUnpaidAmount.toLocaleString('th-TH')} บาท
-  - จำนวนงวดงานทั้งหมด: ${pMilestones.length} งวด (ชำระเงินแล้ว ${paidMilestonesCount} งวด)
+--- ข้อมูลสัญญาและการเงินเชิงลึก (โครงการ: ${p.name}) ---
+👤 ผู้เกี่ยวข้องและข้อมูลสัญญา:
+  - ผู้ควบคุมงาน (Supervisor): ${p.supervisor || 'ไม่ได้ระบุ'}
+  - กรรมการตรวจรับ (Inspection Committee): ${p.inspection_committee || 'ไม่ได้ระบุ'}
+  - เลขที่สัญญา: ${p.contract_no || 'ไม่ได้ระบุ'}
+  - ผู้รับจ้าง (Contractor): ${p.contractor || 'ไม่ได้ระบุ'}
+  - สถานะโครงการ: ${p.status}
 
-⏳ การขยายสัญญาและปรับแก้:
+📅 กำหนดเวลาและอัตราค่าปรับ:
+  - วันเริ่มต้นสัญญา: ${p.start_date ? new Date(p.start_date).toLocaleDateString('th-TH') : 'ไม่ได้ระบุ'}
+  - วันสิ้นสุดสัญญา: ${p.end_date ? new Date(p.end_date).toLocaleDateString('th-TH') : 'ไม่ได้ระบุ'}
+  - อัตราค่าปรับรายวัน (Penalty Rate): ${(p.penalty_rate || 0).toLocaleString('th-TH')} บาท/วัน
+
+💰 สรุปด้านงบประมาณและสถิติตัวเลข:
+  - งบประมาณรวมทั้งหมด: ${totalBudget.toLocaleString('th-TH')} บาท
+  - ยอดจ่ายจริงแล้วตามระบบ (Paid Amount): ${(p.paid_amount || 0).toLocaleString('th-TH')} บาท
+  - ยอดอนุมัติเบิกจ่ายงวดงานสะสม: ${totalPaidAmount.toLocaleString('th-TH')} บาท (${paymentProgressPct.toFixed(1)}% ของมูลค่างวดชำระสะสม)
+  - ยอดคงเหลือค้างชำระ/ยังไม่ได้จ่าย: ${totalUnpaidAmount.toLocaleString('th-TH')} บาท
+  - งวดงานทั้งหมด: ${pMilestones.length} งวด (ชำระแล้ว ${paidMilestonesCount} งวด, รอจ่าย ${pMilestones.length - paidMilestonesCount} งวด)
+
+💵 รายละเอียดงวดงานการเบิกจ่ายชำระเงิน:
+  ${pMilestones.length > 0 ? pMilestones.map(m => `* งวดที่ ${m.milestone_no}: ${m.name} | ยอดเงิน: ${(m.amount || 0).toLocaleString('th-TH')} บาท | สถานะ: ${m.is_paid ? `จ่ายแล้วเมื่อ ${m.payment_date ? new Date(m.payment_date).toLocaleDateString('th-TH') : '-'}` : `ยังไม่จ่าย (คาดว่าจ่าย: ${m.expected_payment_date ? new Date(m.expected_payment_date).toLocaleDateString('th-TH') : '-'})`}`).join('\n  ') : '* ไม่มีข้อมูลกำหนดงวดงาน'}
+
+⏳ การปรับแก้สัญญาขยายเวลา:
   - ปรับแก้สัญญา: ${amendmentCount} ครั้ง | รวมขยายเวลาสัญญาเพิ่ม: ${totalExtraDays} วัน
   ${amendmentCount > 0 ? `รายละเอียดงานขยายเวลาสัญญาเพิ่มเติม:\n  ${amendmentDetails}` : ''}
 
-🔧 งานแก้ไขและบกพร่องสะสม (Punch List):
-  - จำนวนแจ้งแก้สะสม: ${totalPunch} รายการ (กำลังแก้ไข: ${punchOpen} รายการ | แก้เสร็จสิ้น: ${punchClosed} รายการ)
-  - สรุปแยกตามประเภทงานบกพร่อง: ${punchCatText || 'ไม่มีรายการแก้ไขค้างอยู่'}
+🔧 งานแก้ไขบกพร่องค้างคา (Punch List):
+  - แจ้งแก้สะสม: ${totalPunch} รายการ (กำลังแก้: ${punchOpen} รายการ | แก้เสร็จสิ้น: ${punchClosed} รายการ)
+  - สรุปประเภทงานบกพร่อง: ${punchCatText || 'ไม่มีรายการแก้ไขค้างอยู่'}
 
-📋 ประสิทธิภาพงานตรวจสอบคุณภาพ (Inspection Pass Rate):
-  - ยอดส่งตรวจสอบสะสม (สูงสุด 50 รายการล่าสุด): ${totalInsp} รายการ
-  - ตรวจผ่านอนุมัติ: ${approvedInsp} ครั้ง | ตรวจตก/ไม่อนุมัติ: ${rejectedInsp} ครั้ง | รอตรวจสอบ: ${pendingInsp} ครั้ง
-  - อัตราส่วนผ่านการตรวจ (Pass Rate): ${passRatePct.toFixed(1)}%
+📋 อัตราส่วนผ่านการตรวจสอบคุณภาพ (Inspection Pass Rate):
+  - ส่งตรวจสอบสะสม (สูงสุด 50 รายการล่าสุด): ${totalInsp} รายการ
+  - อนุมัติผ่าน: ${approvedInsp} ครั้ง | ไม่อนุมัติ: ${rejectedInsp} ครั้ง | รอตรวจ: ${pendingInsp} ครั้ง
+  - เปอร์เซ็นต์ตรวจผ่าน (Pass Rate): ${passRatePct.toFixed(1)}%
 
-🏗️ งานเทคอนกรีตโครงสร้างสะสม (สูงสุด 50 รายการล่าสุด):
-  - จำนวนการเทปูนสะสม: ${totalPoursCount} ครั้ง | ปริมาตรรวม: ${totalVolumePoured.toLocaleString('th-TH')} ลูกบาศก์เมตร (คิว)
+🏗️ งานเทปูนโครงสร้างสะสม (สูงสุด 50 รายการล่าสุด):
+  - เทคอนกรีต: ${totalPoursCount} ครั้ง | ปริมาตรรวม: ${totalVolumePoured.toLocaleString('th-TH')} คิว (ลบ.ม.)
   - แหล่งจัดส่งปูน (Suppliers): ${suppliers.join(', ') || 'ไม่มีรายละเอียด'}
 
-📅 บันทึกข้อมูลสภาพแวดล้อมและแรงงาน (ช่วง 30 วันที่ผ่านมา):
-  - จำนวนวันบันทึกรายงาน: ${reportedDays} วัน
-  - สรุปสภาพอากาศที่พบ: ${weatherText || 'ไม่มีรายละเอียด'}
+📅 ข้อมูลบันทึกสภาพแวดล้อมและแรงงาน (ช่วง 30 วันที่ผ่านมา):
+  - บันทึกรายงานรวม: ${reportedDays} วัน
+  - สภาพอากาศที่พบ: ${weatherText || 'ไม่มีรายละเอียด'}
   - แรงงานเข้าทำงานเฉลี่ยต่อวัน: ${avgWorkersPerDay} คน
-  - รายการปัญหาและอุปสรรคสำคัญที่รายงาน:
+  - ปัญหาและอุปสรรคสำคัญที่รายงาน:
     ${recentIssues.length > 0 ? recentIssues.map(issue => `* ${issue}`).join('\n    ') : '* ไม่มีรายงานอุปสรรค'}
 `
     })
@@ -317,6 +336,15 @@ export async function POST(req: Request) {
     else {
       // chat mode — FULL rich context (fix: was previously basic summary only)
       rawContext = `ข้อมูลครบถ้วนของโครงการที่เลือก:\n${fullSummaries.join('\n')}`
+    }
+
+    // Build global system-wide project catalog for cross-project queries (e.g., supervisor comparisons)
+    const globalProjectSummary = allProjects.map(p => 
+      `- โครงการ: ${p.name} | ผู้ควบคุมงาน: ${p.supervisor || 'ไม่ได้ระบุ'} | สถานะ: ${p.status} | งบประมาณ: ${(p.budget || 0).toLocaleString('th-TH')} บาท`
+    ).join('\n')
+
+    if (globalProjectSummary) {
+      rawContext += `\n\n--- บัญชีรายชื่อและงบประมาณของโครงการทั้งหมดในระบบ (สำหรับเปรียบเทียบผู้ควบคุมงาน) ---\n${globalProjectSummary}`
     }
 
     // Append rich analytics context for ALL queries (Option 1 & 3)

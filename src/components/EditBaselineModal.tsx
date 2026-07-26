@@ -533,7 +533,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose }: 
 
         {/* Project Contract Documents (RAG) */}
         <div className="px-6 pb-6 border-t border-slate-100 dark:border-[#1e1e38] pt-5">
-          <DocumentManager scope="project" selectedProjectId={project.id} />
+          <DocumentManager scope="project" selectedProjectId={project.id} readOnly={true} />
         </div>
       </div>
     </div>

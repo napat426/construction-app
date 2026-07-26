@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Link as LinkIcon, Trash2, ExternalLink, Cloud, Cpu, CheckCircle2, FileText } from 'lucide-react'
-import { OCRProcessorModal } from './OCRProcessorModal'
+import { Link as LinkIcon, Trash2, ExternalLink, Cloud, Cpu, CheckCircle2, FileText, AlertTriangle } from 'lucide-react'
 
 interface DocumentManagerProps {
   scope: 'global' | 'project'
@@ -15,7 +14,6 @@ interface DocumentManagerProps {
 export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly = false }: DocumentManagerProps) {
   const [docs, setDocs] = useState<any[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const [activeOCRDoc, setActiveOCRDoc] = useState<{ doc: any, file: File | null } | null>(null)
 
   useEffect(() => {
     if (scope === 'project' && !selectedProjectId) {
@@ -35,35 +33,7 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
     if (onUpdate) onUpdate()
   }
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (!selectedFile) return
-    if (selectedFile.type !== 'application/pdf') {
-      alert('กรุณาเลือกไฟล์ PDF เท่านั้น')
-      return
-    }
-    setIsProcessing(true)
-    try {
-      const { data, error } = await supabase.from('project_documents').insert({
-        project_id: scope === 'project' ? selectedProjectId : null,
-        doc_type: 'PDF',
-        source_type: 'file',
-        external_url: '#',
-        file_name: selectedFile.name,
-        scope: scope,
-        status: 'pending_ocr'
-      }).select().single()
 
-      if (error) throw error
-      
-      setActiveOCRDoc({ doc: data, file: selectedFile })
-      fetchDocs()
-    } catch (err: any) {
-      alert('Error: ' + err.message)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
 
   const handleDelete = async (docId: string) => {
     if (!confirm('ยืนยันการลบลิงก์เอกสารนี้?')) return
@@ -87,29 +57,14 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
       </div>
       
       {!readOnly && (
-        <div className="space-y-2 mb-4 bg-slate-50 dark:bg-[#14142a] p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-center">
-          <input 
-            type="file" 
-            id={`pdf-file-upload-${scope}`}
-            accept="application/pdf" 
-            onChange={handleFileSelect} 
-            className="hidden" 
-            disabled={isProcessing}
-          />
-          <label 
-            htmlFor={`pdf-file-upload-${scope}`}
-            className="cursor-pointer flex flex-col items-center gap-2 py-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
-          >
-            <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-full flex items-center justify-center mx-auto">
-              <FileText size={20} />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-primary-600 hover:underline">
-                {scope === 'global' ? '📁 คลิกเพื่ออัปโหลดรายการประกอบแบบกลาง (PDF)' : '📁 คลิกเพื่ออัปโหลดเอกสารสัญญา (PDF)'}
-              </span>
-              <p className="text-[10px] text-slate-400 mt-1">ขนาดสูงสุดไม่เกิน 20MB (เฉพาะสกุลไฟล์ .pdf)</p>
-            </div>
-          </label>
+        <div className="mb-4 bg-slate-50 dark:bg-[#14142a]/30 p-3.5 rounded-xl border border-slate-200/60 dark:border-[#252548] text-center flex flex-col items-center gap-1.5 shadow-sm">
+          <div className="w-8 h-8 bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-500 rounded-full flex items-center justify-center">
+            <AlertTriangle size={15} />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">ต้องการอัปโหลดเอกสารเพิ่มเติม?</p>
+            <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">โปรดส่งไฟล์ PDF ให้แอดมินอัปโหลดและประมวลผลไฟล์ผ่านระบบ Antigravity IDE</p>
+          </div>
         </div>
       )}
 
@@ -132,19 +87,9 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
             <div className="flex items-center justify-between mt-1">
               <div className="flex items-center gap-2">
                 {doc.status === 'pending_ocr' || doc.status === 'processing' ? (
-                  readOnly ? (
-                    <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-                      {doc.status === 'processing' ? `⚙️ กำลังสแกน (${doc.processed_pages || 0}/${doc.total_pages || '?'})` : '⏳ รอดำเนินการสแกน'}
-                    </span>
-                  ) : (
-                    <button 
-                      onClick={() => setActiveOCRDoc({ doc: doc, file: null })}
-                      className="flex items-center gap-1 text-[9px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 px-1.5 py-0.5 rounded border border-primary-200 dark:border-primary-800 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
-                    >
-                      <Cpu size={10} /> 
-                      {doc.status === 'processing' ? `กำลังประมวลผล (${doc.processed_pages || 0}/${doc.total_pages || '?'})` : '🔍 ประมวลผลให้ AI'}
-                    </button>
-                  )
+                  <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-medium">
+                    {doc.status === 'processing' ? `⚙️ กำลังสแกน (${doc.processed_pages || 0}/${doc.total_pages || '?'})` : '⏳ รอดำเนินการสแกน'}
+                  </span>
                 ) : doc.status === 'ready' ? (
                   <span className="flex items-center gap-1 text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded border border-green-200 dark:border-green-800" title={`อ่านไปแล้ว ${doc.total_pages} หน้า`}>
                     <CheckCircle2 size={10} /> AI พร้อมอ่านแล้ว
@@ -166,14 +111,7 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
         {docs.length === 0 && <p className="text-[10px] text-center text-slate-400 py-2">ยังไม่มีเอกสาร</p>}
       </div>
 
-      {activeOCRDoc && (
-        <OCRProcessorModal 
-          doc={activeOCRDoc.doc} 
-          initialFile={activeOCRDoc.file}
-          onClose={() => setActiveOCRDoc(null)} 
-          onComplete={fetchDocs} 
-        />
-      )}
+
     </div>
   )
 }

@@ -357,6 +357,55 @@ export async function POST(req: Request) {
       rawContext += `\n\n--- ข้อมูลดิบและประวัติบันทึกโครงการล่าสุด ---\n${extraContext}`
     }
 
+    // --- NEW: RAG Document Search from PDF Contracts & Chunks ---
+    try {
+      const searchTerms = question || actionType || ''
+      if (searchTerms) {
+        // Embed the query
+        const embedModel = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '').getGenerativeModel({ model: 'gemini-embedding-001' })
+        const embedResult = await embedModel.embedContent(searchTerms)
+        const queryEmbedding = embedResult.embedding.values.slice(0, 768)
+
+        // Query document_chunks for project matching
+        const { data: matchedChunks } = await supabase.rpc('match_document_chunks', {
+          query_embedding: `[${queryEmbedding.join(',')}]`,
+          match_threshold: 0.2,
+          match_count: 8,
+          p_project_id: projectIds.length === 1 ? projectIds[0] : null
+        })
+
+        if (matchedChunks && matchedChunks.length > 0) {
+          const docSnippetText = matchedChunks.map((c: any) => `[เอกสารสัญญา หน้าที่ ${c.page_number}]:\n${c.content}`).join('\n\n')
+          rawContext += `\n\n--- เนื้อหาข้อความจากเอกสารสัญญา PDF ที่เกี่ยวข้องกับคำถาม ---\n${docSnippetText}`
+        } else {
+          // Fallback text query directly if vector match returns empty
+          const { data: directChunks } = await supabase
+            .from('document_chunks')
+            .select('page_number, content')
+            .in('project_id', projectIds)
+            .limit(10)
+
+          if (directChunks && directChunks.length > 0) {
+            const docSnippetText = directChunks.map((c: any) => `[เอกสารสัญญา หน้าที่ ${c.page_number}]:\n${c.content}`).join('\n\n')
+            rawContext += `\n\n--- เนื้อหาข้อความในสัญญาโครงการ (ตัวอย่าง 10 หน้าแรก) ---\n${docSnippetText}`
+          }
+        }
+      }
+    } catch (ragErr) {
+      console.error('RAG Search fallback:', ragErr)
+      // Fallback: load first 10 chunks directly if embedding fails
+      const { data: fallbackChunks } = await supabase
+        .from('document_chunks')
+        .select('page_number, content')
+        .in('project_id', projectIds)
+        .limit(10)
+
+      if (fallbackChunks && fallbackChunks.length > 0) {
+        const docSnippetText = fallbackChunks.map((c: any) => `[เอกสารสัญญา หน้าที่ ${c.page_number}]:\n${c.content}`).join('\n\n')
+        rawContext += `\n\n--- เนื้อหาข้อความในสัญญาโครงการ ---\n${docSnippetText}`
+      }
+    }
+
     // 2. Call Gemini API
     let answer = ''
     

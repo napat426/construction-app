@@ -222,10 +222,12 @@ export function ProjectsClient({
                 <div className="space-y-2">
                   {(
                     [
-                      "รอดำเนินการ",
-                      "กำลังดำเนินการ",
-                      "เสร็จสิ้น",
-                      "ระงับ",
+                      'ออกแบบ สำรวจ ประมาณการ',
+                      'จัดซื้อจัดจ้าง',
+                      'รอดำเนินการ',
+                      'กำลังดำเนินการ',
+                      'ระงับ',
+                      'เสร็จสิ้น',
                     ] as const
                   ).map((st) => {
                     const checked = selectedStatuses.includes(st)

@@ -25,10 +25,12 @@ type SortDir = 'asc' | 'desc'
 export function PortfolioClient({ projects, tasks, milestones, amendments = [], punchLists = [], punchItems = [], user }: Props) {
   // Checkbox status filter states
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
-    'กำลังดำเนินการ',
-    'เสร็จสิ้น',
+    'ออกแบบ สำรวจ ประมาณการ',
+    'จัดซื้อจัดจ้าง',
     'รอดำเนินการ',
+    'กำลังดำเนินการ',
     'ระงับ',
+    'เสร็จสิ้น',
   ])
 
   // Sorting states
@@ -433,17 +435,73 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
         <div className="flex flex-col gap-2">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ตัวกรองสถานะโครงการ (เลือกดูพร้อมกันได้)</span>
           <div className="flex flex-wrap gap-2.5 items-center">
+            {/* Designing (ออกแบบ สำรวจ ประมาณการ) */}
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={selectedStatuses.includes('ออกแบบ สำรวจ ประมาณการ')}
+                onChange={() => handleToggleStatus('ออกแบบ สำรวจ ประมาณการ')}
+                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500/20"
+              />
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                ออกแบบ/ประมาณการ ({computedProjects.filter((p) => p.status === 'ออกแบบ สำรวจ ประมาณการ').length})
+              </span>
+            </label>
+
+            {/* Procurement (จัดซื้อจัดจ้าง) */}
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={selectedStatuses.includes('จัดซื้อจัดจ้าง')}
+                onChange={() => handleToggleStatus('จัดซื้อจัดจ้าง')}
+                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500/20"
+              />
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                จัดซื้อจัดจ้าง ({computedProjects.filter((p) => p.status === 'จัดซื้อจัดจ้าง').length})
+              </span>
+            </label>
+
+            {/* Pending (รอดำเนินการ) */}
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={selectedStatuses.includes('รอดำเนินการ')}
+                onChange={() => handleToggleStatus('รอดำเนินการ')}
+                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500/20"
+              />
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                รอดำเนินการ ({computedProjects.filter((p) => p.status === 'รอดำเนินการ').length})
+              </span>
+            </label>
+
             {/* Active (กำลังดำเนินการ) */}
             <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={selectedStatuses.includes('กำลังดำเนินการ')}
                 onChange={() => handleToggleStatus('กำลังดำเนินการ')}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500/20"
+                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500/20"
               />
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                กำลังดำเนินการ ({filterCounts.active})
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                กำลังดำเนินการ ({computedProjects.filter((p) => p.status === 'กำลังดำเนินการ').length})
+              </span>
+            </label>
+
+            {/* Suspended (ระงับ) */}
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={selectedStatuses.includes('ระงับ')}
+                onChange={() => handleToggleStatus('ระงับ')}
+                className="w-4 h-4 rounded text-red-600 focus:ring-red-500/20"
+              />
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                ถูกระงับ ({computedProjects.filter((p) => p.status === 'ระงับ').length})
               </span>
             </label>
 
@@ -457,37 +515,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
               />
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                เสร็จสิ้น ({filterCounts.done})
-              </span>
-            </label>
-
-
-
-            {/* Pending (รอดำเนินการ) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('รอดำเนินการ')}
-                onChange={() => handleToggleStatus('รอดำเนินการ')}
-                className="w-4 h-4 rounded text-slate-600 focus:ring-slate-500/20"
-              />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-slate-400" />
-                รอดำเนินการ ({filterCounts.pending})
-              </span>
-            </label>
-
-            {/* Suspended (ระงับ) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('ระงับ')}
-                onChange={() => handleToggleStatus('ระงับ')}
-                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500/20"
-              />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                ถูกระงับ ({filterCounts.paused})
+                เสร็จสิ้น ({computedProjects.filter((p) => p.status === 'เสร็จสิ้น').length})
               </span>
             </label>
           </div>
@@ -496,7 +524,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex gap-2">
             <button
-              onClick={() => setSelectedStatuses(['กำลังดำเนินการ', 'เสร็จสิ้น', 'รอดำเนินการ', 'ระงับ'])}
+              onClick={() => setSelectedStatuses(['ออกแบบ สำรวจ ประมาณการ', 'จัดซื้อจัดจ้าง', 'รอดำเนินการ', 'กำลังดำเนินการ', 'ระงับ', 'เสร็จสิ้น'])}
               className="px-2.5 py-1.5 text-[10px] font-black rounded-lg border border-slate-200 dark:border-[#252548] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
             >
               เลือกทั้งหมด

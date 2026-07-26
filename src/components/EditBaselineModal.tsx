@@ -237,10 +237,12 @@ export function EditBaselineModal({ project, milestones, amendments, onClose }: 
             <div>
               <label className={labelCls} htmlFor="status">สถานะโครงการ</label>
               <select id="status" name="status" defaultValue={project.status} className={inputCls}>
-                <option value="รอดำเนินการ">รอดำเนินการ</option>
-                <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
-                <option value="เสร็จสิ้น">เสร็จสิ้น</option>
-                <option value="ระงับ">ระงับ</option>
+                <option value="ออกแบบ สำรวจ ประมาณการ">1. ออกแบบ สำรวจ ประมาณการ</option>
+                <option value="จัดซื้อจัดจ้าง">2. จัดซื้อจัดจ้าง</option>
+                <option value="รอดำเนินการ">3. รอดำเนินการ</option>
+                <option value="กำลังดำเนินการ">4. กำลังดำเนินการ</option>
+                <option value="ระงับ">5. ระงับ</option>
+                <option value="เสร็จสิ้น">6. เสร็จสิ้น</option>
               </select>
             </div>
           </div>

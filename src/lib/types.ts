@@ -1,4 +1,10 @@
-export type ProjectStatus = 'กำลังดำเนินการ' | 'เสร็จสิ้น' | 'ระงับ' | 'รอดำเนินการ'
+export type ProjectStatus = 
+  | 'ออกแบบ สำรวจ ประมาณการ'
+  | 'จัดซื้อจัดจ้าง'
+  | 'รอดำเนินการ'
+  | 'กำลังดำเนินการ'
+  | 'ระงับ'
+  | 'เสร็จสิ้น'
 
 export interface Project {
   id: string

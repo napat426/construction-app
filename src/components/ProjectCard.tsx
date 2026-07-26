@@ -10,17 +10,29 @@ import type { UserSession } from '@/lib/auth'
 
 /* ─── Status config ─── */
 const STATUS_MAP = {
+  'ออกแบบ สำรวจ ประมาณการ': {
+    bg:     'bg-purple-500/10 dark:bg-purple-500/15',
+    text:   'text-purple-600 dark:text-purple-400',
+    dot:    'bg-purple-500',
+    border: 'border-purple-500/25',
+  },
+  'จัดซื้อจัดจ้าง': {
+    bg:     'bg-indigo-500/10 dark:bg-indigo-500/15',
+    text:   'text-indigo-600 dark:text-indigo-400',
+    dot:    'bg-indigo-500',
+    border: 'border-indigo-500/25',
+  },
+  'รอดำเนินการ': {
+    bg:     'bg-blue-500/10 dark:bg-blue-500/15',
+    text:   'text-blue-600 dark:text-blue-400',
+    dot:    'bg-blue-500',
+    border: 'border-blue-500/25',
+  },
   'กำลังดำเนินการ': {
     bg:     'bg-amber-500/10 dark:bg-amber-500/15',
     text:   'text-amber-600 dark:text-amber-400',
     dot:    'bg-amber-500',
     border: 'border-amber-500/25',
-  },
-  'เสร็จสิ้น': {
-    bg:     'bg-emerald-500/10 dark:bg-emerald-500/15',
-    text:   'text-emerald-600 dark:text-emerald-400',
-    dot:    'bg-emerald-500',
-    border: 'border-emerald-500/25',
   },
   'ระงับ': {
     bg:     'bg-red-500/10 dark:bg-red-500/15',
@@ -28,11 +40,11 @@ const STATUS_MAP = {
     dot:    'bg-red-500',
     border: 'border-red-500/25',
   },
-  'รอดำเนินการ': {
-    bg:     'bg-blue-500/10 dark:bg-blue-500/15',
-    text:   'text-blue-600 dark:text-blue-400',
-    dot:    'bg-blue-500',
-    border: 'border-blue-500/25',
+  'เสร็จสิ้น': {
+    bg:     'bg-emerald-500/10 dark:bg-emerald-500/15',
+    text:   'text-emerald-600 dark:text-emerald-400',
+    dot:    'bg-emerald-500',
+    border: 'border-emerald-500/25',
   },
 } as const
 

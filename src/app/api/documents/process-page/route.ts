@@ -48,11 +48,16 @@ export async function POST(req: Request) {
         }
       } catch (ocrErr: any) {
         console.error('OCR Error:', ocrErr)
-        // If rate limit error
-        if (ocrErr.status === 429) {
-          return NextResponse.json({ error: 'Rate limit exceeded for Gemini OCR', retryAfter: 5 }, { status: 429 })
+        const errMsg = ocrErr.message || String(ocrErr)
+        const isRateLimit = ocrErr.status === 429 || errMsg.includes('429') || errMsg.includes('Quota exceeded') || errMsg.includes('quota')
+        
+        if (isRateLimit) {
+          return NextResponse.json({ 
+            error: 'Rate limit: ' + errMsg, 
+            isRateLimit: true 
+          }, { status: 429 })
         }
-        return NextResponse.json({ error: 'OCR failed: ' + ocrErr.message }, { status: 500 })
+        return NextResponse.json({ error: 'OCR failed: ' + errMsg }, { status: 500 })
       }
     }
 

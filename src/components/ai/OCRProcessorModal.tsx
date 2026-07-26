@@ -25,6 +25,7 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
   const [isResuming, setIsResuming] = useState(doc.processed_pages > 0 && doc.status === 'processing')
   const [countdown, setCountdown] = useState(0)
   const [isWaiting, setIsWaiting] = useState(false)
+  const [rateLimitReason, setRateLimitReason] = useState('')
   
   const isProcessingRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -184,9 +185,10 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
             const data = await res.json()
             
             if (res.status === 429) {
-              console.log('Rate limit hit, waiting 30 seconds before retry...')
+              console.log('Rate limit hit, waiting 60 seconds before retry...')
+              setRateLimitReason(data.error || 'จำกัดโควตารายนาที')
               setIsWaiting(true)
-              for (let sec = 30; sec > 0; sec--) {
+              for (let sec = 60; sec > 0; sec--) {
                 if (!isProcessingRef.current) break
                 setCountdown(sec)
                 await new Promise(r => setTimeout(r, 1000))
@@ -331,9 +333,14 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
           )}
 
           {isWaiting && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs flex items-center gap-2 animate-pulse">
-              <AlertTriangle size={14} className="flex-shrink-0" />
-              <p className="font-bold">⚠️ ติดข้อจำกัดโควตาฟรีชั่วคราว ระบบกำลังรอ {countdown} วินาทีเพื่อทำต่อ...</p>
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs flex flex-col gap-1.5 animate-pulse">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="flex-shrink-0" />
+                <p className="font-bold">⚠️ ติดข้อจำกัดโควตาฟรีชั่วคราว ระบบกำลังรอ {countdown} วินาทีเพื่อทำต่อ...</p>
+              </div>
+              {rateLimitReason && (
+                <p className="text-[10px] opacity-90 pl-6 leading-relaxed font-mono whitespace-pre-wrap">{rateLimitReason}</p>
+              )}
             </div>
           )}
 

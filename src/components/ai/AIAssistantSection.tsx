@@ -12,6 +12,7 @@ const DocumentManager = dynamic(() => import('./DocumentManager').then(mod => mo
 interface AIAssistantProps {
   projects: Project[]
   user: any
+  aiOcrEnabled?: boolean
 }
 
 interface ChatMessage {
@@ -25,7 +26,7 @@ interface ChatMessage {
   originalText?: string
 }
 
-export function AIAssistantSection({ projects, user }: AIAssistantProps) {
+export function AIAssistantSection({ projects, user, aiOcrEnabled = false }: AIAssistantProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash')
@@ -47,15 +48,7 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
-  const [aiOcrEnabled, setAiOcrEnabled] = useState(false)
 
-  useEffect(() => {
-    supabase.from('system_settings').select('value').eq('key', 'ai_ocr_enabled').single().then(({ data }) => {
-      if (data) {
-        setAiOcrEnabled(data.value === 'true' || data.value === true)
-      }
-    })
-  }, [])
 
   const handleSemanticSearch = async (e: React.FormEvent) => {
     e.preventDefault()

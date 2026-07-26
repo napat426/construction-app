@@ -16,10 +16,11 @@ import { getCurrentUser } from '@/lib/auth'
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const [projectsRes, tasksRes, settingsRes, amendmentsRes] = await Promise.all([
+  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single(),
+    supabase.from('system_settings').select('*').eq('key', 'ai_ocr_enabled').single(),
     supabase.from('contract_amendments').select('*')
   ])
 
@@ -28,6 +29,7 @@ export default async function ProjectsPage() {
   const tasks = tasksRes.data ?? []
   const amendments = amendmentsRes.data ?? []
   const aiEnabled = settingsRes.data?.value === 'true' || settingsRes.data?.value === true
+  const aiOcrEnabled = ocrSettingsRes.data?.value === 'true' || ocrSettingsRes.data?.value === true
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -63,7 +65,14 @@ export default async function ProjectsPage() {
             </div>
           )}
 
-          <ProjectsClient initialProjects={projects} initialTasks={tasks} amendments={amendments} user={user} aiEnabled={aiEnabled} />
+          <ProjectsClient 
+            initialProjects={projects} 
+            initialTasks={tasks} 
+            amendments={amendments} 
+            user={user} 
+            aiEnabled={aiEnabled} 
+            aiOcrEnabled={aiOcrEnabled} 
+          />
         </main>
       </div>
     </div>

@@ -15,9 +15,17 @@ interface ProjectsClientProps {
   amendments?: ContractAmendment[]
   user?: UserSession | null
   aiEnabled?: boolean
+  aiOcrEnabled?: boolean
 }
 
-export function ProjectsClient({ initialProjects, initialTasks, amendments = [], user, aiEnabled = false }: ProjectsClientProps) {
+export function ProjectsClient({ 
+  initialProjects, 
+  initialTasks, 
+  amendments = [], 
+  user, 
+  aiEnabled = false,
+  aiOcrEnabled = false 
+}: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([])
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
@@ -331,7 +339,7 @@ export function ProjectsClient({ initialProjects, initialTasks, amendments = [],
 
       {/* ── AI Assistant Section ── */}
       {aiEnabled && (
-        <AIAssistantSection projects={initialProjects} user={user} />
+        <AIAssistantSection projects={initialProjects} user={user} aiOcrEnabled={aiOcrEnabled} />
       )}
     </>
   )

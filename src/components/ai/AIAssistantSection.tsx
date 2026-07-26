@@ -263,52 +263,12 @@ export function AIAssistantSection({ projects, user, aiOcrEnabled = false }: AIA
             <div className="p-4 bg-slate-100/50 dark:bg-[#1a1a32] border-t border-slate-200 dark:border-[#252548]">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">แหล่งข้อมูลที่ AI ค้นพบ (RAG)</span>
               <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
-                <div className="flex justify-between"><span>เอกสารกลาง:</span> <span className="font-mono">{ragCounts.globalDocs} ลิงก์</span></div>
-                <div className="flex justify-between"><span>เอกสารโครงการ:</span> <span className="font-mono">{ragCounts.projectDocs} ลิงก์</span></div>
                 <div className="flex justify-between"><span>แผนงาน/WBS:</span> <span className="font-mono">{ragCounts.tasks}</span></div>
                 <div className="flex justify-between"><span>วัสดุก่อสร้าง:</span> <span className="font-mono">{ragCounts.materials}</span></div>
                 <div className="flex justify-between"><span>รายงานประจำวัน:</span> <span className="font-mono">{ragCounts.reports}</span></div>
                 <div className="flex justify-between"><span>ตรวจสอบคุณภาพ:</span> <span className="font-mono">{ragCounts.inspections}</span></div>
               </div>
-              {aiOcrEnabled && (
-                <DocumentManager scope="global" onUpdate={fetchRagCounts} />
-              )}
             </div>
-
-            {/* Semantic Search Testing */}
-            {aiOcrEnabled && (
-              <div className="p-4 bg-slate-50 dark:bg-[#14142a] border-t border-slate-200 dark:border-[#252548]">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">ทดสอบค้นหา (Semantic Search)</span>
-                <form onSubmit={handleSemanticSearch} className="flex gap-2 mb-3">
-                  <input 
-                    type="text" 
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="เช่น 'ระยะทาบเหล็ก'" 
-                    className="flex-1 text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]"
-                  />
-                  <button type="submit" disabled={isSearching || !searchQuery} className="bg-primary-600 text-white px-2.5 py-1.5 rounded disabled:opacity-50 flex items-center justify-center">
-                    {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                  </button>
-                </form>
-                <div className="space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar">
-                  {searchResults.map((r, i) => (
-                    <div key={i} className="text-[10px] p-2 bg-white dark:bg-[#1a1a32] border border-slate-200 dark:border-slate-700 rounded shadow-sm">
-                      <div className="flex justify-between items-start mb-1 text-slate-500">
-                        <span className="font-bold text-primary-600 truncate">{r.section_title || 'ไม่ระบุหัวข้อ'} (หน้า {r.page_number})</span>
-                        <span className="text-[8px] bg-slate-100 dark:bg-slate-800 px-1 rounded">{(r.similarity * 100).toFixed(1)}%</span>
-                      </div>
-                      <p className="text-slate-700 dark:text-slate-300 line-clamp-3">{r.content}</p>
-                      {r.extract_method === 'gemini_ocr' && (
-                        <span className="inline-block mt-1 text-[8px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1 rounded border border-amber-200 dark:border-amber-800">
-                          ⚠️ จาก OCR ({r.ocr_confidence})
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Column - Chat Area */}

@@ -754,16 +754,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
           </div>
         </div>
 
-        {/* ══ ROW 5: เอกสารแนบสัญญาโครงการ (Project Contract Documents) ══ */}
-        <div className="card rounded-2xl p-5">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-            <FileText size={16} className="text-primary-600 dark:text-primary-400" />
-            เอกสารแนบสัญญาโครงการ (สำหรับ AI วิเคราะห์รายโครงการ)
-          </h3>
-          <div className="max-w-xl">
-            <DocumentManager scope="project" selectedProjectId={project.id} readOnly={true} />
-          </div>
-        </div>
+
 
       </div>
 

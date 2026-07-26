@@ -9,9 +9,10 @@ interface DocumentManagerProps {
   scope: 'global' | 'project'
   selectedProjectId?: string
   onUpdate?: () => void
+  readOnly?: boolean
 }
 
-export function DocumentManager({ scope, selectedProjectId, onUpdate }: DocumentManagerProps) {
+export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly = false }: DocumentManagerProps) {
   const [docs, setDocs] = useState<any[]>([])
   const [linkUrl, setLinkUrl] = useState('')
   const [docName, setDocName] = useState('')
@@ -81,44 +82,46 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate }: Document
         </span>
       </div>
       
-      <form onSubmit={handleLinkSubmit} className="space-y-2 mb-4 bg-slate-50 dark:bg-[#14142a] p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-        <div className="text-[10px] font-bold text-slate-500 mb-1">
-          {scope === 'global' ? '+ เพิ่มลิงก์รายการประกอบแบบกลาง' : '+ เพิ่มลิงก์เอกสารสัญญา'}
-        </div>
-        <input 
-          type="text" 
-          placeholder={scope === 'global' ? "ชื่อเอกสาร (เช่น รายการประกอบแบบ กฟภ.)" : "ชื่อเอกสาร (เช่น สัญญาก่อสร้าง หรือเอกสารแนบ)"} 
-          value={docName} 
-          onChange={e => setDocName(e.target.value)} 
-          className="w-full text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]" 
-          disabled={isProcessing} 
-          required 
-        />
-        <div className="flex gap-2">
-          <select 
-            value={docType} 
-            onChange={e => setDocType(e.target.value)} 
-            className="text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32] text-slate-700 dark:text-slate-300 w-1/3"
-            disabled={isProcessing}
-          >
-            <option value="Google Drive">Google Drive</option>
-            <option value="OneDrive">OneDrive</option>
-            <option value="Other">อื่นๆ</option>
-          </select>
+      {!readOnly && (
+        <form onSubmit={handleLinkSubmit} className="space-y-2 mb-4 bg-slate-50 dark:bg-[#14142a] p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="text-[10px] font-bold text-slate-500 mb-1">
+            {scope === 'global' ? '+ เพิ่มลิงก์รายการประกอบแบบกลาง' : '+ เพิ่มลิงก์เอกสารสัญญา'}
+          </div>
           <input 
-            type="url" 
-            placeholder="วาง URL ที่นี่" 
-            value={linkUrl} 
-            onChange={e => setLinkUrl(e.target.value)} 
-            className="flex-1 text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]" 
+            type="text" 
+            placeholder={scope === 'global' ? "ชื่อเอกสาร (เช่น รายการประกอบแบบ กฟภ.)" : "ชื่อเอกสาร (เช่น สัญญาก่อสร้าง หรือเอกสารแนบ)"} 
+            value={docName} 
+            onChange={e => setDocName(e.target.value)} 
+            className="w-full text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]" 
             disabled={isProcessing} 
             required 
           />
-        </div>
-        <button type="submit" disabled={isProcessing || !linkUrl || !docName} className="w-full py-1.5 mt-1 bg-primary-600 text-white rounded text-xs font-bold disabled:opacity-50 hover:bg-primary-700 transition-colors">
-          บันทึกลิงก์
-        </button>
-      </form>
+          <div className="flex gap-2">
+            <select 
+              value={docType} 
+              onChange={e => setDocType(e.target.value)} 
+              className="text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32] text-slate-700 dark:text-slate-300 w-1/3"
+              disabled={isProcessing}
+            >
+              <option value="Google Drive">Google Drive</option>
+              <option value="OneDrive">OneDrive</option>
+              <option value="Other">อื่นๆ</option>
+            </select>
+            <input 
+              type="url" 
+              placeholder="วาง URL ที่นี่" 
+              value={linkUrl} 
+              onChange={e => setLinkUrl(e.target.value)} 
+              className="flex-1 text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]" 
+              disabled={isProcessing} 
+              required 
+            />
+          </div>
+          <button type="submit" disabled={isProcessing || !linkUrl || !docName} className="w-full py-1.5 mt-1 bg-primary-600 text-white rounded text-xs font-bold disabled:opacity-50 hover:bg-primary-700 transition-colors">
+            บันทึกลิงก์
+          </button>
+        </form>
+      )}
 
       {/* Document List */}
       <div className="space-y-1.5">
@@ -131,19 +134,27 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate }: Document
                   <span className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate" title={doc.file_name}>{doc.file_name}</span>
                 </div>
               </div>
-              <button onClick={() => handleDelete(doc.id)} className="text-slate-400 hover:text-red-500 flex-shrink-0" title="ลบเอกสาร"><Trash2 size={12} /></button>
+              {!readOnly && (
+                <button onClick={() => handleDelete(doc.id)} className="text-slate-400 hover:text-red-500 flex-shrink-0" title="ลบเอกสาร"><Trash2 size={12} /></button>
+              )}
             </div>
             
             <div className="flex items-center justify-between mt-1">
               <div className="flex items-center gap-2">
                 {doc.status === 'pending_ocr' || doc.status === 'processing' ? (
-                  <button 
-                    onClick={() => setActiveOCRDoc(doc)}
-                    className="flex items-center gap-1 text-[9px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 px-1.5 py-0.5 rounded border border-primary-200 dark:border-primary-800 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
-                  >
-                    <Cpu size={10} /> 
-                    {doc.status === 'processing' ? `กำลังประมวลผล (${doc.processed_pages || 0}/${doc.total_pages || '?'})` : '🔍 ประมวลผลให้ AI'}
-                  </button>
+                  readOnly ? (
+                    <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                      {doc.status === 'processing' ? `⚙️ กำลังสแกน (${doc.processed_pages || 0}/${doc.total_pages || '?'})` : '⏳ รอดำเนินการสแกน'}
+                    </span>
+                  ) : (
+                    <button 
+                      onClick={() => setActiveOCRDoc(doc)}
+                      className="flex items-center gap-1 text-[9px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 px-1.5 py-0.5 rounded border border-primary-200 dark:border-primary-800 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                    >
+                      <Cpu size={10} /> 
+                      {doc.status === 'processing' ? `กำลังประมวลผล (${doc.processed_pages || 0}/${doc.total_pages || '?'})` : '🔍 ประมวลผลให้ AI'}
+                    </button>
+                  )
                 ) : doc.status === 'ready' ? (
                   <span className="flex items-center gap-1 text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded border border-green-200 dark:border-green-800" title={`อ่านไปแล้ว ${doc.total_pages} หน้า`}>
                     <CheckCircle2 size={10} /> AI พร้อมอ่านแล้ว

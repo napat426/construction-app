@@ -4,8 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Save, Loader2, Plus, Trash2 } from 'lucide-react'
 import { updateProjectBaseline } from '@/app/actions/projects'
 import { saveMilestones } from '@/app/actions/milestones'
-import type { Project, ProjectMilestone, ContractAmendment } from '@/lib/types'
+import dynamic from 'next/dynamic'
 import { AmendmentForm } from './AmendmentForm'
+import type { Project, ProjectMilestone, ContractAmendment } from '@/lib/types'
+
+const DocumentManager = dynamic(() => import('./ai/DocumentManager').then(mod => mod.DocumentManager), { ssr: false })
 
 interface EditBaselineModalProps {
   project: Project
@@ -527,6 +530,11 @@ export function EditBaselineModal({ project, milestones, amendments, onClose }: 
             </button>
           </div>
         </form>
+
+        {/* Project Contract Documents (RAG) */}
+        <div className="px-6 pb-6 border-t border-slate-100 dark:border-[#1e1e38] pt-5">
+          <DocumentManager scope="project" selectedProjectId={project.id} />
+        </div>
       </div>
     </div>
   )

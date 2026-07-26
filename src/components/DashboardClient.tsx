@@ -761,7 +761,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
             เอกสารแนบสัญญาโครงการ (สำหรับ AI วิเคราะห์รายโครงการ)
           </h3>
           <div className="max-w-xl">
-            <DocumentManager scope="project" selectedProjectId={project.id} />
+            <DocumentManager scope="project" selectedProjectId={project.id} readOnly={true} />
           </div>
         </div>
 

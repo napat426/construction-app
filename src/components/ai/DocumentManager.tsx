@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Link as LinkIcon, Trash2, ExternalLink, Cloud, Cpu, CheckCircle2 } from 'lucide-react'
+import { Link as LinkIcon, Trash2, ExternalLink, Cloud, Cpu, CheckCircle2, FileText } from 'lucide-react'
 import { OCRProcessorModal } from './OCRProcessorModal'
 
 interface DocumentManagerProps {
@@ -14,11 +14,8 @@ interface DocumentManagerProps {
 
 export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly = false }: DocumentManagerProps) {
   const [docs, setDocs] = useState<any[]>([])
-  const [linkUrl, setLinkUrl] = useState('')
-  const [docName, setDocName] = useState('')
-  const [docType, setDocType] = useState('Google Drive')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [activeOCRDoc, setActiveOCRDoc] = useState<any | null>(null)
+  const [activeOCRDoc, setActiveOCRDoc] = useState<{ doc: any, file: File | null } | null>(null)
 
   useEffect(() => {
     if (scope === 'project' && !selectedProjectId) {
@@ -38,25 +35,31 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
     if (onUpdate) onUpdate()
   }
 
-  const handleLinkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!linkUrl || !docName) return
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (!selectedFile) return
+    if (selectedFile.type !== 'application/pdf') {
+      alert('กรุณาเลือกไฟล์ PDF เท่านั้น')
+      return
+    }
     setIsProcessing(true)
     try {
-      await supabase.from('project_documents').insert({
+      const { data, error } = await supabase.from('project_documents').insert({
         project_id: scope === 'project' ? selectedProjectId : null,
-        doc_type: docType,
-        source_type: 'link',
-        external_url: linkUrl,
-        file_name: docName,
+        doc_type: 'PDF',
+        source_type: 'file',
+        external_url: '#',
+        file_name: selectedFile.name,
         scope: scope,
         status: 'pending_ocr'
-      })
-      setLinkUrl('')
-      setDocName('')
+      }).select().single()
+
+      if (error) throw error
+      
+      setActiveOCRDoc({ doc: data, file: selectedFile })
       fetchDocs()
-    } catch (e: any) {
-      alert('Error: ' + e.message)
+    } catch (err: any) {
+      alert('Error: ' + err.message)
     } finally {
       setIsProcessing(false)
     }
@@ -69,6 +72,7 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
   }
 
   const getIcon = (type: string) => {
+    if (type === 'PDF' || type === 'Local File' || type === 'file') return <FileText size={14} className="text-red-500" />
     if (type === 'Google Drive') return <Cloud size={14} className="text-blue-500" />
     if (type === 'OneDrive') return <Cloud size={14} className="text-sky-500" />
     return <LinkIcon size={14} className="text-slate-500" />
@@ -83,44 +87,30 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
       </div>
       
       {!readOnly && (
-        <form onSubmit={handleLinkSubmit} className="space-y-2 mb-4 bg-slate-50 dark:bg-[#14142a] p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-          <div className="text-[10px] font-bold text-slate-500 mb-1">
-            {scope === 'global' ? '+ เพิ่มลิงก์รายการประกอบแบบกลาง' : '+ เพิ่มลิงก์เอกสารสัญญา'}
-          </div>
+        <div className="space-y-2 mb-4 bg-slate-50 dark:bg-[#14142a] p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-center">
           <input 
-            type="text" 
-            placeholder={scope === 'global' ? "ชื่อเอกสาร (เช่น รายการประกอบแบบ กฟภ.)" : "ชื่อเอกสาร (เช่น สัญญาก่อสร้าง หรือเอกสารแนบ)"} 
-            value={docName} 
-            onChange={e => setDocName(e.target.value)} 
-            className="w-full text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]" 
-            disabled={isProcessing} 
-            required 
+            type="file" 
+            id={`pdf-file-upload-${scope}`}
+            accept="application/pdf" 
+            onChange={handleFileSelect} 
+            className="hidden" 
+            disabled={isProcessing}
           />
-          <div className="flex gap-2">
-            <select 
-              value={docType} 
-              onChange={e => setDocType(e.target.value)} 
-              className="text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32] text-slate-700 dark:text-slate-300 w-1/3"
-              disabled={isProcessing}
-            >
-              <option value="Google Drive">Google Drive</option>
-              <option value="OneDrive">OneDrive</option>
-              <option value="Other">อื่นๆ</option>
-            </select>
-            <input 
-              type="url" 
-              placeholder="วาง URL ที่นี่" 
-              value={linkUrl} 
-              onChange={e => setLinkUrl(e.target.value)} 
-              className="flex-1 text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]" 
-              disabled={isProcessing} 
-              required 
-            />
-          </div>
-          <button type="submit" disabled={isProcessing || !linkUrl || !docName} className="w-full py-1.5 mt-1 bg-primary-600 text-white rounded text-xs font-bold disabled:opacity-50 hover:bg-primary-700 transition-colors">
-            บันทึกลิงก์
-          </button>
-        </form>
+          <label 
+            htmlFor={`pdf-file-upload-${scope}`}
+            className="cursor-pointer flex flex-col items-center gap-2 py-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+          >
+            <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-full flex items-center justify-center mx-auto">
+              <FileText size={20} />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-primary-600 hover:underline">
+                {scope === 'global' ? '📁 คลิกเพื่ออัปโหลดรายการประกอบแบบกลาง (PDF)' : '📁 คลิกเพื่ออัปโหลดเอกสารสัญญา (PDF)'}
+              </span>
+              <p className="text-[10px] text-slate-400 mt-1">ขนาดสูงสุดไม่เกิน 20MB (เฉพาะสกุลไฟล์ .pdf)</p>
+            </div>
+          </label>
+        </div>
       )}
 
       {/* Document List */}
@@ -148,7 +138,7 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
                     </span>
                   ) : (
                     <button 
-                      onClick={() => setActiveOCRDoc(doc)}
+                      onClick={() => setActiveOCRDoc({ doc: doc, file: null })}
                       className="flex items-center gap-1 text-[9px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 px-1.5 py-0.5 rounded border border-primary-200 dark:border-primary-800 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
                     >
                       <Cpu size={10} /> 
@@ -165,9 +155,11 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
                   </span>
                 )}
               </div>
-              <a href={doc.external_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
-                เปิด ↗
-              </a>
+              {doc.external_url && doc.external_url !== '#' && (
+                <a href={doc.external_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline flex items-center gap-1">
+                  เปิด ↗
+                </a>
+              )}
             </div>
           </div>
         ))}
@@ -176,7 +168,8 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate, readOnly =
 
       {activeOCRDoc && (
         <OCRProcessorModal 
-          doc={activeOCRDoc} 
+          doc={activeOCRDoc.doc} 
+          initialFile={activeOCRDoc.file}
           onClose={() => setActiveOCRDoc(null)} 
           onComplete={fetchDocs} 
         />

@@ -10,11 +10,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 
 interface Props {
   doc: any
+  initialFile?: File | null
   onClose: () => void
   onComplete: () => void
 }
 
-export function OCRProcessorModal({ doc, onClose, onComplete }: Props) {
+export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
   const [totalPages, setTotalPages] = useState(0)
@@ -25,6 +26,12 @@ export function OCRProcessorModal({ doc, onClose, onComplete }: Props) {
   
   const isProcessingRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    if (initialFile) {
+      processFile(initialFile)
+    }
+  }, [initialFile])
 
   useEffect(() => {
     return () => {
@@ -40,9 +47,7 @@ export function OCRProcessorModal({ doc, onClose, onComplete }: Props) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
   }
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0]
-    if (!selected) return
+  const processFile = async (selected: File) => {
     if (selected.type !== 'application/pdf') {
       setErrorMsg('กรุณาเลือกไฟล์ PDF เท่านั้น')
       return
@@ -94,6 +99,13 @@ export function OCRProcessorModal({ doc, onClose, onComplete }: Props) {
       setStatus('error')
     }
   }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0]
+    if (!selected) return
+    await processFile(selected)
+  }
+
 
   const getPageBase64 = async (pageNumber: number): Promise<string> => {
     if (!pdf) throw new Error('PDF not loaded')

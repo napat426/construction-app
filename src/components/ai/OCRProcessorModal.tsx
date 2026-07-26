@@ -23,6 +23,8 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
   const [status, setStatus] = useState<'idle' | 'analyzing' | 'ready' | 'processing' | 'paused' | 'error' | 'done'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [isResuming, setIsResuming] = useState(doc.processed_pages > 0 && doc.status === 'processing')
+  const [countdown, setCountdown] = useState(0)
+  const [isWaiting, setIsWaiting] = useState(false)
   
   const isProcessingRef = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -124,10 +126,25 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
     return canvas.toDataURL('image/jpeg', 0.8)
   }
 
+  const getPageText = async (pageNumber: number): Promise<string> => {
+    if (!pdf) return ''
+    try {
+      const page = await pdf.getPage(pageNumber)
+      const textContent = await page.getTextContent()
+      const items = textContent.items as any[]
+      const pageText = items.map(item => item.str).join(' ').trim()
+      return pageText
+    } catch (err) {
+      console.error('Failed to extract text layer:', err)
+      return ''
+    }
+  }
+
   const startProcessing = async () => {
     if (!pdf || totalPages === 0) return
     setStatus('processing')
     isProcessingRef.current = true
+    setErrorMsg('')
     
     await supabase.from('project_documents').update({ status: 'processing' }).eq('id', doc.id)
 
@@ -138,12 +155,18 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
       abortControllerRef.current = new AbortController()
       
       try {
-        const base64 = await getPageBase64(pageNum)
-        let maxRetries = 3;
-        let retries = 0;
-        let success = false;
+        // 1. Try to read text directly from PDF layer first (Hybrid Mode)
+        const pageText = await getPageText(pageNum)
+        let base64 = ''
         
-        while (retries < maxRetries && !success && isProcessingRef.current) {
+        if (!pageText) {
+          // Fallback to rendering canvas and OCR
+          base64 = await getPageBase64(pageNum)
+        }
+
+        let success = false
+        
+        while (!success && isProcessingRef.current) {
           try {
             const res = await fetch('/api/documents/process-page', {
               method: 'POST',
@@ -152,7 +175,8 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
                 documentId: doc.id,
                 projectId: doc.project_id,
                 pageNumber: pageNum,
-                imageBase64: base64
+                text: pageText || undefined,
+                imageBase64: pageText ? undefined : base64
               }),
               signal: abortControllerRef.current.signal
             })
@@ -160,13 +184,15 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
             const data = await res.json()
             
             if (res.status === 429) {
-              console.log('Rate limit hit, waiting 5 seconds before retry...')
-              await new Promise(r => setTimeout(r, 5000))
-              retries++;
-              if (retries >= maxRetries) {
-                throw new Error('ระบบถูกจำกัดโควตา (Rate Limit) กรุณาลองใหม่ในภายหลัง')
+              console.log('Rate limit hit, waiting 30 seconds before retry...')
+              setIsWaiting(true)
+              for (let sec = 30; sec > 0; sec--) {
+                if (!isProcessingRef.current) break
+                setCountdown(sec)
+                await new Promise(r => setTimeout(r, 1000))
               }
-              continue;
+              setIsWaiting(false)
+              continue // Retry the page again
             }
             
             if (res.status === 504) {
@@ -175,22 +201,24 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
             
             if (!res.ok) throw new Error(data.error || 'Failed to process page')
             
-            success = true;
+            success = true
           } catch (fetchErr: any) {
-            if (fetchErr.name === 'AbortError') throw fetchErr;
-            // if it's a parsing error from 504 gateway timeout HTML
+            if (fetchErr.name === 'AbortError') throw fetchErr
             if (fetchErr.message.includes('Unexpected token')) {
                throw new Error('เซิร์ฟเวอร์ไม่ตอบสนอง (Timeout) กรุณาลองใหม่')
             }
-            throw fetchErr;
+            throw fetchErr
           }
         }
         
-        current++
-        setProcessedPages(current)
-        
-        // Add a small delay (1.5s) to prevent hitting quota too fast on free tier
-        await new Promise(r => setTimeout(r, 1500))
+        if (success) {
+          current++
+          setProcessedPages(current)
+          
+          // Hybrid delay: 200ms for text layer (fast), 2000ms for scanned OCR to prevent quota hits
+          const delay = pageText ? 200 : 2000
+          await new Promise(r => setTimeout(r, delay))
+        }
         
       } catch (err: any) {
         if (err.name === 'AbortError') break
@@ -205,6 +233,7 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
     if (current === totalPages) {
       await supabase.from('project_documents').update({ status: 'ready' }).eq('id', doc.id)
       setStatus('done')
+      if (onComplete) onComplete()
     }
   }
 
@@ -298,6 +327,13 @@ export function OCRProcessorModal({ doc, initialFile, onClose, onComplete }: Pro
                   <p className="text-[10px] text-slate-500 animate-pulse">กำลังส่งข้อมูลทีละหน้าไปยัง Gemini API... (มีการหน่วงเวลาเพื่อป้องกัน Rate Limit)</p>
                 )}
               </div>
+            </div>
+          )}
+
+          {isWaiting && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs flex items-center gap-2 animate-pulse">
+              <AlertTriangle size={14} className="flex-shrink-0" />
+              <p className="font-bold">⚠️ ติดข้อจำกัดโควตาฟรีชั่วคราว ระบบกำลังรอ {countdown} วินาทีเพื่อทำต่อ...</p>
             </div>
           )}
 

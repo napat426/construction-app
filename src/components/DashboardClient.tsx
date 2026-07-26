@@ -19,8 +19,11 @@ import {
   FileText,
 } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { EditBaselineModal } from './EditBaselineModal'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
+
+const DocumentManager = dynamic(() => import('./ai/DocumentManager').then(mod => mod.DocumentManager), { ssr: false })
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
@@ -711,7 +714,6 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
               </div>
             </div>
           </div>
-
         </div>
 
         {/* ══ ROW 4: ข้อมูลสัญญา & กรรมการ (full width) ══ */}
@@ -749,6 +751,17 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
                 ))}</ul>
               })()}
             </div>
+          </div>
+        </div>
+
+        {/* ══ ROW 5: เอกสารแนบสัญญาโครงการ (Project Contract Documents) ══ */}
+        <div className="card rounded-2xl p-5">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+            <FileText size={16} className="text-primary-600 dark:text-primary-400" />
+            เอกสารแนบสัญญาโครงการ (สำหรับ AI วิเคราะห์รายโครงการ)
+          </h3>
+          <div className="max-w-xl">
+            <DocumentManager scope="project" selectedProjectId={project.id} />
           </div>
         </div>
 

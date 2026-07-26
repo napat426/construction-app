@@ -278,13 +278,7 @@ export function AIAssistantSection({ projects, user }: AIAssistantProps) {
                 <div className="flex justify-between"><span>ตรวจสอบคุณภาพ:</span> <span className="font-mono">{ragCounts.inspections}</span></div>
               </div>
               {aiOcrEnabled && (
-                <>
-                  <DocumentManager scope="global" onUpdate={fetchRagCounts} />
-                  
-                  {selectedIds.length === 1 && (
-                    <DocumentManager scope="project" selectedProjectId={selectedIds[0]} onUpdate={fetchRagCounts} />
-                  )}
-                </>
+                <DocumentManager scope="global" onUpdate={fetchRagCounts} />
               )}
             </div>
 

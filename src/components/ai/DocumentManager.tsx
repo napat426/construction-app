@@ -77,17 +77,17 @@ export function DocumentManager({ scope, selectedProjectId, onUpdate }: Document
     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-[#252548]">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-          {scope === 'global' ? '📚 เอกสารกลาง (ใช้ทุกโครงการ)' : '📁 เอกสารเฉพาะโครงการ'}
+          {scope === 'global' ? '📚 รายการประกอบแบบกลาง (ใช้ทุกโครงการ)' : '📁 เอกสารสัญญาโครงการ'}
         </span>
       </div>
       
       <form onSubmit={handleLinkSubmit} className="space-y-2 mb-4 bg-slate-50 dark:bg-[#14142a] p-3 rounded-lg border border-slate-200 dark:border-slate-700">
         <div className="text-[10px] font-bold text-slate-500 mb-1">
-          {scope === 'global' ? '+ เพิ่มลิงก์เอกสารกลาง' : '+ เพิ่มลิงก์เอกสารโครงการนี้'}
+          {scope === 'global' ? '+ เพิ่มลิงก์รายการประกอบแบบกลาง' : '+ เพิ่มลิงก์เอกสารสัญญา'}
         </div>
         <input 
           type="text" 
-          placeholder="ชื่อเอกสาร (เช่น รายการประกอบแบบ กฟภ.)" 
+          placeholder={scope === 'global' ? "ชื่อเอกสาร (เช่น รายการประกอบแบบ กฟภ.)" : "ชื่อเอกสาร (เช่น สัญญาก่อสร้าง หรือเอกสารแนบ)"} 
           value={docName} 
           onChange={e => setDocName(e.target.value)} 
           className="w-full text-xs px-2 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-[#1a1a32]" 

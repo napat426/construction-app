@@ -80,7 +80,7 @@ export function SlideSummary({ projects, tasks = [], milestones = [], amendments
     })
     
     return map
-  }, [presentedProjects, tasks])
+  }, [presentedProjects, tasks, amendments])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(val)

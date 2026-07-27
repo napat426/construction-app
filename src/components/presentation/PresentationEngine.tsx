@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Project, WBSTask, Inspection, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import type { SelectedProjectSlide } from '../PresentationClient'
-import { Maximize, Minimize, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Maximize, Minimize, X, ChevronLeft, ChevronRight, Printer } from 'lucide-react'
 
 import { SlideOverview } from './SlideOverview'
 import { SlideSCurve } from './SlideSCurve'
@@ -144,7 +144,10 @@ export function PresentationEngine({ projects, tasks, inspections, milestones, a
 
         {/* Overlay UI (hidden in real presentation if idle, but shown for controls) */}
         <div className="absolute top-4 right-4 flex gap-2 opacity-20 hover:opacity-100 transition-opacity z-50">
-          <button onClick={toggleFullscreen} className={`p-2 ${isDark ? 'bg-white/10 hover:bg-white/20' : 'bg-black/10 hover:bg-black/20'} rounded-lg backdrop-blur`}>
+          <button onClick={() => window.print()} className={`p-2 ${isDark ? 'bg-white/10 hover:bg-white/20' : 'bg-black/10 hover:bg-black/20'} rounded-lg backdrop-blur text-white`} title="พิมพ์ / บันทึกเป็น PDF">
+            <Printer size={20} />
+          </button>
+          <button onClick={toggleFullscreen} className={`p-2 ${isDark ? 'bg-white/10 hover:bg-white/20' : 'bg-black/10 hover:bg-black/20'} rounded-lg backdrop-blur text-white`}>
             {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
           </button>
           <button onClick={onExit} className={`p-2 ${isDark ? 'bg-white/10 hover:bg-red-500/80' : 'bg-black/10 hover:bg-red-500 text-black hover:text-white'} rounded-lg backdrop-blur`}>

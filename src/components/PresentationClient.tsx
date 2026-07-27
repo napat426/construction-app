@@ -3,10 +3,15 @@
 import { useState, useMemo, useEffect } from 'react'
 import type { Project, WBSTask, Inspection, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
-import { Search, Filter, Play, CheckSquare, Square, X, GripVertical, Image as ImageIcon, Moon, Sun, Save, Download, Trash2 } from 'lucide-react'
+import { Search, Filter, Play, CheckSquare, Square, X, GripVertical, Image as ImageIcon, Moon, Sun, Save, Download, Trash2, Printer } from 'lucide-react'
 import { computeTaskDates } from '@/lib/scheduler'
 import { PresentationEngine } from './presentation/PresentationEngine'
 import { PhotoManagerModal } from './presentation/PhotoManagerModal'
+import { SlideSummary } from './presentation/SlideSummary'
+import { SlideOverview } from './presentation/SlideOverview'
+import { SlideGantt } from './presentation/SlideGantt'
+import { SlideSCurve } from './presentation/SlideSCurve'
+import { SlidePhotos } from './presentation/SlidePhotos'
 
 interface Props {
   initialProjects: Project[]
@@ -527,13 +532,21 @@ export function PresentationClient({
           )}
         </div>
         
-        <div className="p-4 border-t border-slate-200 dark:border-[#1c1c34]">
+        <div className="p-4 border-t border-slate-200 dark:border-[#1c1c34] flex gap-2">
           <button 
             onClick={() => setIsFullScreen(true)}
             disabled={selectedSlides.length === 0}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl text-lg shadow-lg shadow-primary-500/20 transition-all"
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl text-lg shadow-lg shadow-primary-500/20 transition-all"
           >
             <Play size={20} fill="currentColor" /> เริ่มนำเสนอ
+          </button>
+          <button 
+            onClick={() => window.print()}
+            disabled={selectedSlides.length === 0}
+            className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-[#1c1c34] hover:bg-slate-200 dark:hover:bg-[#252548] disabled:opacity-50 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-sm border border-slate-200 dark:border-[#252548] transition-colors"
+            title="พิมพ์ หรือ บันทึกเป็น PDF"
+          >
+            <Printer size={18} /> PDF
           </button>
         </div>
       </div>
@@ -555,6 +568,56 @@ export function PresentationClient({
           onClose={() => setManagingPhotosFor(null)}
         />
       )}
+
+      {/* ── PRINT ONLY CONTAINER: 16:9 LANDSCAPE PDF SLIDES ── */}
+      <div className="hidden print:block">
+        {/* Slide 1: Summary */}
+        <div className="presentation-slide-print">
+          <SlideSummary 
+            projects={projects} 
+            tasks={initialTasks} 
+            milestones={initialMilestones} 
+            amendments={initialAmendments} 
+            theme="light" 
+            selectedSlides={selectedSlides} 
+          />
+        </div>
+
+        {/* Project Slides */}
+        {selectedSlides.map((slideSelection) => {
+          const proj = projects.find(p => p.id === slideSelection.projectId)
+          if (!proj) return null
+          const pTasks = initialTasks.filter(t => t.project_id === proj.id)
+          const pMilestones = initialMilestones.filter(m => m.project_id === proj.id)
+          const pAmendments = (initialAmendments || []).filter(a => a.project_id === proj.id)
+          const pInspections = initialInspections.filter(i => i.project_id === proj.id)
+
+          return (
+            <div key={proj.id}>
+              {slideSelection.showOverview && (
+                <div className="presentation-slide-print">
+                  <SlideOverview project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} inspections={pInspections} theme="light" />
+                </div>
+              )}
+              {slideSelection.showGantt && (
+                <div className="presentation-slide-print">
+                  <SlideGantt project={proj} tasks={pTasks} amendments={pAmendments} theme="light" />
+                </div>
+              )}
+              {slideSelection.showSCurve && (
+                <div className="presentation-slide-print">
+                  <SlideSCurve project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} theme="light" />
+                </div>
+              )}
+              {slideSelection.showPhotos && (
+                <div className="presentation-slide-print">
+                  <SlidePhotos project={proj} selectedPhotoUrls={slideSelection.selectedPhotoUrls || []} theme="light" />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

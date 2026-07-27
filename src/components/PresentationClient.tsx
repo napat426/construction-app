@@ -302,69 +302,16 @@ export function PresentationClient({
 
   if (isFullScreen) {
     return (
-      <>
-        <PresentationEngine 
-          projects={projects}
-          tasks={initialTasks}
-          milestones={initialMilestones}
-          amendments={initialAmendments}
-          inspections={initialInspections}
-          selectedSlides={selectedSlides}
-          theme={theme}
-          onExit={() => setIsFullScreen(false)}
-        />
-        <div id="presentation-print-area" className="print-only">
-          <div className="presentation-slide-print">
-            <SlideSummary 
-              projects={projects} 
-              tasks={initialTasks} 
-              milestones={initialMilestones} 
-              amendments={initialAmendments} 
-              theme="light" 
-              selectedSlides={selectedSlides} 
-            />
-          </div>
-          {selectedSlides.flatMap((slideSelection) => {
-            const proj = projects.find(p => p.id === slideSelection.projectId)
-            if (!proj) return []
-            const pTasks = initialTasks.filter(t => t.project_id === proj.id)
-            const pMilestones = initialMilestones.filter(m => m.project_id === proj.id)
-            const pAmendments = (initialAmendments || []).filter(a => a.project_id === proj.id)
-            const pInspections = initialInspections.filter(i => i.project_id === proj.id)
-
-            const list: React.ReactNode[] = []
-            if (slideSelection.showOverview) {
-              list.push(
-                <div key={`${proj.id}-overview`} className="presentation-slide-print">
-                  <SlideOverview project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} inspections={pInspections} theme="light" />
-                </div>
-              )
-            }
-            if (slideSelection.showGantt) {
-              list.push(
-                <div key={`${proj.id}-gantt`} className="presentation-slide-print">
-                  <SlideGantt project={proj} tasks={pTasks} amendments={pAmendments} theme="light" />
-                </div>
-              )
-            }
-            if (slideSelection.showSCurve) {
-              list.push(
-                <div key={`${proj.id}-scurve`} className="presentation-slide-print">
-                  <SlideSCurve project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} theme="light" />
-                </div>
-              )
-            }
-            if (slideSelection.showPhotos) {
-              list.push(
-                <div key={`${proj.id}-photos`} className="presentation-slide-print">
-                  <SlidePhotos project={proj} selectedPhotoUrls={slideSelection.selectedPhotoUrls || []} theme="light" />
-                </div>
-              )
-            }
-            return list
-          })}
-        </div>
-      </>
+      <PresentationEngine 
+        projects={projects}
+        tasks={initialTasks}
+        milestones={initialMilestones}
+        amendments={initialAmendments}
+        inspections={initialInspections}
+        selectedSlides={selectedSlides}
+        theme={theme}
+        onExit={() => setIsFullScreen(false)}
+      />
     )
   }
 
@@ -594,7 +541,10 @@ export function PresentationClient({
             <Play size={20} fill="currentColor" /> เริ่มนำเสนอ
           </button>
           <button 
-            onClick={() => window.print()}
+            onClick={() => {
+              localStorage.setItem('print_selected_slides', JSON.stringify(selectedSlides))
+              window.open('/presentation/print', '_blank')
+            }}
             disabled={selectedSlides.length === 0}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-[#1c1c34] hover:bg-slate-200 dark:hover:bg-[#252548] disabled:opacity-50 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-sm border border-slate-200 dark:border-[#252548] transition-colors"
             title="พิมพ์ หรือ บันทึกเป็น PDF"
@@ -622,62 +572,7 @@ export function PresentationClient({
         />
       )}
 
-      {/* ── PRINT ONLY CONTAINER: 16:9 LANDSCAPE PDF SLIDES ── */}
-      <div id="presentation-print-area" className="print-only">
-        {/* Slide 1: Summary */}
-        <div className="presentation-slide-print">
-          <SlideSummary 
-            projects={projects} 
-            tasks={initialTasks} 
-            milestones={initialMilestones} 
-            amendments={initialAmendments} 
-            theme="light" 
-            selectedSlides={selectedSlides} 
-          />
-        </div>
-
-        {/* Project Slides */}
-        {selectedSlides.flatMap((slideSelection) => {
-          const proj = projects.find(p => p.id === slideSelection.projectId)
-          if (!proj) return []
-          const pTasks = initialTasks.filter(t => t.project_id === proj.id)
-          const pMilestones = initialMilestones.filter(m => m.project_id === proj.id)
-          const pAmendments = (initialAmendments || []).filter(a => a.project_id === proj.id)
-          const pInspections = initialInspections.filter(i => i.project_id === proj.id)
-
-          const list: React.ReactNode[] = []
-
-          if (slideSelection.showOverview) {
-            list.push(
-              <div key={`${proj.id}-overview`} className="presentation-slide-print">
-                <SlideOverview project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} inspections={pInspections} theme="light" />
-              </div>
-            )
-          }
-          if (slideSelection.showGantt) {
-            list.push(
-              <div key={`${proj.id}-gantt`} className="presentation-slide-print">
-                <SlideGantt project={proj} tasks={pTasks} amendments={pAmendments} theme="light" />
-              </div>
-            )
-          }
-          if (slideSelection.showSCurve) {
-            list.push(
-              <div key={`${proj.id}-scurve`} className="presentation-slide-print">
-                <SlideSCurve project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} theme="light" />
-              </div>
-            )
-          }
-          if (slideSelection.showPhotos) {
-            list.push(
-              <div key={`${proj.id}-photos`} className="presentation-slide-print">
-                <SlidePhotos project={proj} selectedPhotoUrls={slideSelection.selectedPhotoUrls || []} theme="light" />
-              </div>
-            )
-          }
-          return list
-        })}
-      </div>
     </div>
   )
 }
+

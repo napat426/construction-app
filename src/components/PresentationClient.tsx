@@ -302,16 +302,69 @@ export function PresentationClient({
 
   if (isFullScreen) {
     return (
-      <PresentationEngine 
-        projects={projects}
-        tasks={initialTasks}
-        milestones={initialMilestones}
-        amendments={initialAmendments}
-        inspections={initialInspections}
-        selectedSlides={selectedSlides}
-        theme={theme}
-        onExit={() => setIsFullScreen(false)}
-      />
+      <>
+        <PresentationEngine 
+          projects={projects}
+          tasks={initialTasks}
+          milestones={initialMilestones}
+          amendments={initialAmendments}
+          inspections={initialInspections}
+          selectedSlides={selectedSlides}
+          theme={theme}
+          onExit={() => setIsFullScreen(false)}
+        />
+        <div id="presentation-print-area" className="hidden print:block">
+          <div className="presentation-slide-print">
+            <SlideSummary 
+              projects={projects} 
+              tasks={initialTasks} 
+              milestones={initialMilestones} 
+              amendments={initialAmendments} 
+              theme="light" 
+              selectedSlides={selectedSlides} 
+            />
+          </div>
+          {selectedSlides.flatMap((slideSelection) => {
+            const proj = projects.find(p => p.id === slideSelection.projectId)
+            if (!proj) return []
+            const pTasks = initialTasks.filter(t => t.project_id === proj.id)
+            const pMilestones = initialMilestones.filter(m => m.project_id === proj.id)
+            const pAmendments = (initialAmendments || []).filter(a => a.project_id === proj.id)
+            const pInspections = initialInspections.filter(i => i.project_id === proj.id)
+
+            const list: React.ReactNode[] = []
+            if (slideSelection.showOverview) {
+              list.push(
+                <div key={`${proj.id}-overview`} className="presentation-slide-print">
+                  <SlideOverview project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} inspections={pInspections} theme="light" />
+                </div>
+              )
+            }
+            if (slideSelection.showGantt) {
+              list.push(
+                <div key={`${proj.id}-gantt`} className="presentation-slide-print">
+                  <SlideGantt project={proj} tasks={pTasks} amendments={pAmendments} theme="light" />
+                </div>
+              )
+            }
+            if (slideSelection.showSCurve) {
+              list.push(
+                <div key={`${proj.id}-scurve`} className="presentation-slide-print">
+                  <SlideSCurve project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} theme="light" />
+                </div>
+              )
+            }
+            if (slideSelection.showPhotos) {
+              list.push(
+                <div key={`${proj.id}-photos`} className="presentation-slide-print">
+                  <SlidePhotos project={proj} selectedPhotoUrls={slideSelection.selectedPhotoUrls || []} theme="light" />
+                </div>
+              )
+            }
+            return list
+          })}
+        </div>
+      </>
     )
   }
 

@@ -200,26 +200,36 @@
     margin: 0;
   }
 
-  /* Hide app layout elements */
+  /* Hide header, navigation, sidebar and interactive UI elements when printing */
   header, nav, aside, footer, .no-print, [class*="Header"], [class*="Sidebar"] {
     display: none !important;
   }
 
-  body {
-    background: white !important;
-    color: black !important;
+  html, body {
+    width: 100% !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
   }
 
-  /* Force display of presentation print area */
-  #presentation-print-area {
+  /* Force print area container to show even with Tailwind 'hidden' class */
+  #presentation-print-area,
+  div#presentation-print-area {
     display: block !important;
     position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
+    visibility: visible !important;
+  }
+
+  #presentation-print-area * {
+    visibility: visible !important;
   }
 
   /* Each slide is forced onto a single A4 landscape page */
@@ -229,9 +239,9 @@
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     width: 297mm !important;
-    height: 210mm !important;
+    height: 200mm !important;
     max-width: 297mm !important;
-    max-height: 210mm !important;
+    max-height: 200mm !important;
     box-sizing: border-box !important;
     padding: 10mm 12mm !important;
     overflow: hidden !important;

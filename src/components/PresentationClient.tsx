@@ -570,7 +570,7 @@ export function PresentationClient({
       )}
 
       {/* ── PRINT ONLY CONTAINER: 16:9 LANDSCAPE PDF SLIDES ── */}
-      <div className="hidden print:block">
+      <div id="presentation-print-area" className="hidden print:block">
         {/* Slide 1: Summary */}
         <div className="presentation-slide-print">
           <SlideSummary 

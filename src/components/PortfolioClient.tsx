@@ -30,7 +30,6 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
     'รอดำเนินการ',
     'กำลังดำเนินการ',
     'ระงับ',
-    'เสร็จสิ้น',
   ])
 
   // Sorting states

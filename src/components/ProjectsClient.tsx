@@ -28,7 +28,13 @@ export function ProjectsClient({
 }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([])
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
+    'ออกแบบ สำรวจ ประมาณการ',
+    'จัดซื้อจัดจ้าง',
+    'รอดำเนินการ',
+    'กำลังดำเนินการ',
+    'ระงับ',
+  ])
   const [supervisorOpen, setSupervisorOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')

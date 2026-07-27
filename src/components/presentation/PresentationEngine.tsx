@@ -125,7 +125,7 @@ export function PresentationEngine({ projects, tasks, inspections, milestones, a
   const isDark = theme === 'dark'
 
   return (
-    <div className={`fixed inset-0 z-50 ${isDark ? 'dark bg-[#0d0f14] text-white' : 'bg-[#f0f2f5] text-slate-900'} flex flex-col font-['Sarabun'] overflow-hidden select-none`}>
+    <div className={`fixed inset-0 z-50 ${isDark ? 'dark bg-[#0d0f14] text-white' : 'bg-[#f0f2f5] text-slate-900'} flex flex-col font-['Sarabun'] overflow-hidden select-none print:hidden`}>
       {/* 16:9 Container scaled to fit */}
       <div className="flex-1 w-full h-full flex items-center justify-center relative">
         <div 

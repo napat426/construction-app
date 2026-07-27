@@ -200,21 +200,22 @@
     margin: 0;
   }
 
-  /* Hide everything on page by default */
-  body * {
-    visibility: hidden;
+  /* Hide app layout elements */
+  header, nav, aside, footer, .no-print, [class*="Header"], [class*="Sidebar"] {
+    display: none !important;
   }
 
-  /* Show only print slides */
-  #presentation-print-area,
-  #presentation-print-area * {
-    visibility: visible !important;
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
+  /* Force display of presentation print area */
   #presentation-print-area {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    display: block !important;
+    position: relative !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -232,7 +233,7 @@
     max-width: 297mm !important;
     max-height: 210mm !important;
     box-sizing: border-box !important;
-    padding: 12mm 15mm !important;
+    padding: 10mm 12mm !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;

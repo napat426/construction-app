@@ -196,20 +196,20 @@
 /* ─── Presentation PDF Print Styles (16:9 Landscape Layout) ─── */
 @media print {
   @page {
-    size: 297mm 167.06mm; /* Exact 16:9 Landscape Aspect Ratio (A4 width 297mm x 167.06mm height) */
+    size: landscape;
     margin: 0;
   }
 
   html, body {
-    width: 297mm !important;
-    height: 167.06mm !important;
+    width: 100% !important;
+    height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
     background-color: #ffffff !important;
     color: #0f172a !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   /* Hide app navigation chrome & non-presentation headers */
@@ -219,16 +219,19 @@
 
   /* Print slide container */
   .presentation-slide-print {
-    page-break-after: always;
-    break-after: page;
-    width: 297mm !important;
-    height: 167.06mm !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
     box-sizing: border-box !important;
-    padding: 12mm 15mm !important;
+    padding: 24px 32px !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
     background: #ffffff !important;
     color: #0f172a !important;
   }

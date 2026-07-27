@@ -46,7 +46,7 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
   const projectId = segments[1] === 'projects' && segments[2] ? segments[2] : null
 
   return (
-    <header className="sticky top-0 z-40 px-6 py-4 border-b border-slate-200 dark:border-[#1c1c34] bg-white/80 dark:bg-[#0d0d1c]/80 backdrop-blur-md">
+    <header className="sticky top-0 z-40 px-6 py-4 border-b border-slate-200 dark:border-[#1c1c34] bg-white/80 dark:bg-[#0d0d1c]/80 backdrop-blur-md print:hidden">
       <div className="flex items-center justify-between gap-4">
         {/* Left: title + breadcrumb */}
         <div>

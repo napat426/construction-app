@@ -37,15 +37,15 @@ export default async function PresentationPage() {
   const amendments = (amendmentsRes.data as any[]) ?? []
 
   return (
-    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
-      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden">
+    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c] print:bg-white print:min-h-0 print:block">
+      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden print:min-h-0 print:block print:p-0 print:m-0">
         <Header
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'นำเสนองาน (Presentation)']}
           title="Presentation Mode"
           subtitle="เลือกโครงการและปรับแต่งสไลด์สำหรับการนำเสนอ"
           user={user}
         />
-        <main className="flex-1 p-6 flex flex-col">
+        <main className="flex-1 p-6 flex flex-col print:p-0 print:m-0 print:block">
           <PresentationClient 
             initialProjects={projects} 
             initialTasks={tasks} 

@@ -316,7 +316,7 @@ export function PresentationClient({
   }
 
   return (
-    <div className="flex-1 flex gap-6 h-[calc(100vh-140px)]">
+    <div className="flex-1 flex gap-6 h-[calc(100vh-140px)] print:hidden">
       {/* Left Panel: Filters & Projects */}
       <div className="flex-1 flex flex-col bg-white dark:bg-[#14142a] rounded-2xl shadow-sm border border-slate-200 dark:border-[#1c1c34] overflow-hidden">
         {/* Filter Bar */}
@@ -584,38 +584,45 @@ export function PresentationClient({
         </div>
 
         {/* Project Slides */}
-        {selectedSlides.map((slideSelection) => {
+        {selectedSlides.flatMap((slideSelection) => {
           const proj = projects.find(p => p.id === slideSelection.projectId)
-          if (!proj) return null
+          if (!proj) return []
           const pTasks = initialTasks.filter(t => t.project_id === proj.id)
           const pMilestones = initialMilestones.filter(m => m.project_id === proj.id)
           const pAmendments = (initialAmendments || []).filter(a => a.project_id === proj.id)
           const pInspections = initialInspections.filter(i => i.project_id === proj.id)
 
-          return (
-            <div key={proj.id}>
-              {slideSelection.showOverview && (
-                <div className="presentation-slide-print">
-                  <SlideOverview project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} inspections={pInspections} theme="light" />
-                </div>
-              )}
-              {slideSelection.showGantt && (
-                <div className="presentation-slide-print">
-                  <SlideGantt project={proj} tasks={pTasks} amendments={pAmendments} theme="light" />
-                </div>
-              )}
-              {slideSelection.showSCurve && (
-                <div className="presentation-slide-print">
-                  <SlideSCurve project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} theme="light" />
-                </div>
-              )}
-              {slideSelection.showPhotos && (
-                <div className="presentation-slide-print">
-                  <SlidePhotos project={proj} selectedPhotoUrls={slideSelection.selectedPhotoUrls || []} theme="light" />
-                </div>
-              )}
-            </div>
-          )
+          const list: React.ReactNode[] = []
+
+          if (slideSelection.showOverview) {
+            list.push(
+              <div key={`${proj.id}-overview`} className="presentation-slide-print">
+                <SlideOverview project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} inspections={pInspections} theme="light" />
+              </div>
+            )
+          }
+          if (slideSelection.showGantt) {
+            list.push(
+              <div key={`${proj.id}-gantt`} className="presentation-slide-print">
+                <SlideGantt project={proj} tasks={pTasks} amendments={pAmendments} theme="light" />
+              </div>
+            )
+          }
+          if (slideSelection.showSCurve) {
+            list.push(
+              <div key={`${proj.id}-scurve`} className="presentation-slide-print">
+                <SlideSCurve project={proj} tasks={pTasks} milestones={pMilestones} amendments={pAmendments} theme="light" />
+              </div>
+            )
+          }
+          if (slideSelection.showPhotos) {
+            list.push(
+              <div key={`${proj.id}-photos`} className="presentation-slide-print">
+                <SlidePhotos project={proj} selectedPhotoUrls={slideSelection.selectedPhotoUrls || []} theme="light" />
+              </div>
+            )
+          }
+          return list
         })}
       </div>
     </div>

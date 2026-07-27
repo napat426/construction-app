@@ -59,10 +59,12 @@ export function PresentationClient({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSupervisor, setSelectedSupervisor] = useState<string>('all')
   const [statusFilters, setStatusFilters] = useState<Record<string, boolean>>({
-    'กำลังดำเนินการ': true,
-    'เสร็จสิ้น': true,
-    'ระงับ': true,
+    'ออกแบบ สำรวจ ประมาณการ': true,
+    'จัดซื้อจัดจ้าง': true,
     'รอดำเนินการ': true,
+    'กำลังดำเนินการ': true,
+    'ระงับ': true,
+    'เสร็จสิ้น': false,
   })
 
   // Selection states
@@ -379,7 +381,7 @@ export function PresentationClient({
           
           <div className="flex gap-4 text-sm items-center">
             <span className="font-bold text-slate-500">สถานะ:</span>
-            {['กำลังดำเนินการ', 'เสร็จสิ้น', 'รอดำเนินการ', 'ระงับ'].map(status => (
+            {['ออกแบบ สำรวจ ประมาณการ', 'จัดซื้อจัดจ้าง', 'รอดำเนินการ', 'กำลังดำเนินการ', 'ระงับ', 'เสร็จสิ้น'].map(status => (
               <label key={status} className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"

@@ -116,10 +116,12 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
           <h1 className={`text-6xl font-bold mb-4 ${isDark ? 'text-[#a13c9d]' : 'text-purple-700'}`}>{project.name}</h1>
           <div className="flex gap-4 items-center">
             <span className={`px-4 py-1.5 rounded-full text-lg font-bold ${
-              project.status === 'กำลังดำเนินการ' ? 'bg-blue-500/20 text-blue-500' :
-              project.status === 'เสร็จสิ้น' ? 'bg-emerald-500/20 text-emerald-500' :
-              project.status === 'ระงับ' ? 'bg-red-500/20 text-red-500' :
-              'bg-slate-500/20 text-slate-500'
+              project.status === 'ออกแบบ สำรวจ ประมาณการ' ? 'bg-purple-500/20 text-purple-400' :
+              project.status === 'จัดซื้อจัดจ้าง' ? 'bg-indigo-500/20 text-indigo-400' :
+              project.status === 'รอดำเนินการ' ? 'bg-blue-500/20 text-blue-400' :
+              project.status === 'กำลังดำเนินการ' ? 'bg-amber-500/20 text-amber-400' :
+              project.status === 'ระงับ' ? 'bg-red-500/20 text-red-400' :
+              'bg-emerald-500/20 text-emerald-400'
             }`}>
               {project.status}
             </span>

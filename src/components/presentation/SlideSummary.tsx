@@ -130,10 +130,12 @@ export function SlideSummary({ projects, tasks = [], milestones = [], amendments
                   </td>
                   <td className="py-6 px-6 text-center">
                     <span className={`inline-block px-4 py-2 rounded-xl text-lg font-bold ${
-                      p.status === 'กำลังดำเนินการ' ? 'bg-blue-500/20 text-blue-400' :
-                      p.status === 'เสร็จสิ้น' ? 'bg-emerald-500/20 text-emerald-400' :
+                      p.status === 'ออกแบบ สำรวจ ประมาณการ' ? 'bg-purple-500/20 text-purple-400' :
+                      p.status === 'จัดซื้อจัดจ้าง' ? 'bg-indigo-500/20 text-indigo-400' :
+                      p.status === 'รอดำเนินการ' ? 'bg-blue-500/20 text-blue-400' :
+                      p.status === 'กำลังดำเนินการ' ? 'bg-amber-500/20 text-amber-400' :
                       p.status === 'ระงับ' ? 'bg-red-500/20 text-red-400' :
-                      'bg-slate-500/20 text-slate-400'
+                      'bg-emerald-500/20 text-emerald-400'
                     }`}>
                       {p.status}
                     </span>

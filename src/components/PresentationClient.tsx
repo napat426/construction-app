@@ -313,7 +313,7 @@ export function PresentationClient({
           theme={theme}
           onExit={() => setIsFullScreen(false)}
         />
-        <div id="presentation-print-area" className="hidden print:block">
+        <div id="presentation-print-area" className="print-only">
           <div className="presentation-slide-print">
             <SlideSummary 
               projects={projects} 
@@ -623,7 +623,7 @@ export function PresentationClient({
       )}
 
       {/* ── PRINT ONLY CONTAINER: 16:9 LANDSCAPE PDF SLIDES ── */}
-      <div id="presentation-print-area" className="hidden print:block">
+      <div id="presentation-print-area" className="print-only">
         {/* Slide 1: Summary */}
         <div className="presentation-slide-print">
           <SlideSummary 

@@ -193,6 +193,11 @@
   }
 }
 
+/* Screen-only hide for print container (no !important so @media print can override) */
+.print-only {
+  display: none;
+}
+
 /* ─── Presentation PDF Print Styles (16:9 Landscape Layout) ─── */
 @media print {
   @page {
@@ -214,22 +219,17 @@
     color: #0f172a !important;
   }
 
-  /* Force print area container to show even with Tailwind 'hidden' class */
-  #presentation-print-area,
-  div#presentation-print-area {
+  /* Show print-only container when printing */
+  .print-only {
     display: block !important;
+  }
+
+  #presentation-print-area {
     position: relative !important;
-    left: 0 !important;
-    top: 0 !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
-    visibility: visible !important;
-  }
-
-  #presentation-print-area * {
-    visibility: visible !important;
   }
 
   /* Each slide is forced onto a single A4 landscape page */

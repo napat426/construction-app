@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ZAxis } from 'recharts'
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ZAxis, Cell } from 'recharts'
 
 interface ProjectEVMData {
   name: string
@@ -128,15 +128,7 @@ export function SPICPIScatterChart({ data }: SPICPIScatterChartProps) {
                 <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
                 <Scatter name="Projects" data={chartData} fill="#8884d8">
                   {chartData.map((entry, index) => (
-                    <circle
-                      key={`cell-${index}`}
-                      cx={0} // Managed by Scatter
-                      cy={0} // Managed by Scatter
-                      r={0}  // Managed by Scatter/ZAxis range
-                      fill={entry.color}
-                      opacity={0.8}
-                      style={{ cursor: 'pointer' }}
-                    />
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Scatter>
               </ScatterChart>

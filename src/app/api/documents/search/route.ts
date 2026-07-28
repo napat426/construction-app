@@ -2,8 +2,16 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const dynamic = 'force-dynamic'
+
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://'))
+  ? rawUrl
+  : 'https://placeholder-project.supabase.co'
+const rawKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseKey = rawKey && !rawKey.includes('[SENSITIVE]')
+  ? rawKey
+  : 'placeholder-key'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')

@@ -16,12 +16,13 @@ import { getCurrentUser } from '@/lib/auth'
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes] = await Promise.all([
+  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single(),
     supabase.from('system_settings').select('*').eq('key', 'ai_ocr_enabled').single(),
-    supabase.from('contract_amendments').select('*')
+    supabase.from('contract_amendments').select('*'),
+    supabase.from('system_settings').select('*').eq('key', 'work_groups').single()
   ])
 
   const projects: Project[] = (projectsRes.data as Project[]) ?? []
@@ -30,6 +31,13 @@ export default async function ProjectsPage() {
   const amendments = amendmentsRes.data ?? []
   const aiEnabled = settingsRes.data?.value === 'true' || settingsRes.data?.value === true
   const aiOcrEnabled = ocrSettingsRes.data?.value === 'true' || ocrSettingsRes.data?.value === true
+  
+  let workGroups: string[] = []
+  try {
+    if (workGroupsRes.data?.value) {
+      workGroups = JSON.parse(workGroupsRes.data.value)
+    }
+  } catch {}
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -72,6 +80,7 @@ export default async function ProjectsPage() {
             user={user} 
             aiEnabled={aiEnabled} 
             aiOcrEnabled={aiOcrEnabled} 
+            workGroups={workGroups}
           />
         </main>
       </div>

@@ -15,9 +15,10 @@ interface EditBaselineModalProps {
   milestones: ProjectMilestone[]
   amendments: ContractAmendment[]
   onClose: () => void
+  workGroups: string[]
 }
 
-export function EditBaselineModal({ project, milestones, amendments, onClose }: EditBaselineModalProps) {
+export function EditBaselineModal({ project, milestones, amendments, onClose, workGroups }: EditBaselineModalProps) {
   const formRef = useRef<HTMLFormElement>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -223,7 +224,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose }: 
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className={labelCls} htmlFor="location">สถานที่ก่อสร้าง</label>
               <input
@@ -243,6 +244,15 @@ export function EditBaselineModal({ project, milestones, amendments, onClose }: 
                 <option value="กำลังดำเนินการ">4. กำลังดำเนินการ</option>
                 <option value="ระงับ">5. ระงับ</option>
                 <option value="เสร็จสิ้น">6. เสร็จสิ้น</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="work_group">กลุ่มงาน (Work Group)</label>
+              <select id="work_group" name="work_group" defaultValue={project.work_group || ''} className={inputCls}>
+                <option value="">-- ไม่ระบุกลุ่มงาน --</option>
+                {workGroups.map((group) => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
               </select>
             </div>
           </div>

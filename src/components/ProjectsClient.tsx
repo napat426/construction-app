@@ -16,6 +16,7 @@ interface ProjectsClientProps {
   user?: UserSession | null
   aiEnabled?: boolean
   aiOcrEnabled?: boolean
+  workGroups?: string[]
 }
 
 export function ProjectsClient({ 
@@ -24,7 +25,8 @@ export function ProjectsClient({
   amendments = [], 
   user, 
   aiEnabled = false,
-  aiOcrEnabled = false 
+  aiOcrEnabled = false,
+  workGroups = []
 }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([])
@@ -38,6 +40,8 @@ export function ProjectsClient({
   const [supervisorOpen, setSupervisorOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>([])
+  const [workGroupOpen, setWorkGroupOpen] = useState(false)
 
   /* ── Derived data ── */
   const supervisors = useMemo(
@@ -55,15 +59,18 @@ export function ProjectsClient({
       const matchStatus =
         selectedStatuses.length === 0 ||
         selectedStatuses.includes(p.status)
+      const matchWorkGroup =
+        selectedWorkGroups.length === 0 ||
+        selectedWorkGroups.includes(p.work_group || '')
       const matchSearch =
         !q ||
         p.name.toLowerCase().includes(q) ||
         p.supervisor.toLowerCase().includes(q) ||
         p.location?.toLowerCase().includes(q) ||
         p.description?.toLowerCase().includes(q)
-      return matchSupervisor && matchStatus && matchSearch
+      return matchSupervisor && matchStatus && matchWorkGroup && matchSearch
     })
-  }, [initialProjects, selectedSupervisors, selectedStatuses, searchQuery])
+  }, [initialProjects, selectedSupervisors, selectedStatuses, selectedWorkGroups, searchQuery])
 
   const stats = useMemo(
     () => ({
@@ -127,6 +134,7 @@ export function ProjectsClient({
             onClick={() => {
               setSupervisorOpen(!supervisorOpen)
               setStatusOpen(false)
+              setWorkGroupOpen(false)
             }}
             className="input-base font-semibold text-xs min-w-56 text-left flex items-center justify-between pr-8 cursor-pointer relative"
             style={{ paddingLeft: "2.5rem" }}
@@ -193,6 +201,7 @@ export function ProjectsClient({
             onClick={() => {
               setStatusOpen(!statusOpen)
               setSupervisorOpen(false)
+              setWorkGroupOpen(false)
             }}
             className="input-base font-semibold text-xs min-w-48 text-left flex items-center justify-between pr-8 cursor-pointer relative"
             style={{ paddingLeft: "2.5rem" }}
@@ -261,6 +270,90 @@ export function ProjectsClient({
           )}
         </div>
 
+        {/* Work Group Multi-Select */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setWorkGroupOpen(!workGroupOpen)
+              setSupervisorOpen(false)
+              setStatusOpen(false)
+            }}
+            className="input-base font-semibold text-xs min-w-48 text-left flex items-center justify-between pr-8 cursor-pointer relative"
+            style={{ paddingLeft: "2.5rem" }}
+          >
+            <SlidersHorizontal
+              size={14}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none"
+            />
+            <span className="truncate">
+              {selectedWorkGroups.length === 0
+                ? "กลุ่มงานทั้งหมด"
+                : `กลุ่มงาน (${selectedWorkGroups.length})`}
+            </span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
+          </button>
+          
+          {workGroupOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setWorkGroupOpen(false)} />
+              <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
+                <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
+                  <span className="text-[10px] font-black uppercase text-slate-400">เลือกกลุ่มงาน</span>
+                  {selectedWorkGroups.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWorkGroups([])}
+                      className="text-[10px] font-bold text-red-500 hover:underline"
+                    >
+                      ล้างค่า
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {/* Unassigned Work Group */}
+                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={selectedWorkGroups.includes('')}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedWorkGroups([...selectedWorkGroups, ''])
+                        } else {
+                          setSelectedWorkGroups(selectedWorkGroups.filter(x => x !== ''))
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                    />
+                    <span className="italic">ไม่ระบุกลุ่มงาน</span>
+                  </label>
+
+                  {workGroups.map((wg) => {
+                    const checked = selectedWorkGroups.includes(wg)
+                    return (
+                      <label key={wg} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedWorkGroups([...selectedWorkGroups, wg])
+                            } else {
+                              setSelectedWorkGroups(selectedWorkGroups.filter(x => x !== wg))
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                        />
+                        <span>{wg}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           <Link
@@ -285,7 +378,7 @@ export function ProjectsClient({
       </div>
 
       {/* ── Filter result count ── */}
-      {(searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0) && (
+      {(searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0 || selectedWorkGroups.length > 0) && (
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
           แสดง{' '}
           <span className="font-bold text-primary-600 dark:text-primary-400">
@@ -312,23 +405,23 @@ export function ProjectsClient({
         /* Empty state */
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-20 h-20 rounded-2xl bg-primary-600/10 dark:bg-primary-600/15 flex items-center justify-center mb-5">
-            {searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0 ? (
+            {searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0 || selectedWorkGroups.length > 0 ? (
               <Search size={36} className="text-primary-600 dark:text-primary-400 opacity-70" />
             ) : (
               <Building2 size={36} className="text-primary-600 dark:text-primary-400 opacity-70" />
             )}
           </div>
           <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-2">
-            {searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0
+            {searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0 || selectedWorkGroups.length > 0
               ? 'ไม่พบโครงการที่ตรงเงื่อนไข'
               : 'ยังไม่มีโครงการในระบบ'}
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-6 leading-relaxed">
-            {searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0
-              ? 'ลองเปลี่ยนคำค้นหาหรือเลือกสถานะ/ผู้ควบคุมงานอื่น'
+            {searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0 || selectedWorkGroups.length > 0
+              ? 'ลองเปลี่ยนคำค้นหาหรือเลือกสถานะ/ผู้ควบคุมงาน/กลุ่มงานอื่น'
               : 'เริ่มต้นโดยการเพิ่มโครงการก่อสร้างโครงการแรกของคุณ'}
           </p>
-          {!searchQuery && selectedSupervisors.length === 0 && selectedStatuses.length === 0 && user && (user.role === 'admin' || user.role === 'editor') && (
+          {!searchQuery && selectedSupervisors.length === 0 && selectedStatuses.length === 0 && selectedWorkGroups.length === 0 && user && (user.role === 'admin' || user.role === 'editor') && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold text-white btn-primary cursor-pointer"
@@ -342,7 +435,7 @@ export function ProjectsClient({
 
       {/* ── Create modal ── */}
       {showCreateModal && (
-        <CreateProjectModal onClose={() => setShowCreateModal(false)} />
+        <CreateProjectModal onClose={() => setShowCreateModal(false)} workGroups={workGroups} />
       )}
 
       {/* ── AI Assistant Section ── */}

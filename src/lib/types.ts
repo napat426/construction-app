@@ -23,6 +23,7 @@ export interface Project {
   inspection_committee: string | null
   contractor: string | null
   contract_no: string | null
+  work_group: string | null
   created_at: string
 }
 

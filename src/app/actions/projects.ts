@@ -29,6 +29,7 @@ export async function createProject(
   const inspection_committee = (formData.get('inspection_committee') as string)?.trim() || null
   const contractor           = (formData.get('contractor') as string)?.trim()           || null
   const contract_no          = (formData.get('contract_no') as string)?.trim()          || null
+  const work_group           = (formData.get('work_group') as string)?.trim()           || null
 
   const { error } = await supabase.from('projects').insert({
     name,
@@ -43,6 +44,7 @@ export async function createProject(
     inspection_committee,
     contractor,
     contract_no,
+    work_group,
   })
 
   if (error) {
@@ -108,6 +110,7 @@ export async function updateProjectBaseline(
   const inspection_committee = (formData.get('inspection_committee') as string)?.trim() || null
   const contractor           = (formData.get('contractor') as string)?.trim()           || null
   const contract_no          = (formData.get('contract_no') as string)?.trim()          || null
+  const work_group           = (formData.get('work_group') as string)?.trim()           || null
 
   const { error } = await supabase
     .from('projects')
@@ -127,6 +130,7 @@ export async function updateProjectBaseline(
       inspection_committee,
       contractor,
       contract_no,
+      work_group,
     })
     .eq('id', id)
 

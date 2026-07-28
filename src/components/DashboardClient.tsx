@@ -34,6 +34,7 @@ interface DashboardClientProps {
   
   amendments?: ContractAmendment[]
   user?: UserSession | null
+  workGroups?: string[]
 }
 
 function formatCurrency(amount: number | null): string {
@@ -54,7 +55,7 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function DashboardClient({ project, tasks, milestones, amendments = [], user }: DashboardClientProps) {
+export function DashboardClient({ project, tasks, milestones, amendments = [], user, workGroups = [] }: DashboardClientProps) {
   const [showEditModal, setShowEditModal] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [paymentDate, setPaymentDate] = useState('')
@@ -765,6 +766,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
           milestones={milestones} 
           amendments={amendments || []}
           onClose={() => setShowEditModal(false)} 
+          workGroups={workGroups}
         />
       )}
     </>

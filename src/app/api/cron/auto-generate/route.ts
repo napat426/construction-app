@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { backfillDailyReport } from '@/app/actions/reports'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get('authorization')

@@ -31,12 +31,14 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
     projectRes,
     tasksRes,
     milestonesRes,
-    amendmentsRes
+    amendmentsRes,
+    workGroupsRes
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*').eq('project_id', id),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
-    supabase.from('contract_amendments').select('*').eq('project_id', id).order('amendment_no', { ascending: true })
+    supabase.from('contract_amendments').select('*').eq('project_id', id).order('amendment_no', { ascending: true }),
+    supabase.from('system_settings').select('*').eq('key', 'work_groups').single()
   ])
 
   const projectData = projectRes.data
@@ -52,7 +54,14 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
   const project = projectData as Project
   const tasks = (tasksData as WBSTask[]) || []
   const milestones = (milestonesData as ProjectMilestone[]) || []
-    const amendments = (amendmentsRes.data as ContractAmendment[]) || []
+  const amendments = (amendmentsRes.data as ContractAmendment[]) || []
+
+  let workGroups: string[] = []
+  try {
+    if (workGroupsRes.data?.value) {
+      workGroups = JSON.parse(workGroupsRes.data.value)
+    }
+  } catch {}
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -66,7 +75,7 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
 
         <main className="flex-1 p-6">
           <ProjectTabs projectId={project.id} />
-          <DashboardClient project={project} tasks={tasks} milestones={milestones} amendments={amendments} user={user} />
+          <DashboardClient project={project} tasks={tasks} milestones={milestones} amendments={amendments} user={user} workGroups={workGroups} />
         </main>
       </div>
     </div>

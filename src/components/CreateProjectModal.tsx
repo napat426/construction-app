@@ -7,11 +7,12 @@ import type { ActionState } from '@/lib/types'
 
 interface CreateProjectModalProps {
   onClose: () => void
+  workGroups: string[]
 }
 
 const INITIAL_STATE: ActionState = null
 
-export function CreateProjectModal({ onClose }: CreateProjectModalProps) {
+export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalProps) {
   const [state, formAction, pending] = useActionState(createProject, INITIAL_STATE)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -188,6 +189,17 @@ export function CreateProjectModal({ onClose }: CreateProjectModalProps) {
               <label className={labelCls} htmlFor="end_date">วันที่สิ้นสุด</label>
               <input id="end_date" name="end_date" type="date" className={inputCls} />
             </div>
+          </div>
+
+          {/* กลุ่มงาน */}
+          <div>
+            <label className={labelCls} htmlFor="work_group">กลุ่มงาน (Work Group)</label>
+            <select id="work_group" name="work_group" className={inputCls}>
+              <option value="">-- ไม่ระบุกลุ่มงาน --</option>
+              {workGroups.map((group) => (
+                <option key={group} value={group}>{group}</option>
+              ))}
+            </select>
           </div>
 
 

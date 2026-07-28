@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck } from 'lucide-react'
+import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck, SlidersHorizontal } from 'lucide-react'
 import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractAmendment } from '@/lib/types'
 import { PaymentForecastChart } from './portfolio/PaymentForecastChart'
 import { ProgressComparisonChart } from './portfolio/ProgressComparisonChart'
@@ -19,12 +19,13 @@ interface Props {
   
   amendments: ContractAmendment[]
   user?: UserSession | null
+  workGroups?: string[]
 }
 
 type SortField = 'name' | 'remaining' | 'ev' | 'sv'
 type SortDir = 'asc' | 'desc'
 
-export function PortfolioClient({ projects, tasks, milestones, amendments = [], punchLists = [], punchItems = [], user }: Props) {
+export function PortfolioClient({ projects, tasks, milestones, amendments = [], punchLists = [], punchItems = [], user, workGroups = [] }: Props) {
   // Checkbox status filter states
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     'ออกแบบ สำรวจ ประมาณการ',
@@ -33,6 +34,17 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
     'กำลังดำเนินการ',
     'ระงับ',
   ])
+  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([])
+  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>([])
+
+  const [supervisorOpen, setSupervisorOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [workGroupOpen, setWorkGroupOpen] = useState(false)
+
+  const supervisorsList = useMemo(
+    () => [...new Set(projects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort(),
+    [projects]
+  )
 
   // Sorting states
   const [sortBy, setBy] = useState<SortField>('sv')
@@ -203,9 +215,19 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
   // 2. Filter projects
   const filteredProjects = useMemo(() => {
     return computedProjects.filter((p) => {
-      return selectedStatuses.includes(p.status)
+      const pSupervisors = (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)
+      const matchSupervisor =
+        selectedSupervisors.length === 0 ||
+        pSupervisors.some((s) => selectedSupervisors.includes(s))
+      const matchStatus =
+        selectedStatuses.length === 0 ||
+        selectedStatuses.includes(p.status)
+      const matchWorkGroup =
+        selectedWorkGroups.length === 0 ||
+        selectedWorkGroups.includes(p.work_group || '')
+      return matchSupervisor && matchStatus && matchWorkGroup
     })
-  }, [computedProjects, selectedStatuses])
+  }, [computedProjects, selectedStatuses, selectedSupervisors, selectedWorkGroups])
 
   // 3. Sort projects
   const sortedProjects = useMemo(() => {
@@ -420,7 +442,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
           .w-3.h-3.rounded-full.bg-amber-500 {
             background-color: #f59e0b !important;
           }
-        }
+}
       `}</style>
 
       {/* --- PRINT ONLY TITLE HEADER --- */}
@@ -433,110 +455,237 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
 
       {/* ── PART 1: FILTER BAR (Hidden in print) ── */}
       <div className="card rounded-2xl p-5 border border-slate-200 dark:border-[#1c1c34] flex flex-col md:flex-row md:items-center justify-between gap-4 no-print shadow-sm">
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ตัวกรองสถานะโครงการ (เลือกดูพร้อมกันได้)</span>
-          <div className="flex flex-wrap gap-2.5 items-center">
-            {/* Designing (ออกแบบ สำรวจ ประมาณการ) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('ออกแบบ สำรวจ ประมาณการ')}
-                onChange={() => handleToggleStatus('ออกแบบ สำรวจ ประมาณการ')}
-                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500/20"
+        <div className="flex flex-wrap items-center gap-3">
+          
+          {/* Supervisor Multi-Select */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setSupervisorOpen(!supervisorOpen)
+                setStatusOpen(false)
+                setWorkGroupOpen(false)
+              }}
+              className="input-base font-semibold text-xs min-w-56 text-left flex items-center justify-between pr-8 cursor-pointer relative"
+              style={{ paddingLeft: "2.5rem" }}
+            >
+              <SlidersHorizontal
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none"
               />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-purple-500" />
-                ออกแบบ/ประมาณการ ({computedProjects.filter((p) => p.status === 'ออกแบบ สำรวจ ประมาณการ').length})
+              <span className="truncate">
+                {selectedSupervisors.length === 0
+                  ? "ผู้ควบคุมทั้งหมด"
+                  : `ผู้ควบคุม (${selectedSupervisors.length} คน)`}
               </span>
-            </label>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
+            </button>
+            
+            {supervisorOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setSupervisorOpen(false)} />
+                <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
+                  <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
+                    <span className="text-[10px] font-black uppercase text-slate-400">เลือกผู้ควบคุม</span>
+                    {selectedSupervisors.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSupervisors([])}
+                        className="text-[10px] font-bold text-red-500 hover:underline"
+                      >
+                        ล้างค่า
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {supervisorsList.map((s) => {
+                      const checked = selectedSupervisors.includes(s)
+                      return (
+                        <label key={s} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedSupervisors([...selectedSupervisors, s])
+                              } else {
+                                setSelectedSupervisors(selectedSupervisors.filter(x => x !== s))
+                              }
+                            }}
+                            className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                          />
+                          <span className="truncate">{s}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
-            {/* Procurement (จัดซื้อจัดจ้าง) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('จัดซื้อจัดจ้าง')}
-                onChange={() => handleToggleStatus('จัดซื้อจัดจ้าง')}
-                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500/20"
+          {/* Status Multi-Select */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setStatusOpen(!statusOpen)
+                setSupervisorOpen(false)
+                setWorkGroupOpen(false)
+              }}
+              className="input-base font-semibold text-xs min-w-48 text-left flex items-center justify-between pr-8 cursor-pointer relative"
+              style={{ paddingLeft: "2.5rem" }}
+            >
+              <SlidersHorizontal
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none"
               />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                จัดซื้อจัดจ้าง ({computedProjects.filter((p) => p.status === 'จัดซื้อจัดจ้าง').length})
+              <span className="truncate">
+                {selectedStatuses.length === 0
+                  ? "สถานะทั้งหมด"
+                  : `สถานะ (${selectedStatuses.length})`}
               </span>
-            </label>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
+            </button>
+            
+            {statusOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setStatusOpen(false)} />
+                <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
+                  <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
+                    <span className="text-[10px] font-black uppercase text-slate-400">เลือกสถานะ</span>
+                    {selectedStatuses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStatuses([])}
+                        className="text-[10px] font-bold text-red-500 hover:underline"
+                      >
+                        ล้างค่า
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {(
+                      [
+                        'ออกแบบ สำรวจ ประมาณการ',
+                        'จัดซื้อจัดจ้าง',
+                        'รอดำเนินการ',
+                        'กำลังดำเนินการ',
+                        'ระงับ',
+                        'เสร็จสิ้น',
+                      ] as const
+                    ).map((st) => {
+                      const checked = selectedStatuses.includes(st)
+                      return (
+                        <label key={st} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedStatuses([...selectedStatuses, st])
+                              } else {
+                                setSelectedStatuses(selectedStatuses.filter(x => x !== st))
+                              }
+                            }}
+                            className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                          />
+                          <span>{st}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
-            {/* Pending (รอดำเนินการ) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('รอดำเนินการ')}
-                onChange={() => handleToggleStatus('รอดำเนินการ')}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500/20"
+          {/* Work Group Multi-Select */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setWorkGroupOpen(!workGroupOpen)
+                setSupervisorOpen(false)
+                setStatusOpen(false)
+              }}
+              className="input-base font-semibold text-xs min-w-48 text-left flex items-center justify-between pr-8 cursor-pointer relative"
+              style={{ paddingLeft: "2.5rem" }}
+            >
+              <SlidersHorizontal
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none"
               />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                รอดำเนินการ ({computedProjects.filter((p) => p.status === 'รอดำเนินการ').length})
+              <span className="truncate">
+                {selectedWorkGroups.length === 0
+                  ? "กลุ่มงานทั้งหมด"
+                  : `กลุ่มงาน (${selectedWorkGroups.length})`}
               </span>
-            </label>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
+            </button>
+            
+            {workGroupOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setWorkGroupOpen(false)} />
+                <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
+                  <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
+                    <span className="text-[10px] font-black uppercase text-slate-400">เลือกกลุ่มงาน</span>
+                    {selectedWorkGroups.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedWorkGroups([])}
+                        className="text-[10px] font-bold text-red-500 hover:underline"
+                      >
+                        ล้างค่า
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {/* Unassigned Work Group */}
+                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={selectedWorkGroups.includes('')}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedWorkGroups([...selectedWorkGroups, ''])
+                          } else {
+                            setSelectedWorkGroups(selectedWorkGroups.filter(x => x !== ''))
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                      />
+                      <span className="italic">ไม่ระบุกลุ่มงาน</span>
+                    </label>
 
-            {/* Active (กำลังดำเนินการ) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('กำลังดำเนินการ')}
-                onChange={() => handleToggleStatus('กำลังดำเนินการ')}
-                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500/20"
-              />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                กำลังดำเนินการ ({computedProjects.filter((p) => p.status === 'กำลังดำเนินการ').length})
-              </span>
-            </label>
-
-            {/* Suspended (ระงับ) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('ระงับ')}
-                onChange={() => handleToggleStatus('ระงับ')}
-                className="w-4 h-4 rounded text-red-600 focus:ring-red-500/20"
-              />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500" />
-                ถูกระงับ ({computedProjects.filter((p) => p.status === 'ระงับ').length})
-              </span>
-            </label>
-
-            {/* Completed (เสร็จสิ้น) */}
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={selectedStatuses.includes('เสร็จสิ้น')}
-                onChange={() => handleToggleStatus('เสร็จสิ้น')}
-                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500/20"
-              />
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                เสร็จสิ้น ({computedProjects.filter((p) => p.status === 'เสร็จสิ้น').length})
-              </span>
-            </label>
+                    {workGroups.map((wg) => {
+                      const checked = selectedWorkGroups.includes(wg)
+                      return (
+                        <label key={wg} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedWorkGroups([...selectedWorkGroups, wg])
+                              } else {
+                                setSelectedWorkGroups(selectedWorkGroups.filter(x => x !== wg))
+                              }
+                            }}
+                            className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                          />
+                          <span>{wg}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedStatuses(['ออกแบบ สำรวจ ประมาณการ', 'จัดซื้อจัดจ้าง', 'รอดำเนินการ', 'กำลังดำเนินการ', 'ระงับ', 'เสร็จสิ้น'])}
-              className="px-2.5 py-1.5 text-[10px] font-black rounded-lg border border-slate-200 dark:border-[#252548] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
-            >
-              เลือกทั้งหมด
-            </button>
-            <button
-              onClick={() => setSelectedStatuses([])}
-              className="px-2.5 py-1.5 text-[10px] font-black rounded-lg border border-slate-200 dark:border-[#252548] text-slate-500 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
-            >
-              ล้างทั้งหมด
-            </button>
-          </div>
           
           <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-[#252548]">
             <label className="flex items-center gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 cursor-pointer select-none">

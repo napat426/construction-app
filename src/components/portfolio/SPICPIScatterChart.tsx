@@ -16,17 +16,24 @@ interface SPICPIScatterChartProps {
 
 export function SPICPIScatterChart({ data }: SPICPIScatterChartProps) {
   const chartData = useMemo(() => {
-    return data.map(p => ({
-      name: p.name,
-      x: parseFloat(p.SPI.toFixed(2)),
-      y: parseFloat(p.CPI.toFixed(2)),
-      z: p.budget || 1000000, // budget determines size
-      color: p.SPI >= 1.0 && p.CPI >= 1.0 
-        ? '#10b981' // Green (Healthy)
-        : p.SPI < 0.9 || p.CPI < 0.9 
-        ? '#ef4444' // Red (Critical)
-        : '#f59e0b' // Orange (Warning)
-    }))
+    return data.map(p => {
+      // Safe fallback values to prevent any runtime toFixed / NaN issues
+      const spiVal = typeof p.SPI === 'number' && !isNaN(p.SPI) ? p.SPI : 1.0
+      const cpiVal = typeof p.CPI === 'number' && !isNaN(p.CPI) ? p.CPI : 1.0
+      const budgetVal = typeof p.budget === 'number' && !isNaN(p.budget as number) ? (p.budget ?? 1000000) : 1000000
+
+      return {
+        name: p.name,
+        x: parseFloat(spiVal.toFixed(2)),
+        y: parseFloat(cpiVal.toFixed(2)),
+        z: budgetVal,
+        color: spiVal >= 1.0 && cpiVal >= 1.0 
+          ? '#10b981' // Green (Healthy)
+          : spiVal < 0.9 || cpiVal < 0.9 
+          ? '#ef4444' // Red (Critical)
+          : '#f59e0b' // Orange (Warning)
+      }
+    })
   }, [data])
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -72,7 +79,8 @@ export function SPICPIScatterChart({ data }: SPICPIScatterChartProps) {
         </div>
       </div>
 
-      <div className="h-80 w-full flex-1 relative mt-2">
+      {/* Replaced 'flex-1 relative' with simple fixed height container to prevent ResponsiveContainer from collapsing to height: 0 */}
+      <div className="h-80 w-full mt-2 relative">
         {chartData.length === 0 ? (
           <div className="h-full w-full flex items-center justify-center text-slate-400 dark:text-slate-500 text-sm">
             ไม่มีข้อมูลดัชนีชี้วัด
@@ -108,7 +116,7 @@ export function SPICPIScatterChart({ data }: SPICPIScatterChartProps) {
                   type="number" 
                   dataKey="x" 
                   name="SPI" 
-                  domain={[0.4, 1.6]} 
+                  domain={[0, 2]} 
                   tick={{ fontSize: 10, fill: '#64748b' }} 
                   axisLine={{ stroke: '#cbd5e1' }}
                   tickLine={false}
@@ -118,7 +126,7 @@ export function SPICPIScatterChart({ data }: SPICPIScatterChartProps) {
                   type="number" 
                   dataKey="y" 
                   name="CPI" 
-                  domain={[0.4, 1.6]} 
+                  domain={[0, 3.0]} 
                   tick={{ fontSize: 10, fill: '#64748b' }} 
                   axisLine={{ stroke: '#cbd5e1' }}
                   tickLine={false}

@@ -6,7 +6,6 @@ import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTr
 import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractAmendment } from '@/lib/types'
 import { PaymentForecastChart } from './portfolio/PaymentForecastChart'
 import { ProgressComparisonChart } from './portfolio/ProgressComparisonChart'
-import { SPICPIScatterChart } from './portfolio/SPICPIScatterChart'
 import { StatusDonutChart } from './portfolio/StatusDonutChart'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
@@ -651,9 +650,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 no-print">
-        <SPICPIScatterChart data={filteredProjects} />
-      </div>
+
 
       {/* ── PART 3: COMPARISON TABLE (Moved to top) ── */}
       <div className="card rounded-2xl border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] overflow-hidden print:card shadow-sm">

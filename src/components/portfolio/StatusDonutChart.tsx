@@ -70,7 +70,7 @@ function DonutSlide({
           <div className="text-slate-400 dark:text-slate-500 text-sm">ไม่มีข้อมูล</div>
         ) : (
           <>
-            <div className="absolute flex flex-col items-center justify-center pointer-events-none mb-4">
+            <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-4xl font-black text-slate-900 dark:text-white leading-none">{total}</span>
               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
                 {centerLabel}
@@ -214,7 +214,7 @@ export function StatusDonutChart({ data }: StatusDonutChartProps) {
             chartData={statusData}
             total={total}
             label="สถานะ"
-            centerLabel="โครงการรวม"
+            centerLabel="โครงการ"
             colorMap={(name) => STATUS_COLORS[name] || '#94a3b8'}
           />
         )}
@@ -223,7 +223,7 @@ export function StatusDonutChart({ data }: StatusDonutChartProps) {
             chartData={workGroupData}
             total={total}
             label="กลุ่มงาน"
-            centerLabel="โครงการรวม"
+            centerLabel="โครงการ"
             colorMap={(_, i) => PALETTE[i % PALETTE.length]}
           />
         )}
@@ -232,7 +232,7 @@ export function StatusDonutChart({ data }: StatusDonutChartProps) {
             chartData={supervisorData}
             total={total}
             label="ผู้ควบคุมงาน"
-            centerLabel="โครงการรวม"
+            centerLabel="โครงการ"
             colorMap={(_, i) => PALETTE[i % PALETTE.length]}
           />
         )}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Brush } from 'recharts'
 import type { ProjectMilestone, Project } from '@/lib/types'
 import { Calendar, Filter, EyeOff } from 'lucide-react'
@@ -10,68 +10,177 @@ interface PaymentForecastChartProps {
   projects: Project[]
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6']
+// Clean and reusable dropdown component for metadata filtering
+function FilterDropdown({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string
+  options: string[]
+  selected: string[]
+  onChange: (value: string[]) => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: any) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleToggle = (opt: string) => {
+    const next = selected.includes(opt)
+      ? selected.filter(x => x !== opt)
+      : [...selected, opt]
+    onChange(next)
+  }
+
+  const isAllSelected = selected.length === options.length
+
+  const handleToggleAll = () => {
+    if (isAllSelected) {
+      onChange([])
+    } else {
+      onChange(options)
+    }
+  }
+
+  return (
+    <div className="relative flex flex-col gap-1.5" ref={dropdownRef}>
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</span>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-300 flex items-center justify-between min-w-[130px] md:min-w-[155px] hover:border-slate-300 dark:hover:border-slate-600 transition-colors cursor-pointer select-none font-bold"
+      >
+        <span>
+          {selected.length === 0
+            ? 'ปิดทั้งหมด'
+            : (selected.length === options.length ? 'ทั้งหมด' : `${selected.length} รายการ`)}
+        </span>
+        <span className="ml-1 text-[8px] text-slate-400">▼</span>
+      </button>
+      
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-[#121228] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-30 py-2 min-w-[200px] max-h-60 overflow-y-auto">
+          <div className="px-3 py-1.5 border-b border-slate-100 dark:border-[#252548] flex justify-between items-center mb-1">
+            <button
+              type="button"
+              onClick={handleToggleAll}
+              className="text-[10px] font-bold text-blue-500 hover:underline cursor-pointer"
+            >
+              {isAllSelected ? 'เคลียร์ทั้งหมด' : 'เลือกทั้งหมด'}
+            </button>
+          </div>
+          {options.map(opt => {
+            const isChecked = selected.includes(opt)
+            return (
+              <label
+                key={opt}
+                className="px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-[#1e1e38] flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => handleToggle(opt)}
+                  className="rounded border-slate-300 dark:border-[#252548] text-primary-600 focus:ring-primary-500 w-3.5 h-3.5"
+                />
+                <span className="truncate">{opt}</span>
+              </label>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function PaymentForecastChart({ milestones, projects }: PaymentForecastChartProps) {
-  // 1. Basic Filtering
+  // 1. Basic Filtering (get unpaid milestones only)
   const forecastMilestones = useMemo(() => milestones.filter(m => !m.is_paid), [milestones])
 
-  // Get all unique project names that have at least one forecast milestone
-  const allProjectNames = useMemo(() => {
-    const names = new Set<string>()
-    forecastMilestones.forEach(m => {
-      const p = projects.find(proj => proj.id === m.project_id)
-      if (p) names.add(p.name)
-    })
-    return Array.from(names)
-  }, [forecastMilestones, projects])
+  // Extract unique metadata options from all projects
+  const allSupervisors = useMemo(() => {
+    const list = new Set<string>()
+    projects.forEach(p => { if (p.supervisor) list.add(p.supervisor) })
+    return Array.from(list).sort()
+  }, [projects])
 
-  // 2. State for Project Filter
+  const allStatuses = useMemo(() => {
+    const list = new Set<string>()
+    projects.forEach(p => { if (p.status) list.add(p.status) })
+    return Array.from(list).sort()
+  }, [projects])
+
+  const allWorkGroups = useMemo(() => {
+    const list = new Set<string>()
+    projects.forEach(p => {
+      const g = p.work_group || 'ไม่ระบุกลุ่มงาน'
+      list.add(g)
+    })
+    return Array.from(list).sort()
+  }, [projects])
+
+  // 2. States for independent filters
+  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([])
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>([])
   const [selectedProjects, setSelectedProjects] = useState<string[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
-  // Initialize from localStorage
+  // Initialize filters
   useEffect(() => {
-    const saved = localStorage.getItem('paymentForecast_projects')
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSelectedProjects(parsed)
-        } else {
-          // If empty array saved, respect it (user unchecked all)
-          setSelectedProjects(parsed)
-        }
-      } catch (e) {
-        setSelectedProjects(allProjectNames)
-      }
-    } else {
-      // Default: Select All
-      setSelectedProjects(allProjectNames)
+    if (projects.length > 0) {
+      setSelectedSupervisors(allSupervisors)
+      setSelectedStatuses(allStatuses)
+      setSelectedWorkGroups(allWorkGroups)
     }
+  }, [projects, allSupervisors, allStatuses, allWorkGroups])
+
+  // Filter projects by current independent metadata filter selections
+  const filteredProjectsByMetaData = useMemo(() => {
+    return projects.filter(p => {
+      if (selectedSupervisors.length > 0 && !selectedSupervisors.includes(p.supervisor)) return false
+      if (selectedStatuses.length > 0 && !selectedStatuses.includes(p.status)) return false
+      const g = p.work_group || 'ไม่ระบุกลุ่มงาน'
+      if (selectedWorkGroups.length > 0 && !selectedWorkGroups.includes(g)) return false
+      return true
+    })
+  }, [projects, selectedSupervisors, selectedStatuses, selectedWorkGroups])
+
+  // Get active project names matching metadata filters
+  const allProjectNames = useMemo(() => {
+    const names = new Set<string>()
+    forecastMilestones.forEach(m => {
+      const p = filteredProjectsByMetaData.find(proj => proj.id === m.project_id)
+      if (p) names.add(p.name)
+    })
+    return Array.from(names).sort()
+  }, [forecastMilestones, filteredProjectsByMetaData])
+
+  // Initialize and synchronize selected project checkboxes
+  useEffect(() => {
+    setSelectedProjects(allProjectNames)
     setIsLoaded(true)
   }, [allProjectNames])
 
-  // Save to localStorage on change
   const handleToggleProject = (pName: string) => {
-    setSelectedProjects(prev => {
-      const next = prev.includes(pName) ? prev.filter(n => n !== pName) : [...prev, pName]
-      localStorage.setItem('paymentForecast_projects', JSON.stringify(next))
-      return next
-    })
+    setSelectedProjects(prev =>
+      prev.includes(pName) ? prev.filter(n => n !== pName) : [...prev, pName]
+    )
   }
 
-  const handleSelectAllProjects = () => {
-    setSelectedProjects(allProjectNames)
-    localStorage.setItem('paymentForecast_projects', JSON.stringify(allProjectNames))
-  }
+  const handleSelectAllProjects = () => setSelectedProjects(allProjectNames)
+  const handleClearAllProjects = () => setSelectedProjects([])
 
-  const handleClearAllProjects = () => {
-    setSelectedProjects([])
-    localStorage.setItem('paymentForecast_projects', JSON.stringify([]))
-  }
-
-  // 3. Process raw monthly data to get available months
+  // 3. Process raw monthly data
   const rawGroupedData = useMemo(() => {
     const grouped: Record<string, { dateObj: Date, total: number, unassigned: number, [key: string]: any }> = {}
     let unassigned = 0
@@ -79,6 +188,10 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
     forecastMilestones.forEach(m => {
       const p = projects.find(proj => proj.id === m.project_id)
       const pName = p ? p.name : 'Unknown Project'
+
+      // Skip if project is not matching the metadata filters
+      const isProjectMatched = filteredProjectsByMetaData.some(proj => proj.id === m.project_id)
+      if (!isProjectMatched) return
 
       if (!m.expected_payment_date) {
         if (selectedProjects.includes(pName)) {
@@ -113,17 +226,16 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
       grouped,
       totalUnassigned: unassigned
     }
-  }, [forecastMilestones, projects, selectedProjects])
+  }, [forecastMilestones, projects, selectedProjects, filteredProjectsByMetaData])
 
   const allMonthsSorted = useMemo(() => {
     return Object.values(rawGroupedData.grouped).sort((a, b) => a.sortKey.localeCompare(b.sortKey))
   }, [rawGroupedData])
 
-  // 4. State for Date Range Filter
+  // 4. Date Range Filters
   const [startMonthKey, setStartMonthKey] = useState<string>('')
   const [endMonthKey, setEndMonthKey] = useState<string>('')
 
-  // Set default date range to all if not set
   useEffect(() => {
     if (allMonthsSorted.length > 0 && !startMonthKey && !endMonthKey) {
       setStartMonthKey(allMonthsSorted[0].sortKey)
@@ -131,7 +243,6 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
     }
   }, [allMonthsSorted, startMonthKey, endMonthKey])
 
-  // Quick Select Handlers
   const handleQuickSelect = (months: number) => {
     if (allMonthsSorted.length === 0) return
     const now = new Date()
@@ -157,13 +268,11 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
     const activeProjs = new Set<string>()
 
     const data = allMonthsSorted.filter(m => {
-      // Apply date filter if set
       if (startMonthKey && m.sortKey < startMonthKey) return false
       if (endMonthKey && m.sortKey > endMonthKey) return false
       return true
     }).map(m => {
       const newObj: any = { name: m.name, sortKey: m.sortKey, total: 0 }
-      // Apply project filter
       Object.keys(m).forEach(k => {
         if (k !== 'name' && k !== 'sortKey' && k !== 'dateObj' && k !== 'total' && k !== 'unassigned') {
           if (selectedProjects.includes(k)) {
@@ -175,18 +284,14 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
         }
       })
       return newObj
-    }).filter(m => {
-      // Remove months that have 0 amount after project filtering
-      return m.total > 0
-    })
+    }).filter(m => m.total > 0)
 
     return { filteredData: data, finalTotal: total, activeProjectsInView: Array.from(activeProjs) }
   }, [allMonthsSorted, selectedProjects, startMonthKey, endMonthKey])
 
-
   if (!isLoaded) return <div className="animate-pulse h-[400px] bg-slate-100 dark:bg-[#1c1c34] rounded-2xl mb-6"></div>
 
-  // Custom Tooltip component to show total and project details on hover
+  // Custom Tooltip component without project color dots
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const dataPoint = payload[0].payload
@@ -199,17 +304,13 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
             <span>ยอดรวม:</span>
             <span>฿ {dataPoint.total.toLocaleString()}</span>
           </div>
-          <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+          <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
             {activeProjectsInView.map((pName) => {
               const val = dataPoint[pName]
               if (!val) return null
-              const pIdx = allProjectNames.indexOf(pName)
               return (
-                <div key={pName} className="flex items-center justify-between gap-4 text-slate-500 dark:text-slate-400">
-                  <span className="flex items-center gap-1.5 truncate max-w-[180px]">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[pIdx % COLORS.length] }} />
-                    {pName}
-                  </span>
+                <div key={pName} className="flex items-center justify-between gap-6 text-slate-500 dark:text-slate-400 text-[11px]">
+                  <span className="truncate max-w-[200px]">{pName}</span>
                   <span className="font-mono font-bold text-slate-700 dark:text-slate-300">฿ {val.toLocaleString()}</span>
                 </div>
               )
@@ -231,7 +332,6 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
         <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">ไม่มีข้อมูลในเงื่อนไขที่เลือก</h3>
         <p className="text-xs text-slate-500 max-w-sm mb-4">ลองเปลี่ยนตัวกรองโครงการหรือช่วงเดือน เพื่อดูข้อมูลคาดการณ์เบิกจ่าย</p>
         
-        {/* Render filters even in empty state so user can clear them */}
         <div className="flex gap-2">
            <button onClick={handleSelectAllProjects} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-[#252548] text-slate-600 hover:bg-slate-50 cursor-pointer">เลือกทุกโครงการ</button>
            <button onClick={handleSelectAllMonths} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 dark:border-[#252548] text-slate-600 hover:bg-slate-50 cursor-pointer">เลือกทุกเดือน</button>
@@ -258,64 +358,85 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
         </div>
       </div>
 
-      {/* Filters (Hidden in print) */}
+      {/* Filters Area (Hidden in print) */}
       <div className="flex flex-col gap-5 mb-6 no-print bg-slate-50 dark:bg-[#14142a] p-4 rounded-xl border border-slate-100 dark:border-[#1c1c34]">
-        {/* Project Filter */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5">
-              <Filter size={12} /> ตัวกรองโครงการ
-            </span>
-            <div className="flex gap-2">
-              <button onClick={handleSelectAllProjects} className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer">เลือกทั้งหมด</button>
-              <button onClick={handleClearAllProjects} className="text-[10px] font-bold text-slate-400 hover:underline cursor-pointer">ล้างทั้งหมด</button>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {allProjectNames.map((pName, idx) => {
-              const isSelected = selectedProjects.includes(pName)
-              const color = COLORS[idx % COLORS.length]
-              return (
-                <button
-                  key={pName}
-                  onClick={() => handleToggleProject(pName)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer select-none
-                    ${isSelected ? 'bg-white dark:bg-[#1e1e38] border-transparent shadow-sm text-slate-800 dark:text-slate-200' : 'bg-transparent border-slate-200 dark:border-[#252548] text-slate-400 grayscale opacity-60'}`}
-                >
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: isSelected ? color : '#cbd5e1' }} />
-                  {pName}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        {/* Dropdowns and Date Filters Row */}
+        <div className="flex flex-wrap items-center gap-4">
+          <FilterDropdown 
+            label="ผู้ควบคุมงาน" 
+            options={allSupervisors} 
+            selected={selectedSupervisors} 
+            onChange={setSelectedSupervisors} 
+          />
+          <FilterDropdown 
+            label="สถานะโครงการ" 
+            options={allStatuses} 
+            selected={selectedStatuses} 
+            onChange={setSelectedStatuses} 
+          />
+          <FilterDropdown 
+            label="กลุ่มงาน" 
+            options={allWorkGroups} 
+            selected={selectedWorkGroups} 
+            onChange={setSelectedWorkGroups} 
+          />
 
-        {/* Date Filter */}
-        <div className="pt-4 border-t border-slate-200 dark:border-[#252548] flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-500 uppercase">จากเดือน</label>
+          <div className="h-8 w-px bg-slate-200 dark:bg-[#252548] hidden md:block" />
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">จากเดือน</label>
             <input 
               type="month" 
               value={startMonthKey}
               onChange={(e) => setStartMonthKey(e.target.value)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary-500"
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary-500 font-semibold"
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-500 uppercase">ถึงเดือน</label>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ถึงเดือน</label>
             <input 
               type="month" 
               value={endMonthKey}
               onChange={(e) => setEndMonthKey(e.target.value)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary-500"
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary-500 font-semibold"
             />
           </div>
-          <div className="flex gap-2 pb-0.5">
-            <button onClick={() => handleQuickSelect(3)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-200 dark:bg-[#252548] text-slate-600 dark:text-slate-300 hover:bg-slate-300 transition-colors cursor-pointer">3 เดือนข้างหน้า</button>
-            <button onClick={() => handleQuickSelect(6)} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-200 dark:bg-[#252548] text-slate-600 dark:text-slate-300 hover:bg-slate-300 transition-colors cursor-pointer">6 เดือนข้างหน้า</button>
-            <button onClick={handleSelectAllMonths} className="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-200 dark:bg-[#252548] text-slate-600 dark:text-slate-300 hover:bg-slate-300 transition-colors cursor-pointer">ทั้งหมด</button>
+          <div className="flex gap-1.5 pb-0.5 mt-4">
+            <button onClick={() => handleQuickSelect(3)} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-slate-200 dark:bg-[#252548] text-slate-600 dark:text-slate-300 hover:bg-slate-300 transition-colors cursor-pointer select-none">3 ด. ข้างหน้า</button>
+            <button onClick={() => handleQuickSelect(6)} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-slate-200 dark:bg-[#252548] text-slate-600 dark:text-slate-300 hover:bg-slate-300 transition-colors cursor-pointer select-none">6 ด. ข้างหน้า</button>
+            <button onClick={handleSelectAllMonths} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-slate-200 dark:bg-[#252548] text-slate-600 dark:text-slate-300 hover:bg-slate-300 transition-colors cursor-pointer select-none">ทั้งหมด</button>
           </div>
         </div>
+
+        {/* Project Tag Checks Filter */}
+        {allProjectNames.length > 0 && (
+          <div className="pt-4 border-t border-slate-200/60 dark:border-[#252548]/60">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Filter size={12} /> คัดกรองรายโครงการในกลุ่มผลลัพธ์
+              </span>
+              <div className="flex gap-2">
+                <button onClick={handleSelectAllProjects} className="text-[10px] font-bold text-blue-600 hover:underline cursor-pointer">เลือกทั้งหมด</button>
+                <button onClick={handleClearAllProjects} className="text-[10px] font-bold text-slate-400 hover:underline cursor-pointer">ล้างทั้งหมด</button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {allProjectNames.map((pName) => {
+                const isSelected = selectedProjects.includes(pName)
+                return (
+                  <button
+                    key={pName}
+                    onClick={() => handleToggleProject(pName)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all flex items-center cursor-pointer select-none
+                      ${isSelected ? 'bg-indigo-500 border-transparent text-white shadow-sm' : 'bg-transparent border-slate-200 dark:border-[#252548] text-slate-400 dark:text-slate-500'}`}
+                  >
+                    {pName}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {filteredData.length > 0 ? (
@@ -363,6 +484,7 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
                     dataKey="total"
                     position="top" 
                     fill="#475569" 
+                    className="dark:fill-slate-300"
                     fontSize={10} 
                     fontWeight="bold"
                     offset={10}
@@ -373,7 +495,7 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
             </ResponsiveContainer>
           </div>
 
-          {/* Summary Table (Visible in both screen and print) */}
+          {/* Summary Table */}
           <div className="mt-8 border border-slate-200 dark:border-[#252548] rounded-xl overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -385,14 +507,12 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1c1c34] text-slate-700 dark:text-slate-300 font-medium">
                 {filteredData.map((row, idx) => {
-                  // Calculate month total
                   let monthTotal = 0
-                  const projectBreakdowns: {name: string, val: number, color: string}[] = []
+                  const projectBreakdowns: {name: string, val: number}[] = []
                   activeProjectsInView.forEach(p => {
                     if (row[p]) {
                       monthTotal += row[p]
-                      const pIdx = allProjectNames.indexOf(p)
-                      projectBreakdowns.push({ name: p, val: row[p], color: COLORS[pIdx % COLORS.length] })
+                      projectBreakdowns.push({ name: p, val: row[p] })
                     }
                   })
 
@@ -405,11 +525,8 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
                       <td className="p-3">
                         <div className="flex flex-col gap-1.5">
                           {projectBreakdowns.map(pb => (
-                            <div key={pb.name} className="flex items-center justify-between max-w-sm">
-                              <span className="text-slate-500 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full print-exact-colors" style={{ backgroundColor: pb.color }} />
-                                {pb.name}
-                              </span>
+                            <div key={pb.name} className="flex items-center justify-between max-w-sm py-0.5">
+                              <span className="text-slate-500">{pb.name}</span>
                               <span className="font-mono text-slate-900 dark:text-white font-bold">{pb.val.toLocaleString()}</span>
                             </div>
                           ))}

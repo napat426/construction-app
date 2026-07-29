@@ -1003,7 +1003,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
       </div>
 
       <div className={`mt-6 mb-6 ${includePrintForecast ? 'print:block' : 'no-print'}`}>
-        <PaymentForecastChart milestones={milestones} projects={filteredProjects} />
+        <PaymentForecastChart milestones={milestones} projects={projects} />
       </div>
 
 

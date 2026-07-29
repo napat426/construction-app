@@ -187,6 +187,10 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
         committeeList = project.inspection_committee.split('\n').map(s => s.trim()).filter(Boolean)
     }
 
+    const totalMilestones = milestones.length
+    const paidMilestones = milestones.filter(m => m.is_paid).length
+    const remainingMilestones = totalMilestones - paidMilestones
+
     return {
       pvCumulative, evCumulative, acPercent, AC_Cost, BAC,
       svPercent, svDays, cvPercent, cvCost,
@@ -196,6 +200,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
       isCurrentlySuspended, currentSuspension, totalSuspendedDays,
       penaltyDays, totalPenalty,
       committeeList,
+      totalMilestones, paidMilestones, remainingMilestones,
     }
   }, [project, tasks, milestones, amendments])
 
@@ -426,6 +431,13 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                       style={{ width: `${Math.min(100, (evm.AC_Cost / evm.BAC) * 100)}%` }} 
                     />
                   </div>
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-bold pt-2 border-t border-slate-100 dark:border-white/5 mt-1.5">
+                  <span className={muted}>การส่งมอบงวดงาน</span>
+                  <span className={heading}>
+                    ส่งแล้ว <span className="text-emerald-500 font-mono font-black">{evm.paidMilestones}</span> / เหลือ <span className="text-amber-500 font-mono font-black">{evm.remainingMilestones}</span> / ทั้งหมด <span className="font-mono font-black">{evm.totalMilestones}</span> งวด
+                  </span>
                 </div>
               </div>
             </div>

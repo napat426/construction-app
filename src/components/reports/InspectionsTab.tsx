@@ -292,11 +292,12 @@ function InspectionForm({
         result = await updateInspection(item.id, project.id, fd, photoUrlsToSave)
       } else {
         result = await createInspection(project.id, fd, photoUrlsToSave)
-        onClose()
       }
 
       if (result?.error) {
         setError(result.error)
+      } else {
+        onClose()
       }
     })
   }

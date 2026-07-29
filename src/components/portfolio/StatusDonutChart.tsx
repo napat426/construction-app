@@ -56,26 +56,26 @@ function DonutSlide({
   }
 
   return (
-    <div className="flex flex-col w-full">
-      <div className="h-64 w-full relative flex items-center justify-center">
+    <div className="flex flex-col w-full h-full justify-center items-center">
+      <div className="h-80 w-full relative flex items-center justify-center">
         {chartData.length === 0 ? (
           <div className="text-slate-400 dark:text-slate-500 text-sm">ไม่มีข้อมูล</div>
         ) : (
           <>
-            <div className="absolute flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-black text-slate-900 dark:text-white">{total}</span>
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <div className="absolute flex flex-col items-center justify-center pointer-events-none mb-4">
+              <span className="text-4xl font-black text-slate-900 dark:text-white leading-none">{total}</span>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">
                 {centerLabel}
               </span>
             </div>
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ bottom: 20 }}>
                 <Pie
                   data={chartData}
                   cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  cy="45%"
+                  innerRadius={70}
+                  outerRadius={95}
                   paddingAngle={3}
                   dataKey="value"
                 >
@@ -89,10 +89,16 @@ function DonutSlide({
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
                   verticalAlign="bottom"
-                  height={36}
+                  height={50}
                   iconType="circle"
                   iconSize={8}
-                  wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                  wrapperStyle={{ 
+                    fontSize: '10px', 
+                    fontWeight: 'bold',
+                    bottom: 0,
+                    left: 0,
+                    right: 0
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -157,7 +163,7 @@ export function StatusDonutChart({ data }: StatusDonutChartProps) {
   const next = () => setSlideIndex(i => (i + 1) % slides.length)
 
   return (
-    <div className="bg-white dark:bg-[#0b0b16] border border-slate-200 dark:border-[#1c1c34] rounded-2xl p-5 flex flex-col h-full">
+    <div className="bg-white dark:bg-[#0b0b16] border border-slate-200 dark:border-[#1c1c34] rounded-2xl p-5 flex flex-col h-full justify-between">
       {/* Header with nav controls */}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
@@ -166,7 +172,7 @@ export function StatusDonutChart({ data }: StatusDonutChartProps) {
         <div className="flex items-center gap-1">
           <button
             onClick={prev}
-            className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-100 dark:bg-[#1c1c34] hover:bg-slate-200 dark:hover:bg-[#252548] text-slate-600 dark:text-slate-300 transition-colors"
+            className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-100 dark:bg-[#1c1c34] hover:bg-slate-200 dark:hover:bg-[#252548] text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <ChevronLeft size={14} />
           </button>
@@ -176,7 +182,7 @@ export function StatusDonutChart({ data }: StatusDonutChartProps) {
               <button
                 key={i}
                 onClick={() => setSlideIndex(i)}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
                   i === slideIndex
                     ? 'bg-indigo-500 w-3'
                     : 'bg-slate-300 dark:bg-slate-600'
@@ -186,7 +192,7 @@ export function StatusDonutChart({ data }: StatusDonutChartProps) {
           </div>
           <button
             onClick={next}
-            className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-100 dark:bg-[#1c1c34] hover:bg-slate-200 dark:hover:bg-[#252548] text-slate-600 dark:text-slate-300 transition-colors"
+            className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-100 dark:bg-[#1c1c34] hover:bg-slate-200 dark:hover:bg-[#252548] text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <ChevronRight size={14} />
           </button>
@@ -194,7 +200,7 @@ export function StatusDonutChart({ data }: StatusDonutChartProps) {
       </div>
 
       {/* Slide content */}
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col justify-center items-center">
         {slideIndex === 0 && (
           <DonutSlide
             chartData={statusData}

@@ -13,10 +13,19 @@ import {
   X,
   FileText,
   CalendarDays,
+  Download,
+  Upload,
+  FileSpreadsheet,
+  AlertCircle,
 } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import type { Project, ProjectMaterial, MaterialStatus } from '@/lib/types'
-import { createMaterial, updateMaterial, deleteMaterial } from '@/app/actions/materials'
+import { createMaterial, updateMaterial, deleteMaterial, importMaterials } from '@/app/actions/materials'
 import type { UserSession } from '@/lib/auth'
+
+const labelCls = 'text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5'
+const inputCls =
+  'w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#14142a] text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all'
 
 interface Props {
   project: Project
@@ -265,14 +274,360 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
   )
 }
 
-const labelCls = 'text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5'
-const inputCls =
-  'w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#14142a] text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/40 transition-all'
+/* ─── Import Excel Modal ─── */
+function ImportExcelModal({
+  projectId,
+  onClose,
+}: {
+  projectId: string
+  onClose: () => void
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [parsedRows, setParsedRows] = useState<Array<{ name: string; submission_no: string; submitted_date: string; error?: string }>>([])
+  const [dragActive, setDragActive] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  // 1. Download template utility
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new()
+    const data = [
+      {
+        'ชื่อวัสดุ / รายการ (ห้ามเว้นว่าง)': 'เหล็กเส้น SD40 ขนาด 16 มม. (ตัวอย่าง)',
+        'เลขที่เอกสาร': 'MAT-2026-001 (ตัวอย่าง)',
+        'วันที่ยื่น (ปี-เดือน-วัน)': '2026-07-29',
+      },
+      {
+        'ชื่อวัสดุ / รายการ (ห้ามเว้นว่าง)': 'คอนกรีตผสมเสร็จ 320 ksc (ตัวอย่าง)',
+        'เลขที่เอกสาร': 'MAT-2026-002 (ตัวอย่าง)',
+        'วันที่ยื่น (ปี-เดือน-วัน)': '2026-08-01',
+      }
+    ]
+    const ws = XLSX.utils.json_to_sheet(data)
+    
+    ws['!cols'] = [
+      { wch: 45 },
+      { wch: 25 },
+      { wch: 25 }
+    ]
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Materials Template')
+    XLSX.writeFile(wb, 'material_import_template.xlsx')
+  }
+
+  // 2. Parse uploaded file
+  const processFile = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const bstr = e.target?.result
+        const wb = XLSX.read(bstr, { type: 'binary' })
+        const wsName = wb.SheetNames[0]
+        const ws = wb.Sheets[wsName]
+        const rawJson = XLSX.utils.sheet_to_json<any>(ws, { defval: '' })
+
+        if (!rawJson || rawJson.length === 0) {
+          setErrorMessage('ไม่พบข้อมูลรายการวัสดุในไฟล์ Excel')
+          return
+        }
+
+        const validated = rawJson.map((row: any) => {
+          const keys = Object.keys(row)
+          const nameKey = keys.find(k => k.includes('ชื่อ') || k.includes('รายการ') || k.toLowerCase().includes('name')) || keys[0]
+          const subNoKey = keys.find(k => k.includes('เลขที่') || k.toLowerCase().includes('submission') || k.toLowerCase().includes('no')) || keys[1]
+          const dateKey = keys.find(k => k.includes('วัน') || k.toLowerCase().includes('date')) || keys[2]
+
+          const name = String(row[nameKey] || '').trim()
+          const submission_no = String(row[subNoKey] || '').trim()
+          let submitted_date = String(row[dateKey] || '').trim()
+
+          if (submitted_date && !isNaN(Number(submitted_date))) {
+            const dateObj = new Date((Number(submitted_date) - 25569) * 86400 * 1000)
+            if (!isNaN(dateObj.getTime())) {
+              submitted_date = dateObj.toISOString().split('T')[0]
+            }
+          }
+
+          let rowError = ''
+          if (!name) {
+            rowError = 'กรุณาระบุชื่อวัสดุ'
+          }
+
+          return {
+            name,
+            submission_no: submission_no.includes('(ตัวอย่าง)') ? '' : submission_no,
+            submitted_date: submitted_date.includes('(ตัวอย่าง)') ? '' : submitted_date,
+            error: rowError
+          }
+        }).filter(r => !r.name.includes('(ตัวอย่าง)'))
+
+        setParsedRows(validated)
+        setErrorMessage('')
+      } catch (err: any) {
+        setErrorMessage('เกิดข้อผิดพลาดในการวิเคราะห์ไฟล์ Excel: ' + err.message)
+      }
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) processFile(file)
+  }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) processFile(file)
+  }
+
+  // 3. Edit cells inline
+  const handleCellChange = (index: number, field: 'name' | 'submission_no' | 'submitted_date', value: string) => {
+    setParsedRows(prev => {
+      const updated = [...prev]
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+        error: field === 'name' && !value.trim() ? 'กรุณาระบุชื่อวัสดุ' : ''
+      }
+      return updated
+    })
+  }
+
+  const handleDeleteRow = (index: number) => {
+    setParsedRows(prev => prev.filter((_, idx) => idx !== index))
+  }
+
+  const handleAddRow = () => {
+    setParsedRows(prev => [...prev, { name: '', submission_no: '', submitted_date: '', error: 'กรุณาระบุชื่อวัสดุ' }])
+  }
+
+  // 4. Save
+  const handleSave = () => {
+    if (parsedRows.length === 0) return
+    const hasErrors = parsedRows.some(r => !!r.error)
+    if (hasErrors) return
+
+    startTransition(async () => {
+      const res = await importMaterials(projectId, parsedRows)
+      if (res?.error) {
+        setErrorMessage(res.error)
+      } else {
+        onClose()
+      }
+    })
+  }
+
+  const hasAnyErrors = parsedRows.some(r => !!r.error)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="card rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1e1e38]">
+          <div className="flex items-center gap-2">
+            <Upload size={18} className="text-primary-500" />
+            <h2 className="text-base font-black text-slate-900 dark:text-white">นำเข้าข้อมูลวัสดุจาก Excel</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Content Container */}
+        <div className="p-6 flex-1 overflow-y-auto space-y-5">
+          {/* Download Template Banner */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5">
+            <div className="flex items-center gap-3">
+              <Download className="text-slate-450 dark:text-slate-300" size={20} />
+              <div>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200">แบบฟอร์มบันทึกข้อมูลมาตรฐาน</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">ใช้กรอกข้อมูลวัสดุเพื่อให้ระบบดึงข้อมูลรายข้อได้โดยอัตโนมัติ</p>
+              </div>
+            </div>
+            <button
+              onClick={handleDownloadTemplate}
+              className="btn-secondary px-3.5 py-1.5 text-xs rounded-lg font-bold flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download size={13} />
+              ดาวน์โหลดฟอร์ม Excel
+            </button>
+          </div>
+
+          {/* Drag & Drop Upload Zone */}
+          {parsedRows.length === 0 && (
+            <div
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                dragActive
+                  ? 'border-primary-500 bg-primary-500/5'
+                  : 'border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20'
+              }`}
+              onClick={() => document.getElementById('excel-file-input')?.click()}
+            >
+              <input
+                id="excel-file-input"
+                type="file"
+                accept=".xlsx, .xls"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-3">
+                <Upload className="text-slate-400 dark:text-slate-300" size={22} />
+              </div>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">ลากและวางไฟล์ Excel (.xlsx) ที่นี่</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">หรือคลิกเพื่อเลือกไฟล์จากคอมพิวเตอร์ของคุณ</p>
+            </div>
+          )}
+
+          {/* Error Banner */}
+          {errorMessage && (
+            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-xs font-semibold">
+              <AlertCircle size={14} />
+              {errorMessage}
+            </div>
+          )}
+
+          {/* Preview Table Section */}
+          {parsedRows.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  รายการวิเคราะห์พบ ({parsedRows.length} รายการ)
+                </p>
+                <button
+                  onClick={handleAddRow}
+                  className="btn-secondary px-3 py-1.5 text-xs rounded-lg font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={13} />
+                  เพิ่มแถวใหม่
+                </button>
+              </div>
+
+              <div className="border border-slate-200 dark:border-[#1e1e38] rounded-xl overflow-hidden shadow-inner">
+                <div className="overflow-x-auto max-h-[40vh]">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-[#14142a] text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-[#1c1c34]">
+                        <th className="py-2.5 px-3 w-10 text-center">#</th>
+                        <th className="py-2.5 px-3 min-w-[250px]">ชื่อวัสดุ / รายการสเปค <span className="text-red-500">*</span></th>
+                        <th className="py-2.5 px-3 w-40">เลขที่เอกสาร</th>
+                        <th className="py-2.5 px-3 w-36">วันที่ยื่น</th>
+                        <th className="py-2.5 px-3 w-12 text-center">ลบ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-[#1e1e38]">
+                      {parsedRows.map((row, index) => (
+                        <tr
+                          key={index}
+                          className={`hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors ${
+                            row.error ? 'bg-red-500/5 dark:bg-red-500/10' : ''
+                          }`}
+                        >
+                          <td className="py-2 px-3 text-center text-slate-400 font-mono">{index + 1}</td>
+                          <td className="py-2 px-3">
+                            <input
+                              type="text"
+                              value={row.name}
+                              onChange={(e) => handleCellChange(index, 'name', e.target.value)}
+                              className={`w-full px-2.5 py-1.5 rounded-lg border text-xs bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500 ${
+                                row.error ? 'border-red-400 focus:ring-red-400' : 'border-slate-200 dark:border-[#252548]'
+                              }`}
+                              placeholder="กรอกชื่อวัสดุ..."
+                            />
+                            {row.error && <p className="text-[10px] text-red-500 font-semibold mt-0.5 pl-1">{row.error}</p>}
+                          </td>
+                          <td className="py-2 px-3">
+                            <input
+                              type="text"
+                              value={row.submission_no}
+                              onChange={(e) => handleCellChange(index, 'submission_no', e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] text-xs bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                              placeholder="เช่น MAT-001"
+                            />
+                          </td>
+                          <td className="py-2 px-3">
+                            <input
+                              type="date"
+                              value={row.submitted_date}
+                              onChange={(e) => handleCellChange(index, 'submitted_date', e.target.value)}
+                              className="w-full px-2 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] text-xs bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500 font-mono"
+                            />
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            <button
+                              onClick={() => handleDeleteRow(index)}
+                              className="text-slate-450 hover:text-red-500 p-1.5 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-slate-100 dark:border-[#1e1e38] flex justify-end gap-2 bg-slate-50 dark:bg-[#14142a]">
+          {parsedRows.length > 0 && (
+            <button
+              onClick={() => setParsedRows([])}
+              className="btn-secondary px-4 py-2 text-sm rounded-lg font-bold flex items-center gap-1.5 cursor-pointer mr-auto"
+            >
+              เคลียร์ข้อมูล
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="btn-secondary px-4 py-2 text-sm rounded-lg font-bold flex items-center gap-1.5 cursor-pointer"
+          >
+            ยกเลิก
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isPending || parsedRows.length === 0 || hasAnyErrors}
+            className={`btn-primary px-4 py-2 text-sm rounded-lg font-bold flex items-center gap-1.5 cursor-pointer ${
+              hasAnyErrors || parsedRows.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <CheckCircle2 size={14} />
+            {isPending ? 'กำลังนำเข้า...' : `นำเข้า ${parsedRows.length} รายการ`}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  )
+}
 
 /* ─── Main Component ─── */
 export function MaterialsClient({ project, materials, user }: Props) {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [editingMaterial, setEditingMaterial] = useState<ProjectMaterial | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -359,14 +714,24 @@ export function MaterialsClient({ project, materials, user }: Props) {
 
           {/* Add button */}
           {user && (user.role === 'admin' || user.role === 'editor') && (
-            <button
-              id="add-material-btn"
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
-            >
-              <Plus size={15} />
-              เพิ่มรายการวัสดุ
-            </button>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                id="import-excel-btn"
+                onClick={() => setShowImportModal(true)}
+                className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
+              >
+                <FileSpreadsheet size={15} className="text-emerald-600 dark:text-emerald-500" />
+                นำเข้าจาก Excel
+              </button>
+              <button
+                id="add-material-btn"
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
+              >
+                <Plus size={15} />
+                เพิ่มรายการวัสดุ
+              </button>
+            </div>
           )}
         </div>
 
@@ -497,6 +862,9 @@ export function MaterialsClient({ project, materials, user }: Props) {
       {/* ── Modals ── */}
       {showAddModal && (
         <AddMaterialModal projectId={project.id} onClose={() => setShowAddModal(false)} />
+      )}
+      {showImportModal && (
+        <ImportExcelModal projectId={project.id} onClose={() => setShowImportModal(false)} />
       )}
       {editingMaterial && (
         <EditMaterialModal

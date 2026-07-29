@@ -65,3 +65,27 @@ export async function deleteMaterial(id: string, projectId: string) {
   revalidatePath(`/projects/${projectId}/materials`)
   return { success: true }
 }
+
+export async function importMaterials(
+  projectId: string,
+  materialsList: Array<{ name: string; submission_no?: string | null; submitted_date?: string | null }>
+) {
+  if (!Array.isArray(materialsList) || materialsList.length === 0) {
+    return { error: 'ไม่พบข้อมูลรายการวัสดุที่ต้องการนำเข้า' }
+  }
+
+  const rows = materialsList.map((m) => ({
+    project_id: projectId,
+    name: m.name.trim(),
+    submission_no: m.submission_no || null,
+    submitted_date: m.submitted_date || null,
+    status: 'pending' as const,
+  }))
+
+  const { error } = await supabase.from('materials').insert(rows)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/projects/${projectId}/materials`)
+  return { success: true }
+}

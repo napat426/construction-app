@@ -14,99 +14,25 @@ interface Props {
   theme: 'dark' | 'light'
 }
 
-// 🟢 Concentric Rings Component for visual progress tracking (Apple Watch Style)
-function ConcentricRings({ ev, pv, ac, isDark }: { ev: number; pv: number; ac: number; isDark: boolean }) {
-  const center = 100
-  const rPV = 80
-  const rEV = 62
-  const rAC = 44
-  
-  const cPV = 2 * Math.PI * rPV
-  const cEV = 2 * Math.PI * rEV
-  const cAC = 2 * Math.PI * rAC
-  
-  const offsetPV = cPV * (1 - Math.min(100, Math.max(0, pv)) / 100)
-  const offsetEV = cEV * (1 - Math.min(100, Math.max(0, ev)) / 100)
-  const offsetAC = cAC * (1 - Math.min(100, Math.max(0, ac)) / 100)
-
-  return (
-    <div className="relative flex items-center justify-center w-48 h-48 flex-shrink-0">
-      <svg width="200" height="200" className="transform -rotate-90">
-        {/* Track Backdrops */}
-        <circle cx={center} cy={center} r={rPV} fill="transparent" stroke={isDark ? '#3b82f615' : '#3b82f610'} strokeWidth="10" />
-        <circle cx={center} cy={center} r={rEV} fill="transparent" stroke={isDark ? '#10b98115' : '#10b98110'} strokeWidth="10" />
-        <circle cx={center} cy={center} r={rAC} fill="transparent" stroke={isDark ? '#f59e0b15' : '#f59e0b10'} strokeWidth="10" />
-
-        {/* PV Ring (Blue) */}
-        <circle 
-          cx={center} cy={center} r={rPV} 
-          fill="transparent" 
-          stroke="#3b82f6" 
-          strokeWidth="10" 
-          strokeDasharray={cPV} 
-          strokeDashoffset={offsetPV}
-          strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-        />
-
-        {/* EV Ring (Emerald) */}
-        <circle 
-          cx={center} cy={center} r={rEV} 
-          fill="transparent" 
-          stroke="#10b981" 
-          strokeWidth="10" 
-          strokeDasharray={cEV} 
-          strokeDashoffset={offsetEV}
-          strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-        />
-
-        {/* AC Ring (Amber) */}
-        <circle 
-          cx={center} cy={center} r={rAC} 
-          fill="transparent" 
-          stroke="#f59e0b" 
-          strokeWidth="10" 
-          strokeDasharray={cAC} 
-          strokeDashoffset={offsetAC}
-          strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-        />
-      </svg>
-      {/* Center Text Summary */}
-      <div className="absolute flex flex-col items-center justify-center text-center pointer-events-none">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">EV จริง</span>
-        <span className="text-3xl font-black text-emerald-500 leading-none">{ev.toFixed(1)}%</span>
-        <span className="text-[9px] font-bold text-blue-500/90 dark:text-blue-400/90 mt-1">แผน PV: {pv.toFixed(1)}%</span>
-      </div>
-    </div>
-  )
-}
-
 // 📊 Horizontal Slide Gauge for SV & CV Deviations
-function SlideGauge({ value, min = -50, max = 50, label, suffix = "%", isCurrency = false }: { value: number; min?: number; max?: number; label: string; suffix?: string; isCurrency?: boolean }) {
+function SlideGauge({ value, min = -50, max = 50, label, suffix = "%" }: { value: number; min?: number; max?: number; label: string; suffix?: string }) {
   const percent = ((value - min) / (max - min)) * 100
   const boundedPercent = Math.min(100, Math.max(0, percent))
-  
-  const displayVal = isCurrency 
-    ? (value >= 0 ? '+' : '') + new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(value)
-    : (value >= 0 ? '+' : '') + value.toFixed(1) + suffix
-
   const isPositive = value >= 0
 
   return (
     <div className="w-full">
       <div className="flex justify-between items-end mb-1">
-        <span className="text-[10px] font-bold opacity-50 uppercase tracking-wider">{label}</span>
-        <span className={`text-sm font-black font-mono ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-          {displayVal}
+        <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider">{label}</span>
+        <span className={`text-xs font-black font-mono ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+          {isPositive ? '+' : ''}{value.toFixed(1)}{suffix}
         </span>
       </div>
-      <div className="relative w-full h-2.5 bg-slate-100 dark:bg-white/10 rounded-full">
-        {/* Center alignment tick */}
+      <div className="relative w-full h-2 bg-slate-100 dark:bg-white/10 rounded-full">
+        {/* Center tick */}
         <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-300 dark:bg-white/20 z-10" />
         
-        {/* Slider filling */}
+        {/* Slider bar */}
         {isPositive ? (
           <div 
             className="absolute left-1/2 top-0 bottom-0 bg-emerald-500/80 dark:bg-emerald-500/60 rounded-r-full" 
@@ -119,10 +45,10 @@ function SlideGauge({ value, min = -50, max = 50, label, suffix = "%", isCurrenc
           />
         )}
         
-        {/* Slider dot indicator */}
+        {/* Slider indicator dot */}
         <div 
-          className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-white dark:border-[#14142a] shadow-md transition-all z-20 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`}
-          style={{ left: `calc(${boundedPercent}% - 8px)` }}
+          className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border border-white dark:border-[#14142a] shadow transition-all z-20 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`}
+          style={{ left: `calc(${boundedPercent}% - 7px)` }}
         />
       </div>
     </div>
@@ -281,8 +207,8 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
 
   // Premium glassmorphic styling
   const card = isDark 
-    ? 'bg-[#14142a]/80 backdrop-blur-md border border-white/5 shadow-2xl shadow-black/30' 
-    : 'bg-white border border-slate-200/80 shadow-md shadow-slate-100'
+    ? 'bg-[#14142a]/85 backdrop-blur-md border border-white/5 shadow-xl shadow-black/20' 
+    : 'bg-white border border-slate-200 shadow-md shadow-slate-100/50'
   const muted = isDark ? 'text-white/45' : 'text-slate-500'
   const heading = isDark ? 'text-white' : 'text-slate-800'
 
@@ -292,7 +218,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
       {/* ── Premium Header ── */}
       <div className="flex justify-between items-start mb-4 gap-6">
         <div className="flex-1 min-w-0">
-          <h1 className={`text-4xl font-extrabold leading-tight mb-2 tracking-tight ${isDark ? 'text-[#e87ae4] drop-shadow-[0_0_15px_rgba(232,122,228,0.2)]' : 'text-purple-700'}`}>
+          <h1 className={`text-3xl font-extrabold leading-tight mb-1.5 tracking-tight ${isDark ? 'text-[#e87ae4] drop-shadow-[0_0_12px_rgba(232,122,228,0.25)]' : 'text-purple-700'}`}>
             {project.name}
           </h1>
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
@@ -320,169 +246,179 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
 
         {/* Dates, Timeline & Warning Status */}
         <div className="text-right flex-shrink-0 flex flex-col items-end">
-          <p className={`text-xs font-bold ${muted} mb-1 flex items-center gap-1.5`}>
+          <p className={`text-xs font-bold ${muted} mb-0.5 flex items-center gap-1.5`}>
             <Calendar size={12} />
             {fmtDate(project.start_date)} — {evm.isOverrun
               ? <span className="text-red-500 font-bold">เกินสัญญา {evm.daysRemaining} วัน</span>
               : fmtDate(project.end_date)}
           </p>
-          <p className={`text-2xl font-black ${evm.isOverrun ? 'text-red-500' : isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-            {evm.isOverrun ? `⚠ เลยกำหนดมา ${evm.daysRemaining} วัน` : `เหลือ ${evm.daysRemaining} วัน`}
+          <p className={`text-xl font-black ${evm.isOverrun ? 'text-red-500' : isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+            {evm.isOverrun ? `⚠ เกินกำหนด ${evm.daysRemaining} วัน` : `เหลือ ${evm.daysRemaining} วัน`}
           </p>
           {evm.totalPenalty > 0 && (
-            <p className="text-xs font-bold text-red-500 mt-1 bg-red-500/10 px-2 py-0.5 rounded">ค่าปรับสะสม {fmt(evm.totalPenalty)}</p>
+            <p className="text-[10px] font-bold text-red-500 mt-0.5 bg-red-500/10 px-2 py-0.5 rounded">ค่าปรับสะสม {fmt(evm.totalPenalty)}</p>
           )}
         </div>
       </div>
 
       {/* Suspension Banner */}
       {evm.isCurrentlySuspended && evm.currentSuspension && (
-        <div className="flex items-center gap-2 px-3.5 py-2 mb-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-600 dark:text-amber-400 text-xs font-bold">
-          <AlertTriangle size={15} />
+        <div className="flex items-center gap-2 px-3.5 py-1.5 mb-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-600 dark:text-amber-400 text-xs font-bold">
+          <AlertTriangle size={14} />
           ⏸ หยุดงานชั่วคราว: {evm.currentSuspension.reason || '—'}
           {evm.currentSuspension.suspend_date && ` (ตั้งแต่ ${fmtDate(evm.currentSuspension.suspend_date)})`}
           {evm.totalSuspendedDays > 0 && ` — สะสม ${evm.totalSuspendedDays} วัน`}
         </div>
       )}
 
-      {/* ── Main Layout Grid ── */}
-      <div className="flex-1 flex gap-5 min-h-0">
+      {/* ── Main 4-Quadrant Symmetric Grid ── */}
+      <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
 
-        {/* Left Area: Visual Progress & Earned Value Indicators */}
-        <div className="w-[58%] flex flex-col gap-4">
-
-          {/* Row 1: Triple Concentric Circles Overview */}
-          <div className={`${card} rounded-3xl p-5 flex items-center justify-between gap-6 flex-1`}>
-            {/* Concentric rings graph visualizer */}
-            <ConcentricRings ev={evm.evCumulative} pv={evm.pvCumulative} ac={evm.acPercent} isDark={isDark} />
-
-            {/* Custom Interactive Legend */}
-            <div className="flex-1 flex flex-col gap-3 justify-center">
-              <h3 className={`text-xs font-bold uppercase tracking-wider mb-1 ${muted}`}>ความคืบหน้าสะสม</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold">
+        {/* ── LEFT COLUMN (Box 1 & Box 2) ── */}
+        <div className="flex flex-col gap-4">
+          
+          {/* Box 1: ความก้าวหน้าสะสม (Progress Bars) */}
+          <div className={`${card} rounded-3xl p-5 flex flex-col justify-between flex-1`}>
+            <h3 className={`text-xs font-black uppercase tracking-wider ${muted} mb-2`}>ความก้าวหน้าสะสม</h3>
+            <div className="flex-1 flex flex-col justify-around py-1 gap-2">
+              {/* PV */}
+              <div>
+                <div className="flex justify-between items-end mb-1 text-xs font-bold">
                   <span className="flex items-center gap-2 text-blue-500">
-                    <span className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0" />
                     แผนงานสะสม (PV)
                   </span>
-                  <span className={`${heading} font-mono text-sm`}>{evm.pvCumulative.toFixed(1)}%</span>
+                  <span className={`${heading} font-mono`}>{evm.pvCumulative.toFixed(1)}%</span>
                 </div>
-                <div className="flex items-center justify-between text-xs font-bold">
+                <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-100'} h-2.5 rounded-full overflow-hidden`}>
+                  <div className="bg-blue-500 h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${evm.pvCumulative}%` }} />
+                </div>
+              </div>
+
+              {/* EV */}
+              <div>
+                <div className="flex justify-between items-end mb-1 text-xs font-bold">
                   <span className="flex items-center gap-2 text-emerald-500">
-                    <span className="w-3 h-3 rounded-full bg-emerald-500 flex-shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex-shrink-0" />
                     ผลงานจริงสะสม (EV)
                   </span>
-                  <span className={`${heading} font-mono text-sm`}>{evm.evCumulative.toFixed(1)}%</span>
+                  <span className={`${heading} font-mono`}>{evm.evCumulative.toFixed(1)}%</span>
                 </div>
-                <div className="flex items-center justify-between text-xs font-bold">
+                <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-100'} h-2.5 rounded-full overflow-hidden`}>
+                  <div className="bg-emerald-500 h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${evm.evCumulative}%` }} />
+                </div>
+              </div>
+
+              {/* AC */}
+              <div>
+                <div className="flex justify-between items-end mb-1 text-xs font-bold">
                   <span className="flex items-center gap-2 text-amber-500">
-                    <span className="w-3 h-3 rounded-full bg-amber-500 flex-shrink-0" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
                     เบิกจ่ายสะสม (AC)
                   </span>
                   <div className="text-right">
-                    <span className={`${heading} font-mono text-sm block`}>{evm.acPercent.toFixed(1)}%</span>
-                    <span className={`${muted} text-[9px] font-mono block leading-tight`}>{fmt(evm.AC_Cost)}</span>
+                    <span className={`${heading} font-mono`}>{evm.acPercent.toFixed(1)}%</span>
+                    <span className={`${muted} text-[9px] font-mono block leading-tight`}>({fmt(evm.AC_Cost)})</span>
                   </div>
+                </div>
+                <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-100'} h-2.5 rounded-full overflow-hidden`}>
+                  <div className="bg-amber-500 h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${evm.acPercent}%` }} />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Row 2: Deviations Speedometer Slider Gauges & Indices */}
-          <div className="grid grid-cols-2 gap-4 flex-1">
-            {/* Schedule Variance Slider */}
-            <div className={`${card} rounded-3xl p-5 flex flex-col justify-between`}>
-              <div className="flex items-center gap-2">
-                <Calendar size={15} className="text-blue-500" />
-                <h4 className={`text-xs font-bold ${heading}`}>เบี่ยงเบนแผนงาน (SV)</h4>
+          {/* Box 2: การวิเคราะห์และดัชนีประสิทธิภาพ (Gauges & SPI/CPI) */}
+          <div className={`${card} rounded-3xl p-5 flex flex-col justify-between flex-1`}>
+            <h3 className={`text-xs font-black uppercase tracking-wider ${muted} mb-2`}>การวิเคราะห์และดัชนีประสิทธิภาพ</h3>
+            
+            <div className="flex-1 flex flex-col justify-around py-1 gap-4">
+              {/* SV & SPI Row */}
+              <div className="flex flex-col gap-1.5">
+                <SlideGauge value={evm.svPercent} min={-40} max={40} label="เบี่ยงเบนแผนงาน (SV)" />
+                <div className="flex justify-between items-center text-[10px] font-bold mt-0.5">
+                  <span className={`${evm.svPercent < 0 ? 'text-red-500' : evm.svPercent > 0 ? 'text-emerald-500' : muted}`}>
+                    {evm.svPercent < 0 ? `⚠️ ล่าช้ากว่าแผน ${Math.abs(evm.svDays)} วัน` :
+                     evm.svPercent > 0 ? `✅ เร็วกว่าแผน ${evm.svDays} วัน` : '🎯 ดำเนินงานตรงแผน'}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded font-black tracking-wide ${
+                    evm.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-500' :
+                    evm.SPI >= 0.85 ? 'bg-amber-500/10 text-amber-500' :
+                    'bg-red-500/10 text-red-500'
+                  }`}>
+                    SPI: {evm.SPI.toFixed(2)} ({evm.SPI >= 1.0 ? 'เร็วกว่าแผน' : evm.SPI >= 0.85 ? 'ล่าช้าเล็กน้อย' : 'วิกฤต'})
+                  </span>
+                </div>
               </div>
-              <SlideGauge value={evm.svPercent} min={-40} max={40} label="Schedule Variance" />
-              <p className={`text-xs font-bold mt-2 ${evm.svPercent < 0 ? 'text-red-500' : evm.svPercent > 0 ? 'text-emerald-500' : muted}`}>
-                {evm.svPercent < 0 ? `⚠️ ล่าช้ากว่าแผน ${Math.abs(evm.svDays)} วัน` :
-                 evm.svPercent > 0 ? `✅ เร็วกว่าแผน ${evm.svDays} วัน` : '🎯 ดำเนินงานตรงตามแผนที่กำหนด'}
-              </p>
-            </div>
 
-            {/* Cost Variance Slider */}
-            <div className={`${card} rounded-3xl p-5 flex flex-col justify-between`}>
-              <div className="flex items-center gap-2">
-                <DollarSign size={15} className="text-amber-500" />
-                <h4 className={`text-xs font-bold ${heading}`}>เบี่ยงเบนต้นทุน (CV)</h4>
+              <div className={`border-t ${isDark ? 'border-white/5' : 'border-slate-100'} w-full`} />
+
+              {/* CV & CPI Row */}
+              <div className="flex flex-col gap-1.5">
+                <SlideGauge value={evm.cvPercent} min={-30} max={30} label="เบี่ยงเบนต้นทุน (CV)" />
+                <div className="flex justify-between items-center text-[10px] font-bold mt-0.5">
+                  <span className={`${evm.cvPercent < 0 ? 'text-red-500' : evm.cvPercent > 0 ? 'text-emerald-500' : muted}`}>
+                    {evm.cvPercent < 0 ? `🔴 เกินงบสะสม ${fmt(Math.abs(evm.cvCost))}` :
+                     evm.cvPercent > 0 ? `✅ ประหยัดงบสะสม ${fmt(evm.cvCost)}` : '🎯 จ่ายตรงตามงบ'}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded font-black tracking-wide ${
+                    evm.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-500' :
+                    evm.CPI >= 0.85 ? 'bg-amber-500/10 text-amber-500' :
+                    'bg-red-500/10 text-red-500'
+                  }`}>
+                    CPI: {evm.CPI.toFixed(2)} ({evm.CPI >= 1.0 ? 'ประหยัดงบ' : evm.CPI >= 0.85 ? 'เกินงบเล็กน้อย' : 'วิกฤต'})
+                  </span>
+                </div>
               </div>
-              {/* Scale CV based on percentage of BAC */}
-              <SlideGauge value={evm.cvPercent} min={-30} max={30} label="Cost Variance" />
-              <p className={`text-xs font-bold mt-2 ${evm.cvPercent < 0 ? 'text-red-500' : evm.cvPercent > 0 ? 'text-emerald-500' : muted}`}>
-                {evm.cvPercent < 0 ? `🔴 ใช้จ่ายเงินเกินงบ ${fmt(Math.abs(evm.cvCost))}` :
-                 evm.cvPercent > 0 ? `✅ ใช้จ่ายเงินประหยัด ${fmt(evm.cvCost)}` : '🎯 อัตราการจ่ายเงินตรงตามงบ'}
-              </p>
             </div>
           </div>
 
         </div>
 
-        {/* Right Area: WBS segmented breakdown & Financial budget */}
-        <div className="w-[42%] flex flex-col gap-4">
-
-          {/* Card 1: WBS Segmented Status breakdown */}
+        {/* ── RIGHT COLUMN (Box 3 & Box 4) ── */}
+        <div className="flex flex-col gap-4">
+          
+          {/* Box 3: สถานะหัวข้องาน (WBS segmented) */}
           <div className={`${card} rounded-3xl p-5 flex flex-col justify-between flex-1`}>
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <h3 className={`text-xs font-bold uppercase tracking-wider ${muted}`}>สถานะหัวข้องาน (WBS)</h3>
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                  evm.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-500' :
-                  evm.SPI >= 0.85 ? 'bg-amber-500/10 text-amber-500' :
-                  'bg-red-500/10 text-red-500'
-                }`}>
-                  SPI: {evm.SPI.toFixed(2)}
-                </span>
-              </div>
+              <h3 className={`text-xs font-black uppercase tracking-wider ${muted} mb-2`}>สถานะหัวข้องาน (WBS)</h3>
               <WBSSegmentBar done={evm.done} delayed={evm.delayed} inProgress={evm.inProgress} future={evm.future} />
             </div>
 
             <div className="grid grid-cols-2 gap-2 mt-4">
-              <div className="flex items-center justify-between p-2.5 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/10">
-                <span className={`text-xs font-bold ${muted} flex items-center gap-1.5`}><CheckCircle2 className="text-emerald-500" size={14} />เสร็จสิ้น</span>
-                <span className="text-lg font-black text-emerald-500 font-mono">{evm.done}</span>
+              <div className="flex items-center justify-between p-2 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/10">
+                <span className={`text-[11px] font-bold ${muted} flex items-center gap-1.5`}><CheckCircle2 className="text-emerald-500" size={13} />เสร็จสิ้น</span>
+                <span className="text-base font-black text-emerald-500 font-mono">{evm.done}</span>
               </div>
-              <div className="flex items-center justify-between p-2.5 bg-red-500/5 dark:bg-red-500/10 rounded-2xl border border-red-500/10">
-                <span className={`text-xs font-bold ${muted} flex items-center gap-1.5`}><AlertCircle className="text-red-500" size={14} />ล่าช้า</span>
-                <span className="text-lg font-black text-red-500 font-mono">{evm.delayed}</span>
+              <div className="flex items-center justify-between p-2 bg-red-500/5 dark:bg-red-500/10 rounded-2xl border border-red-500/10">
+                <span className={`text-[11px] font-bold ${muted} flex items-center gap-1.5`}><AlertCircle className="text-red-500" size={13} />ล่าช้า</span>
+                <span className="text-base font-black text-red-500 font-mono">{evm.delayed}</span>
               </div>
-              <div className="flex items-center justify-between p-2.5 bg-blue-500/5 dark:bg-blue-500/10 rounded-2xl border border-blue-500/10">
-                <span className={`text-xs font-bold ${muted} flex items-center gap-1.5`}><PlayCircle className="text-blue-500" size={14} />กำลังทำ</span>
-                <span className="text-lg font-black text-blue-500 font-mono">{evm.inProgress}</span>
+              <div className="flex items-center justify-between p-2 bg-blue-500/5 dark:bg-blue-500/10 rounded-2xl border border-blue-500/10">
+                <span className={`text-[11px] font-bold ${muted} flex items-center gap-1.5`}><PlayCircle className="text-blue-500" size={13} />กำลังทำ</span>
+                <span className="text-base font-black text-blue-500 font-mono">{evm.inProgress}</span>
               </div>
-              <div className="flex items-center justify-between p-2.5 bg-slate-500/5 dark:bg-slate-500/10 rounded-2xl border border-slate-500/10">
-                <span className={`text-xs font-bold ${muted} flex items-center gap-1.5`}><Clock className="text-slate-400" size={14} />ยังไม่เริ่ม</span>
-                <span className="text-lg font-black text-slate-400 dark:text-slate-500 font-mono">{evm.future}</span>
+              <div className="flex items-center justify-between p-2 bg-slate-500/5 dark:bg-slate-500/10 rounded-2xl border border-slate-500/10">
+                <span className={`text-[11px] font-bold ${muted} flex items-center gap-1.5`}><Clock className="text-slate-400" size={13} />ยังไม่เริ่ม</span>
+                <span className="text-base font-black text-slate-400 dark:text-slate-500 font-mono">{evm.future}</span>
               </div>
             </div>
           </div>
 
-          {/* Card 2: Financial budget progress and Committee list */}
-          <div className={`${card} rounded-3xl p-5 flex flex-col justify-between`}>
+          {/* Box 4: ข้อมูลสัญญาและงบประมาณ (Financial & Contract Info) */}
+          <div className={`${card} rounded-3xl p-5 flex flex-col justify-between flex-1`}>
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <h3 className={`text-xs font-bold uppercase tracking-wider ${muted}`}>สถานะการเงินโครงการ</h3>
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                  evm.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-500' :
-                  evm.CPI >= 0.85 ? 'bg-amber-500/10 text-amber-500' :
-                  'bg-red-500/10 text-red-500'
-                }`}>
-                  CPI: {evm.CPI.toFixed(2)}
-                </span>
-              </div>
+              <h3 className={`text-xs font-black uppercase tracking-wider ${muted} mb-2`}>การเงินและสัญญา</h3>
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between font-bold">
                   <span className={muted}>งบประมาณมูลค่าสัญญา</span>
                   <span className={heading}>{fmt(evm.BAC)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-emerald-500">
-                  <span>เบิกจ่ายเงินสะสมจริง (AC)</span>
+                  <span>เบิกจ่ายเงินสะสม (AC)</span>
                   <span>{fmt(evm.AC_Cost)}</span>
                 </div>
                 
-                {/* Budget progress bar */}
                 <div className="pt-2">
                   <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-100'} h-2 rounded-full overflow-hidden`}>
                     <div 
@@ -494,14 +430,24 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
               </div>
             </div>
 
-            {/* Committee members list */}
-            {evm.committeeList.length > 0 && (
-              <div className={`border-t ${isDark ? 'border-white/5' : 'border-slate-100'} mt-4 pt-3`}>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${muted} block mb-1`}>คณะกรรมการตรวจรับงาน</span>
-                <p className={`text-xs font-semibold ${heading} leading-relaxed truncate`}>
-                  {evm.committeeList.slice(0, 3).join(' · ')}
-                  {evm.committeeList.length > 3 && ` +${evm.committeeList.length - 3} คน`}
-                </p>
+            {/* Committee members & details */}
+            {(project.contractor || project.contract_no || evm.committeeList.length > 0) && (
+              <div className={`border-t ${isDark ? 'border-white/5' : 'border-slate-100'} mt-3 pt-2.5 space-y-1 text-[11px]`}>
+                {project.contract_no && (
+                  <p className={muted}>สัญญา: <span className={`font-bold font-mono ${heading}`}>{project.contract_no}</span></p>
+                )}
+                {project.contractor && (
+                  <p className={muted}>ผู้รับจ้าง: <span className={`font-bold ${heading}`}>{project.contractor}</span></p>
+                )}
+                {evm.committeeList.length > 0 && (
+                  <div className="truncate">
+                    <span className={`${muted} mr-1`}>กรรมการตรวจรับ:</span>
+                    <span className={`font-semibold ${heading}`}>
+                      {evm.committeeList.slice(0, 3).join(' · ')}
+                      {evm.committeeList.length > 3 && ` +${evm.committeeList.length - 3} คน`}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -510,19 +456,19 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
 
       </div>
 
-      {/* ── Overrun Warning & Overall Health Status footer ── */}
-      <div className={`mt-4 flex items-center justify-center py-2.5 rounded-2xl text-xs font-extrabold tracking-wide ${
+      {/* ── Overall Health Footer ── */}
+      <div className={`mt-4 flex items-center justify-center py-2 rounded-2xl text-xs font-extrabold tracking-wide ${
         evm.SPI >= 1.0 && evm.CPI >= 1.0
-          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.05)]'
+          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
           : evm.SPI < 0.85 || evm.CPI < 0.85
-          ? 'bg-red-500/10 text-red-500 shadow-[0_0_10px_rgba(239,68,68,0.05)]'
-          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.05)]'
+          ? 'bg-red-500/10 text-red-500'
+          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
       }`}>
         <TrendingUp size={14} className="mr-2" />
         {evm.SPI >= 1.0 && evm.CPI >= 1.0
-          ? '● สุขภาพโครงการสมบูรณ์ (Healthy Project) - ความก้าวหน้าและดัชนีเป็นไปตามเกณฑ์ควบคุม'
+          ? '● สุขภาพโครงการสมบูรณ์ (Healthy Project) - ความก้าวหน้าและดัชนีสะสมเป็นไปตามเกณฑ์ปกติ'
           : evm.SPI < 0.85 || evm.CPI < 0.85
-          ? '⚠ วิกฤต (Critical Alert) - งานเกิดความล่าช้าสะสมหรือต้นทุนเกินเกณฑ์ควบคุม ต้องวางแผนแก้ไขเร่งด่วน'
+          ? '⚠ วิกฤต (Critical Alert) - งานเกิดความล่าช้าสะสมหรือต้นทุนเกินเกณฑ์ ต้องวางแผนแก้ไขเร่งด่วน'
           : '⚠ เฝ้าระวัง (Warning) - ดัชนีแผนงานหรือต้นทุนเริ่มมีความเบี่ยงเบน ควรติดตามงานอย่างใกล้ชิด'}
       </div>
     </div>

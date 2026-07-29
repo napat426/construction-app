@@ -34,8 +34,12 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
     'กำลังดำเนินการ',
     'ระงับ',
   ])
-  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([])
-  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>([])
+  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>(() =>
+    [...new Set(projects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort()
+  )
+  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>(() =>
+    [...new Set(projects.map((p) => p.work_group || ''))].sort()
+  )
 
   const [supervisorOpen, setSupervisorOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)

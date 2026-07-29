@@ -18,14 +18,15 @@ export default async function PresentationPage() {
   }
 
   // Fetch all necessary data for the presentation (memory caching via Client Component)
-  const [projectsRes, tasksRes, inspectionsRes, milestonesRes, dailyRes, concreteRes, amendmentsRes] = await Promise.all([
+  const [projectsRes, tasksRes, inspectionsRes, milestonesRes, dailyRes, concreteRes, amendmentsRes, workGroupsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('inspections').select('*').order('created_at', { ascending: false }),
     supabase.from('project_milestones').select('*').order('milestone_no', { ascending: true }),
     supabase.from('daily_reports').select('project_id, photos, created_at').order('created_at', { ascending: false }),
     supabase.from('concrete_pours').select('project_id, photos, created_at').order('created_at', { ascending: false }),
-    supabase.from('contract_amendments').select('*').order('amendment_no', { ascending: true })
+    supabase.from('contract_amendments').select('*').order('amendment_no', { ascending: true }),
+    supabase.from('system_settings').select('*').eq('key', 'work_groups').single()
   ])
 
   const projects = (projectsRes.data as Project[]) ?? []
@@ -35,6 +36,13 @@ export default async function PresentationPage() {
   const dailyReports = dailyRes.data ?? []
   const concretePours = concreteRes.data ?? []
   const amendments = (amendmentsRes.data as any[]) ?? []
+
+  let workGroups: string[] = []
+  try {
+    if (workGroupsRes.data?.value) {
+      workGroups = JSON.parse(workGroupsRes.data.value)
+    }
+  } catch {}
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c] print:bg-white print:min-h-0 print:block">
@@ -55,6 +63,7 @@ export default async function PresentationPage() {
             initialConcretePours={concretePours}
             initialAmendments={amendments}
             user={user}
+            workGroups={workGroups}
           />
         </main>
       </div>

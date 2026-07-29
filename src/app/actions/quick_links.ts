@@ -35,15 +35,19 @@ export async function createQuickLink(payload: {
   category?: string | null
   sort_order?: number
 }) {
-  const { error } = await supabase.from('quick_links').insert({
-    project_id: payload.project_id || null,
-    title: payload.title,
-    type: payload.type || 'link',
-    url: payload.url || null,
-    content: payload.content || null,
-    category: payload.category || 'ทั่วไป',
-    sort_order: payload.sort_order || 0,
-  })
+  const { data, error } = await supabase
+    .from('quick_links')
+    .insert({
+      project_id: payload.project_id || null,
+      title: payload.title,
+      type: payload.type || 'link',
+      url: payload.url || null,
+      content: payload.content || null,
+      category: payload.category || 'ทั่วไป',
+      sort_order: payload.sort_order || 0,
+    })
+    .select()
+    .single()
 
   if (error) return { error: error.message }
   
@@ -51,8 +55,9 @@ export async function createQuickLink(payload: {
     revalidatePath(`/projects/${payload.project_id}`)
   }
   revalidatePath('/projects')
+  revalidatePath('/quick-links')
   revalidatePath('/')
-  return { success: true }
+  return { success: true, data: data as QuickLink }
 }
 
 export async function updateQuickLink(id: string, payload: Partial<QuickLink>) {
@@ -73,6 +78,7 @@ export async function updateQuickLink(id: string, payload: Partial<QuickLink>) {
     revalidatePath(`/projects/${payload.project_id}`)
   }
   revalidatePath('/projects')
+  revalidatePath('/quick-links')
   revalidatePath('/')
   return { success: true }
 }
@@ -85,6 +91,7 @@ export async function deleteQuickLink(id: string, projectId?: string | null) {
     revalidatePath(`/projects/${projectId}`)
   }
   revalidatePath('/projects')
+  revalidatePath('/quick-links')
   revalidatePath('/')
   return { success: true }
 }
@@ -98,6 +105,7 @@ export async function updateQuickLinksOrder(updates: { id: string; sort_order: n
     revalidatePath(`/projects/${projectId}`)
   }
   revalidatePath('/projects')
+  revalidatePath('/quick-links')
   revalidatePath('/')
   return { success: true }
 }

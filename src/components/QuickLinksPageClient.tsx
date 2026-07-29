@@ -126,21 +126,11 @@ export function QuickLinksPageClient({ initialData = [], userRole }: Props) {
           category,
           sort_order: nextOrder,
         })
-        if (res.error) {
-          setErrorMsg(res.error)
+        if (res.error || !res.data) {
+          setErrorMsg(res.error || 'ไม่สามารถบันทึกข้อมูลได้')
           return
         }
-        const newItem: QuickLink = {
-          id: `temp-${Date.now()}`,
-          title,
-          type,
-          url: type === 'link' ? url : null,
-          content,
-          category,
-          sort_order: nextOrder,
-          created_at: new Date().toISOString(),
-        }
-        setLinks((prev) => [...prev, newItem])
+        setLinks((prev) => [...prev, res.data])
       }
       setIsFormOpen(false)
     })

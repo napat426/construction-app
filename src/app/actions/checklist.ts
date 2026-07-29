@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { ChecklistMaster, ProjectChecklistResult, ChecklistStatus } from '@/lib/types'
 
-export const DEFAULT_MASTER_CHECKLIST = [
+const DEFAULT_MASTER_CHECKLIST = [
   // หมวดที่ 1: โครงสร้างและภายนอกอาคาร (Structure & Exterior)
   {
     category: 'หมวดที่ 1: โครงสร้างและภายนอกอาคาร (Structure & Exterior)',

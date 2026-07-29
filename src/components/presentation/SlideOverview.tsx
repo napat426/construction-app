@@ -375,10 +375,10 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                   </span>
                   <span className={`px-2 py-0.5 rounded font-black tracking-wide ${
                     evm.SPI >= 1.0 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' :
-                    evm.SPI >= 0.85 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' :
+                    evm.SPI >= 0.90 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' :
                     'bg-red-500/15 text-red-650'
                   }`}>
-                    SPI: {evm.SPI.toFixed(2)} ({evm.SPI >= 1.0 ? 'เร็วกว่าแผน' : evm.SPI >= 0.85 ? 'ล่าช้าเล็กน้อย' : 'วิกฤต'})
+                    SPI: {evm.SPI.toFixed(2)} ({evm.SPI >= 1.0 ? 'เร็วกว่าแผน' : evm.SPI >= 0.90 ? 'ล่าช้าเล็กน้อย' : 'วิกฤต'})
                   </span>
                 </div>
               </div>
@@ -395,7 +395,6 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                   </span>
                   <span className={`px-2 py-0.5 rounded font-black tracking-wide ${
                     evm.CPI >= 1.0 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' :
-                    evm.CPI >= 0.85 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' :
                     'bg-red-500/15 text-red-650'
                   }`}>
                     CPI: {evm.CPI.toFixed(2)} ({evm.CPI >= 1.0 ? 'ประหยัดงบ' : evm.CPI >= 0.85 ? 'เกินงบเล็กน้อย' : 'วิกฤต'})

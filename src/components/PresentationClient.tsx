@@ -636,7 +636,7 @@ export function PresentationClient({
               {workGroupOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setWorkGroupOpen(false)} />
-                  <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto">
+                  <div className="absolute right-0 mt-1.5 w-64 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto">
                     <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
                       <span className="text-[10px] font-black uppercase text-slate-400">เลือกกลุ่มงาน</span>
                       <div className="flex items-center gap-2 text-[10px] font-bold">

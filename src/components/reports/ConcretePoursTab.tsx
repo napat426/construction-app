@@ -89,6 +89,44 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
 
   return (
     <div className="space-y-6 print:m-0 print:space-y-0">
+      <style type="text/css" media="print">{`
+        @page {
+          size: A4 portrait;
+          margin: 10mm 8mm !important;
+        }
+        html, body {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
+          font-size: 10px !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        header, nav, aside, footer, .print-hidden, .no-print {
+          display: none !important;
+        }
+        .print\\:block {
+          display: block !important;
+        }
+        .print\\:hidden {
+          display: none !important;
+        }
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          font-size: 9px !important;
+        }
+        th, td {
+          padding: 5px 4px !important;
+          border: 1px solid #cbd5e1 !important;
+          color: #0f172a !important;
+        }
+        th {
+          background-color: #f8fafc !important;
+          font-weight: bold !important;
+        }
+      `}</style>
       
       {/* ── Control Bar ── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">

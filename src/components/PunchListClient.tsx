@@ -716,6 +716,10 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
       <style jsx global>{`
+        @page {
+          size: A4 portrait;
+          margin: 10mm 8mm !important;
+        }
         @media print {
           /* Print Stylesheet conforming to A4 Portrait specs */
           header, nav, aside, footer, .no-print, .btn-secondary, button, .print\:hidden {

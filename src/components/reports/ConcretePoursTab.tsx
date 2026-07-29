@@ -280,7 +280,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                         {pour.supplier && ` • ${pour.supplier}`}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right font-mono font-medium">
+                    <td className="px-4 py-3 text-center font-mono font-medium">
                       {pour.volume ? pour.volume.toFixed(2) : '-'}
                     </td>
                     <td className="px-4 py-3 text-center">

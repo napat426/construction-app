@@ -859,6 +859,16 @@ export function PresentationClient({
                       />
                       <span>รูปภาพ</span>
                     </label>
+
+                    {slide.showPhotos && (
+                      <button
+                        onClick={() => setManagingPhotosFor(project.id)}
+                        className="ml-auto text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1 bg-primary-50 dark:bg-primary-950/40 px-2 py-0.5 rounded-md cursor-pointer"
+                        title="คลิกเพื่อเลือกหรืออัปโหลดรูปภาพประจำโครงการ"
+                      >
+                        🖼️ จัดการรูป ({slide.selectedPhotoUrls?.length || 0})
+                      </button>
+                    )}
                   </div>
                 </div>
               )
@@ -866,6 +876,34 @@ export function PresentationClient({
           )}
         </div>
       </div>
+
+      {/* Photo Manager Modal */}
+      {managingPhotosFor && (() => {
+        const p = projects.find((proj) => proj.id === managingPhotosFor)
+        const slide = selectedSlides.find((s) => s.projectId === managingPhotosFor)
+        if (!p || !slide) return null
+
+        const pInspections = initialInspections.filter((i) => i.project_id === p.id)
+
+        return (
+          <PhotoManagerModal
+            projectId={p.id}
+            project={p}
+            inspections={pInspections}
+            dailyReports={initialDailyReports}
+            concretePours={initialConcretePours}
+            selectedUrls={slide.selectedPhotoUrls || []}
+            user={user}
+            onSave={(newUrls) => {
+              setSelectedSlides((prev) =>
+                prev.map((s) => (s.projectId === p.id ? { ...s, selectedPhotoUrls: newUrls } : s))
+              )
+              setManagingPhotosFor(null)
+            }}
+            onClose={() => setManagingPhotosFor(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

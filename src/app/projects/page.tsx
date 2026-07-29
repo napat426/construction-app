@@ -13,16 +13,20 @@ export const metadata = {
 
 import { getCurrentUser } from '@/lib/auth'
 
+import { getQuickLinks } from '@/app/actions/quick_links'
+import { QuickLinksDrawer } from '@/components/QuickLinksDrawer'
+
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes] = await Promise.all([
+  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes, quickLinksData] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single(),
     supabase.from('system_settings').select('*').eq('key', 'ai_ocr_enabled').single(),
     supabase.from('contract_amendments').select('*'),
-    supabase.from('system_settings').select('*').eq('key', 'work_groups').single()
+    supabase.from('system_settings').select('*').eq('key', 'work_groups').single(),
+    getQuickLinks()
   ])
 
   const projects: Project[] = (projectsRes.data as Project[]) ?? []
@@ -51,12 +55,15 @@ export default async function ProjectsPage() {
               : 'ยังไม่มีโครงการ'
           }
           actions={
-            <Link
-              href="/presentation"
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-md transition-colors"
-            >
-              📽 Presentation
-            </Link>
+            <div className="flex items-center gap-2">
+              <QuickLinksDrawer userRole={user?.role} initialData={quickLinksData} />
+              <Link
+                href="/presentation"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-md transition-colors text-xs"
+              >
+                📽 Presentation
+              </Link>
+            </div>
           }
           user={user}
         />

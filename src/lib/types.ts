@@ -198,6 +198,18 @@ export interface WeeklyReport {
   snapshot?: WeeklyReportSnapshot | null;
 }
 
+export interface QuickLink {
+  id: string
+  project_id?: string | null
+  title: string
+  type: 'link' | 'note'
+  url?: string | null
+  content?: string | null
+  category?: string | null
+  sort_order: number
+  created_at?: string
+}
+
 export interface PunchList {
   id: string
   project_id: string

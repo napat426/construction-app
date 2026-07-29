@@ -22,6 +22,9 @@ export async function generateMetadata({ params }: ProjectPageProps) {
 
 import { getCurrentUser } from '@/lib/auth'
 
+import { getQuickLinks } from '@/app/actions/quick_links'
+import { QuickLinksDrawer } from '@/components/QuickLinksDrawer'
+
 export default async function ProjectDashboardPage({ params }: ProjectPageProps) {
   const { id } = await params
   const user = await getCurrentUser()
@@ -32,13 +35,15 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
     tasksRes,
     milestonesRes,
     amendmentsRes,
-    workGroupsRes
+    workGroupsRes,
+    quickLinksData
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*').eq('project_id', id),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
     supabase.from('contract_amendments').select('*').eq('project_id', id).order('amendment_no', { ascending: true }),
-    supabase.from('system_settings').select('*').eq('key', 'work_groups').single()
+    supabase.from('system_settings').select('*').eq('key', 'work_groups').single(),
+    getQuickLinks(id)
   ])
 
   const projectData = projectRes.data
@@ -70,6 +75,9 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการทั้งหมด', project.name]}
           title="แดชบอร์ดควบคุมโครงการ"
           subtitle="การบริหารจัดการ ติดตามความก้าวหน้า และควบคุมทางการเงิน"
+          actions={
+            <QuickLinksDrawer projectId={id} userRole={user?.role} initialData={quickLinksData} />
+          }
           user={user}
         />
 

@@ -15,17 +15,25 @@ interface StatusDonutChartProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  'ออกแบบ สำรวจ ประมาณการ': '#8b5cf6',
-  'จัดซื้อจัดจ้าง': '#6366f1',
-  'รอดำเนินการ': '#3b82f6',
-  'กำลังดำเนินการ': '#f59e0b',
-  'ระงับ': '#ef4444',
-  'เสร็จสิ้น': '#10b981',
+  'ออกแบบ สำรวจ ประมาณการ': '#a855f7', // Violet
+  'จัดซื้อจัดจ้าง': '#3b82f6',             // Blue
+  'รอดำเนินการ': '#06b6d4',               // Cyan
+  'กำลังดำเนินการ': '#f59e0b',            // Amber
+  'ระงับ': '#ef4444',                    // Red
+  'เสร็จสิ้น': '#10b981',                  // Emerald
 }
 
 const PALETTE = [
-  '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
-  '#3b82f6', '#ec4899', '#14b8a6', '#f97316', '#a855f7',
+  '#3b82f6', // Blue
+  '#f97316', // Orange
+  '#10b981', // Emerald
+  '#a855f7', // Violet
+  '#ec4899', // Pink
+  '#06b6d4', // Cyan
+  '#ef4444', // Red
+  '#eab308', // Yellow
+  '#14b8a6', // Teal
+  '#6366f1', // Indigo
 ]
 
 function DonutSlide({

@@ -62,6 +62,24 @@ export function ProgressComparisonChart({ data }: ProgressComparisonChartProps) 
     return null
   }
 
+  const renderLegend = (props: any) => {
+    const { payload } = props
+    if (!payload) return null
+    const order = ["แผนงาน (PV)", "ผลงานจริง (EV)", "เบิกจ่ายสะสม (AC)"]
+    const sortedPayload = [...payload].sort((a, b) => order.indexOf(a.value) - order.indexOf(b.value))
+
+    return (
+      <div className="flex justify-center gap-4 mb-4 text-[11px] font-bold">
+        {sortedPayload.map((entry: any, index: number) => (
+          <div key={`item-${index}`} className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: entry.color }} />
+            <span className="text-slate-600 dark:text-slate-300">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   const handlePrevPage = () => {
     setCurrentPage(prev => Math.max(0, prev - 1))
   }
@@ -114,11 +132,7 @@ export function ProgressComparisonChart({ data }: ProgressComparisonChartProps) 
                   tickLine={false}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  verticalAlign="top" 
-                  height={32} 
-                  wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} 
-                />
+                <Legend content={renderLegend} />
                 <Bar dataKey="แผนงาน (PV)" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
                 <Bar dataKey="ผลงานจริง (EV)" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
                 <Bar dataKey="เบิกจ่ายสะสม (AC)" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={24} />

@@ -22,8 +22,8 @@ export async function generateMetadata({ params }: ProjectPageProps) {
 
 import { getCurrentUser } from '@/lib/auth'
 
-import { getQuickLinks } from '@/app/actions/quick_links'
-import { QuickLinksDrawer } from '@/components/QuickLinksDrawer'
+import Link from 'next/link'
+import { Bookmark } from 'lucide-react'
 
 export default async function ProjectDashboardPage({ params }: ProjectPageProps) {
   const { id } = await params
@@ -36,14 +36,12 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
     milestonesRes,
     amendmentsRes,
     workGroupsRes,
-    quickLinksData
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*').eq('project_id', id),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
     supabase.from('contract_amendments').select('*').eq('project_id', id).order('amendment_no', { ascending: true }),
     supabase.from('system_settings').select('*').eq('key', 'work_groups').single(),
-    getQuickLinks(id)
   ])
 
   const projectData = projectRes.data
@@ -76,7 +74,13 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
           title="แดชบอร์ดควบคุมโครงการ"
           subtitle="การบริหารจัดการ ติดตามความก้าวหน้า และควบคุมทางการเงิน"
           actions={
-            <QuickLinksDrawer projectId={id} userRole={user?.role} initialData={quickLinksData} />
+            <Link
+              href="/quick-links"
+              className="p-2.5 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] text-amber-500 hover:bg-amber-50 dark:hover:bg-[#1e1e38] rounded-xl shadow-xs transition-all flex items-center justify-center cursor-pointer"
+              title="คลังลิงก์ & โน้ตสำคัญ"
+            >
+              <Bookmark size={18} className="fill-amber-500/20" />
+            </Link>
           }
           user={user}
         />

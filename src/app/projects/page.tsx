@@ -13,20 +13,18 @@ export const metadata = {
 
 import { getCurrentUser } from '@/lib/auth'
 
-import { getQuickLinks } from '@/app/actions/quick_links'
-import { QuickLinksDrawer } from '@/components/QuickLinksDrawer'
+import { Bookmark } from 'lucide-react'
 
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes, quickLinksData] = await Promise.all([
+  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single(),
     supabase.from('system_settings').select('*').eq('key', 'ai_ocr_enabled').single(),
     supabase.from('contract_amendments').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'work_groups').single(),
-    getQuickLinks()
   ])
 
   const projects: Project[] = (projectsRes.data as Project[]) ?? []
@@ -56,7 +54,13 @@ export default async function ProjectsPage() {
           }
           actions={
             <div className="flex items-center gap-2">
-              <QuickLinksDrawer userRole={user?.role} initialData={quickLinksData} />
+              <Link
+                href="/quick-links"
+                className="p-2.5 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] text-amber-500 hover:bg-amber-50 dark:hover:bg-[#1e1e38] rounded-xl shadow-xs transition-all flex items-center justify-center cursor-pointer"
+                title="คลังลิงก์ & โน้ตสำคัญ"
+              >
+                <Bookmark size={18} className="fill-amber-500/20" />
+              </Link>
               <Link
                 href="/presentation"
                 className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-md transition-colors text-xs"

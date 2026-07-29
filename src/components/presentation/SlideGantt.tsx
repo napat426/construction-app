@@ -168,11 +168,15 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
           {/* Today Line */}
           {today >= minDate && today <= maxDate && (
             <div 
-              className="absolute inset-y-0 border-l-2 border-yellow-500 border-dashed z-20 pointer-events-none"
+              className="absolute inset-y-0 border-l border-red-500 z-20 pointer-events-none flex flex-col justify-start items-center"
               style={{
                 left: `calc(516px + ((100% - 516px) * ${(today.getTime() - minDate.getTime()) / (totalDays * 24 * 60 * 60 * 1000)}))`
               }}
-            />
+            >
+              <div className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-md -translate-y-4 whitespace-nowrap">
+                วันนี้
+              </div>
+            </div>
           )}
 
           {displayTasks.map((task, idx) => {

@@ -853,11 +853,11 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
 
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 font-bold text-left">
+                  <tr className="bg-slate-50 font-bold text-center">
                     <th className="w-10 text-center">ลำดับ</th>
-                    <th className="w-28">ตำแหน่ง</th>
-                    <th className="w-20">ประเภท</th>
-                    <th>รายละเอียดข้อบกพร่อง</th>
+                    <th className="w-28 text-center">ตำแหน่ง</th>
+                    <th className="w-20 text-center">ประเภท</th>
+                    <th className="text-center">รายละเอียดข้อบกพร่อง</th>
                     <th className="w-24 text-center">วันที่บันทึกข้อมูล</th>
                     <th className="w-16 text-center">สถานะ</th>
                   </tr>

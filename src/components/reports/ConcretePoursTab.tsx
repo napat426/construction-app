@@ -92,7 +92,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
       <style type="text/css" media="print">{`
         @page {
           size: A4 portrait;
-          margin: 10mm 8mm !important;
+          margin: 8mm 6mm !important;
         }
         html, body {
           background-color: white !important;
@@ -125,6 +125,10 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
         th {
           background-color: #f8fafc !important;
           font-weight: bold !important;
+          text-align: center !important;
+        }
+        .whitespace-nowrap {
+          white-space: nowrap !important;
         }
       `}</style>
       
@@ -197,13 +201,13 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                 {user && (user.role === 'admin' || user.role === 'editor') && (
                   <th className="px-4 py-3 w-10 text-center print:hidden"></th>
                 )}
-                <th className="px-4 py-3 whitespace-nowrap">เลขที่ / วันที่เท</th>
-                <th className="px-4 py-3">ส่วนโครงสร้าง / กำลังอัด</th>
-                <th className="px-4 py-3 text-right">ปริมาณ (m³)</th>
-                <th className="px-4 py-3 text-center">สลัมป์ (จริง/สเปก)</th>
-                <th className="px-4 py-3 w-64">สถานะการบ่ม (28 วัน)</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">เลขที่ / วันที่เท</th>
+                <th className="px-3 py-3 text-center">ส่วนโครงสร้าง / กำลังอัด</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">ปริมาณ (m³)</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">สลัมป์ (จริง/สเปก)</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap min-w-[250px]">สถานะการบ่ม (28 วัน)</th>
                 {user && (user.role === 'admin' || user.role === 'editor') && (
-                  <th className="px-4 py-3 w-20 text-center print:hidden">จัดการ</th>
+                  <th className="px-3 py-3 w-20 text-center print:hidden">จัดการ</th>
                 )}
               </tr>
             </thead>
@@ -297,15 +301,15 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                       ) : '-'}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1.5 max-w-[240px]">
+                      <div className="flex flex-col gap-1.5 min-w-[240px]">
                         {/* 7 Days Curing */}
-                        <div className="flex items-center justify-between text-xs gap-3">
-                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 w-10 uppercase">7 วัน</span>
-                          <span className="font-mono text-[11px] text-slate-500">
+                        <div className="flex items-center justify-between text-xs gap-2">
+                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase whitespace-nowrap">7 วัน</span>
+                          <span className="font-mono text-[11px] text-slate-500 whitespace-nowrap">
                             {curing7.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
                           </span>
                           <span 
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full w-24 text-center"
+                            className="text-[10px] font-bold px-2.5 py-0.5 rounded-full min-w-[100px] text-center whitespace-nowrap"
                             style={{
                               backgroundColor: curing7.status === 'passed' ? '#f0fdf4' : curing7.status === 'critical' ? '#fef2f2' : curing7.status === 'warning' ? '#fefce8' : '#f8fafc',
                               color: curing7.status === 'passed' ? '#15803d' : curing7.status === 'critical' ? '#b91c1c' : curing7.status === 'warning' ? '#a16207' : '#475569',
@@ -321,13 +325,13 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                         </div>
 
                         {/* 14 Days Curing */}
-                        <div className="flex items-center justify-between text-xs gap-3 border-t border-slate-100 dark:border-[#1e1e38]/50 pt-1">
-                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 w-10 uppercase">14 วัน</span>
-                          <span className="font-mono text-[11px] text-slate-500">
+                        <div className="flex items-center justify-between text-xs gap-2 border-t border-slate-100 dark:border-[#1e1e38]/50 pt-1">
+                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase whitespace-nowrap">14 วัน</span>
+                          <span className="font-mono text-[11px] text-slate-500 whitespace-nowrap">
                             {curing14.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
                           </span>
                           <span 
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full w-24 text-center"
+                            className="text-[10px] font-bold px-2.5 py-0.5 rounded-full min-w-[100px] text-center whitespace-nowrap"
                             style={{
                               backgroundColor: curing14.status === 'passed' ? '#f0fdf4' : curing14.status === 'critical' ? '#fef2f2' : curing14.status === 'warning' ? '#fefce8' : '#f8fafc',
                               color: curing14.status === 'passed' ? '#15803d' : curing14.status === 'critical' ? '#b91c1c' : curing14.status === 'warning' ? '#a16207' : '#475569',
@@ -343,13 +347,13 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                         </div>
 
                         {/* 28 Days Curing */}
-                        <div className="flex items-center justify-between text-xs gap-3 border-t border-slate-100 dark:border-[#1e1e38]/50 pt-1">
-                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 w-10 uppercase">28 วัน</span>
-                          <span className="font-mono text-[11px] text-slate-500">
+                        <div className="flex items-center justify-between text-xs gap-2 border-t border-slate-100 dark:border-[#1e1e38]/50 pt-1">
+                          <span className="font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase whitespace-nowrap">28 วัน</span>
+                          <span className="font-mono text-[11px] text-slate-500 whitespace-nowrap">
                             {curing28.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
                           </span>
                           <span 
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full w-24 text-center"
+                            className="text-[10px] font-bold px-2.5 py-0.5 rounded-full min-w-[100px] text-center whitespace-nowrap"
                             style={{
                               backgroundColor: curing28.status === 'passed' ? '#f0fdf4' : curing28.status === 'critical' ? '#fef2f2' : curing28.status === 'warning' ? '#fefce8' : '#f8fafc',
                               color: curing28.status === 'passed' ? '#15803d' : curing28.status === 'critical' ? '#b91c1c' : curing28.status === 'warning' ? '#a16207' : '#475569',

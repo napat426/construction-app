@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, Loader2, HardHat } from 'lucide-react'
+import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight } from 'lucide-react'
+import { AdminChecklistMasterModal } from '@/components/AdminChecklistMasterModal'
 
 export function AdminSettingsClient({ initialSettings }: { initialSettings: Record<string, string> }) {
   const [settings, setSettings] = useState(initialSettings)
   const [isSaving, setIsSaving] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
+  const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false)
+  const [masterCount, setMasterCount] = useState(37)
 
   const [workGroups, setWorkGroups] = useState<string[]>(() => {
     try {
@@ -94,6 +97,41 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
             </button>
           </div>
         </div>
+      </div>
+
+      <hr className="border-slate-200 dark:border-[#252548]" />
+
+      {/* ── MASTER CHECKLIST MANAGEMENT SECTION ── */}
+      <div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">จัดการ Master Checklist ตรวจรับงาน</h3>
+        <p className="text-xs text-slate-400 mb-4">เพิ่ม ลบ หรือแก้ไขหัวข้อตรวจรับงานก่อสร้างมาตรฐาน สำหรับใช้ร่วมกันในทุกโครงการ</p>
+
+        <button
+          onClick={() => setIsChecklistModalOpen(true)}
+          className="flex items-center gap-4 p-5 bg-slate-50 dark:bg-[#1a1a36] hover:bg-slate-100 dark:hover:bg-[#202042] border border-slate-200 dark:border-[#252548] rounded-2xl transition-all w-full text-left cursor-pointer group shadow-xs"
+        >
+          <div className="p-3.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-2xl group-hover:scale-105 transition-transform">
+            <ListChecks size={28} />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+              เปิดศูนย์ตั้งค่า Master Checklist
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-bold">
+                {masterCount} รายการในระบบ
+              </span>
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              คลิกที่นี่เพื่อเปิดหน้าต่างปรับแต่งหัวข้อตรวจรับ เพิ่ม ลด หรือแก้ไขคำอธิบายเกณฑ์การตรวจรับงานแบบเต็มระบบ
+            </p>
+          </div>
+          <ChevronRight size={22} className="text-slate-400 group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        <AdminChecklistMasterModal
+          isOpen={isChecklistModalOpen}
+          onClose={() => setIsChecklistModalOpen(false)}
+          onCountUpdate={(count) => setMasterCount(count)}
+        />
       </div>
 
       <hr className="border-slate-200 dark:border-[#252548]" />

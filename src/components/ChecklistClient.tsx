@@ -7,25 +7,12 @@ import {
   MinusCircle,
   Clock,
   Printer,
-  Plus,
-  Pencil,
-  Trash2,
   Search,
-  ChevronDown,
-  ChevronUp,
-  X,
   FileText,
-  AlertCircle,
-  Filter,
 } from 'lucide-react'
 import type { Project, ChecklistMaster, ProjectChecklistResult, ChecklistStatus } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
-import {
-  updateChecklistResult,
-  addMasterChecklist,
-  editMasterChecklist,
-  deleteMasterChecklist,
-} from '@/app/actions/checklist'
+import { updateChecklistResult } from '@/app/actions/checklist'
 
 interface Props {
   project: Project
@@ -34,8 +21,8 @@ interface Props {
   user?: UserSession | null
 }
 
-export function ChecklistClient({ project, masters: initialMasters, results: initialResults, user }: Props) {
-  const [masters, setMasters] = useState<ChecklistMaster[]>(initialMasters)
+export function ChecklistClient({ project, masters: initialMasters, results: initialResults }: Props) {
+  const [masters] = useState<ChecklistMaster[]>(initialMasters)
   const [resultsMap, setResultsMap] = useState<Record<string, ProjectChecklistResult>>(() => {
     const map: Record<string, ProjectChecklistResult> = {}
     initialResults.forEach((r) => {
@@ -46,17 +33,7 @@ export function ChecklistClient({ project, masters: initialMasters, results: ini
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [isPending, startTransition] = useTransition()
-
-  // Admin Master Item Modal
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingMaster, setEditingMaster] = useState<ChecklistMaster | null>(null)
-  const [modalCategory, setModalCategory] = useState('')
-  const [modalTitle, setModalTitle] = useState('')
-  const [modalDesc, setModalDesc] = useState('')
-  const [errorMsg, setErrorMsg] = useState('')
-
-  const isAdmin = user?.role === 'admin'
+  const [, startTransition] = useTransition()
 
   // Extract unique categories in sort order
   const categories = useMemo(() => {
@@ -116,78 +93,6 @@ export function ChecklistClient({ project, masters: initialMasters, results: ini
         console.error('Error saving checklist result:', res.error)
       }
     })
-  }
-
-  // Admin Master Item Add/Edit Save
-  const handleSaveMasterItem = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!modalTitle.trim() || !modalCategory.trim()) {
-      setErrorMsg('กรุณากรอกหมวดหมู่และชื่อเรื่องรายการ')
-      return
-    }
-
-    setErrorMsg('')
-    startTransition(async () => {
-      if (editingMaster) {
-        const res = await editMasterChecklist(editingMaster.id, {
-          category: modalCategory,
-          title: modalTitle,
-          description: modalDesc,
-        })
-        if (res.error) {
-          setErrorMsg(res.error)
-          return
-        }
-        setMasters((prev) =>
-          prev.map((m) =>
-            m.id === editingMaster.id
-              ? { ...m, category: modalCategory, title: modalTitle, description: modalDesc }
-              : m
-          )
-        )
-      } else {
-        const res = await addMasterChecklist({
-          category: modalCategory,
-          title: modalTitle,
-          description: modalDesc,
-        })
-        if (res.error || !res.data) {
-          setErrorMsg(res.error || 'ไม่สามารถเพิ่มข้อมูลได้')
-          return
-        }
-        setMasters((prev) => [...prev, res.data])
-      }
-      setIsModalOpen(false)
-    })
-  }
-
-  const handleDeleteMasterItem = (id: string) => {
-    if (!confirm('คุณต้องการลบรายการตรวจรับแม่แบบนี้หรือไม่?')) return
-
-    startTransition(async () => {
-      const res = await deleteMasterChecklist(id)
-      if (!res.error) {
-        setMasters((prev) => prev.filter((m) => m.id !== id))
-      }
-    })
-  }
-
-  const openAddMasterModal = (defaultCategory?: string) => {
-    setEditingMaster(null)
-    setModalCategory(defaultCategory || categories[0] || 'หมวดที่ 1: โครงสร้างและภายนอกอาคาร')
-    setModalTitle('')
-    setModalDesc('')
-    setErrorMsg('')
-    setIsModalOpen(true)
-  }
-
-  const openEditMasterModal = (item: ChecklistMaster) => {
-    setEditingMaster(item)
-    setModalCategory(item.category)
-    setModalTitle(item.title)
-    setModalDesc(item.description || '')
-    setErrorMsg('')
-    setIsModalOpen(true)
   }
 
   // Filter items
@@ -263,15 +168,6 @@ export function ChecklistClient({ project, masters: initialMasters, results: ini
           >
             <Printer size={16} /> พิมพ์รายงาน Checklist
           </button>
-
-          {isAdmin && (
-            <button
-              onClick={() => openAddMasterModal()}
-              className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold text-white btn-primary rounded-xl cursor-pointer hover:shadow-lg transition-all"
-            >
-              <Plus size={16} /> เพิ่มหัวข้อตรวจรับ (Admin Only)
-            </button>
-          )}
         </div>
       </div>
 
@@ -427,14 +323,6 @@ export function ChecklistClient({ project, masters: initialMasters, results: ini
                   <span className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-md">
                     - N/A {catNa}
                   </span>
-                  {isAdmin && (
-                    <button
-                      onClick={() => openAddMasterModal(catTitle)}
-                      className="ml-2 text-primary-600 dark:text-primary-400 hover:underline text-xs font-bold"
-                    >
-                      + เพิ่มในหมวดนี้
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -465,31 +353,9 @@ export function ChecklistClient({ project, masters: initialMasters, results: ini
                     >
                       {/* Left Item Info */}
                       <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                            {item.title}
-                          </h4>
-
-                          {/* Admin Edit/Delete Master Item */}
-                          {isAdmin && (
-                            <div className="inline-flex items-center gap-1 print:hidden">
-                              <button
-                                onClick={() => openEditMasterModal(item)}
-                                className="p-1 text-slate-400 hover:text-primary-600 rounded transition-colors"
-                                title="แก้ไขแม่แบบหัวข้อ"
-                              >
-                                <Pencil size={12} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteMasterItem(item.id)}
-                                className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors"
-                                title="ลบแม่แบบหัวข้อ"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                          {item.title}
+                        </h4>
 
                         {item.description && (
                           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -546,91 +412,6 @@ export function ChecklistClient({ project, masters: initialMasters, results: ini
             </div>
           )
         })
-      )}
-
-      {/* ── Admin Modal (Add/Edit Master Item) ── */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white dark:bg-[#14142a] rounded-2xl shadow-xl border border-slate-200 dark:border-[#252548] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-[#1e1e38]">
-              <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                {editingMaster ? 'แก้ไขหัวข้อตรวจรับ' : 'เพิ่มหัวข้อตรวจรับใหม่'}
-              </h4>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveMasterItem} className="p-4 space-y-4">
-              {errorMsg && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 text-xs font-bold text-red-600 rounded-xl">
-                  ⚠️ {errorMsg}
-                </div>
-              )}
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                  หมวดหมู่ *
-                </label>
-                <input
-                  type="text"
-                  value={modalCategory}
-                  onChange={(e) => setModalCategory(e.target.value)}
-                  placeholder="เช่น หมวดที่ 1: โครงสร้างและภายนอกอาคาร"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#1e1e38] text-sm font-medium focus:ring-2 focus:ring-primary-500/40 outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                  ชื่อหัวข้อตรวจรับ *
-                </label>
-                <input
-                  type="text"
-                  value={modalTitle}
-                  onChange={(e) => setModalTitle(e.target.value)}
-                  placeholder="เช่น ดินรอบอาคาร, การระบายน้ำรอบอาคาร"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#1e1e38] text-sm font-medium focus:ring-2 focus:ring-primary-500/40 outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                  คำอธิบายเกณฑ์การตรวจสอบ
-                </label>
-                <textarea
-                  rows={4}
-                  value={modalDesc}
-                  onChange={(e) => setModalDesc(e.target.value)}
-                  placeholder="รายละเอียดวิธีการและเกณฑ์การตรวจสอบ..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#1e1e38] text-sm font-medium focus:ring-2 focus:ring-primary-500/40 outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#1e1e38]">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="btn-secondary px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="btn-primary px-4 py-2 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5"
-                >
-                  {isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
     </div>
   )

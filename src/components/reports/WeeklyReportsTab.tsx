@@ -326,6 +326,7 @@ function WeeklyReportForm({
   userRole?: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [errorMsg, setErrorMsg] = useState('');
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(
     null,
   );
@@ -419,11 +420,17 @@ function WeeklyReportForm({
       snapshot: finalSnapshot,
     };
 
+    setErrorMsg("");
     startTransition(async () => {
+      let res;
       if (item) {
-        await updateWeeklyReport(item.id, project.id, payload);
+        res = await updateWeeklyReport(item.id, project.id, payload);
       } else {
-        await createWeeklyReport(project.id, payload);
+        res = await createWeeklyReport(project.id, payload);
+      }
+      if (res?.error) {
+        setErrorMsg(res.error);
+      } else {
         onClose();
       }
     });
@@ -996,6 +1003,11 @@ function WeeklyReportForm({
           disabled={!(userRole && (userRole === 'admin' || userRole === 'editor'))}
           className="flex-1 overflow-y-auto p-6 space-y-6 print:overflow-visible print:p-0 print:space-y-2 print:block print:w-full print:h-auto"
         >
+          {errorMsg && (
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2 print:hidden">
+              <span>⚠️ {errorMsg}</span>
+            </div>
+          )}
           {item && !item.snapshot && (
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-xl text-xs font-bold flex items-center justify-between print:hidden">
               <span className="flex items-center gap-1.5">

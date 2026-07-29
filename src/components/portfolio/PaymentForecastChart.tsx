@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useState, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Brush } from 'recharts'
 import type { ProjectMilestone, Project } from '@/lib/types'
 import { Calendar, Filter, EyeOff } from 'lucide-react'
 
@@ -162,12 +162,13 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
       if (endMonthKey && m.sortKey > endMonthKey) return false
       return true
     }).map(m => {
-      const newObj: any = { name: m.name, sortKey: m.sortKey }
+      const newObj: any = { name: m.name, sortKey: m.sortKey, total: 0 }
       // Apply project filter
       Object.keys(m).forEach(k => {
         if (k !== 'name' && k !== 'sortKey' && k !== 'dateObj' && k !== 'total' && k !== 'unassigned') {
           if (selectedProjects.includes(k)) {
             newObj[k] = m[k]
+            newObj.total += m[k]
             activeProjs.add(k)
             total += m[k]
           }
@@ -176,8 +177,7 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
       return newObj
     }).filter(m => {
       // Remove months that have 0 amount after project filtering
-      const sum = Object.keys(m).reduce((acc, k) => (k !== 'name' && k !== 'sortKey') ? acc + m[k] : acc, 0)
-      return sum > 0
+      return m.total > 0
     })
 
     return { filteredData: data, finalTotal: total, activeProjectsInView: Array.from(activeProjs) }
@@ -185,6 +185,41 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
 
 
   if (!isLoaded) return <div className="animate-pulse h-[400px] bg-slate-100 dark:bg-[#1c1c34] rounded-2xl mb-6"></div>
+
+  // Custom Tooltip component to show total and project details on hover
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const dataPoint = payload[0].payload
+      return (
+        <div className="bg-white dark:bg-[#121228] border border-slate-200 dark:border-[#252548] p-4 rounded-xl shadow-xl text-xs font-semibold">
+          <p className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-2 leading-tight">
+            ประมาณการเดือน {label}
+          </p>
+          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100 dark:border-[#252548] text-primary-600 dark:text-primary-400 font-bold">
+            <span>ยอดรวม:</span>
+            <span>฿ {dataPoint.total.toLocaleString()}</span>
+          </div>
+          <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+            {activeProjectsInView.map((pName) => {
+              const val = dataPoint[pName]
+              if (!val) return null
+              const pIdx = allProjectNames.indexOf(pName)
+              return (
+                <div key={pName} className="flex items-center justify-between gap-4 text-slate-500 dark:text-slate-400">
+                  <span className="flex items-center gap-1.5 truncate max-w-[180px]">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[pIdx % COLORS.length] }} />
+                    {pName}
+                  </span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">฿ {val.toLocaleString()}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )
+    }
+    return null
+  }
 
   // 6. Empty State
   if (filteredData.length === 0 && rawGroupedData.totalUnassigned === 0) {
@@ -286,7 +321,7 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
       {filteredData.length > 0 ? (
         <>
           {/* Chart */}
-          <div className="h-[350px] w-full mt-4 print-chart-container">
+          <div className="h-[380px] w-full mt-4 print-chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={filteredData}
@@ -306,40 +341,34 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
                   tick={{ fontSize: 12, fill: '#64748b' }} 
                   tickFormatter={(val) => `฿${(val / 1000000).toFixed(1)}M`}
                 />
-                <Tooltip 
-                  cursor={{ fill: 'transparent' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                  formatter={(value: any) => [`฿ ${Number(value).toLocaleString()}`, 'ยอดคาดการณ์']}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
-                {activeProjectsInView.map((pName) => {
-                  const pIdx = allProjectNames.indexOf(pName)
-                  const isTopStack = activeProjectsInView[activeProjectsInView.length - 1] === pName
-                  return (
-                    <Bar 
-                      key={pName} 
-                      dataKey={pName} 
-                      stackId="a" 
-                      fill={COLORS[pIdx % COLORS.length]} 
-                      radius={isTopStack ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                    >
-                      {isTopStack && (
-                        <LabelList 
-                          dataKey={(entry) => {
-                            let sum = 0
-                            activeProjectsInView.forEach(p => { sum += entry[p] || 0 })
-                            return sum > 0 ? `฿${sum.toLocaleString()}` : ''
-                          }} 
-                          position="top" 
-                          fill="#475569" 
-                          fontSize={11} 
-                          fontWeight="900"
-                          offset={10}
-                        />
-                      )}
-                    </Bar>
-                  )
-                })}
+                <Brush 
+                  dataKey="name" 
+                  height={20} 
+                  stroke="#3b82f6" 
+                  fill="#f8fafc"
+                  className="dark:fill-[#14142a] dark:stroke-[#1c1c34]"
+                  startIndex={0} 
+                  endIndex={Math.min(filteredData.length - 1, 11)}
+                />
+                <Bar 
+                  dataKey="total" 
+                  name="ประมาณการเบิกจ่าย" 
+                  fill="#3b82f6" 
+                  radius={[4, 4, 0, 0]}
+                  barSize={32}
+                >
+                  <LabelList 
+                    dataKey="total"
+                    position="top" 
+                    fill="#475569" 
+                    fontSize={10} 
+                    fontWeight="bold"
+                    offset={10}
+                    formatter={(val: any) => val > 0 ? `฿${Number(val).toLocaleString()}` : ''}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

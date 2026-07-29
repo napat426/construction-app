@@ -1002,9 +1002,8 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
         )}
       </div>
 
-      {/* ── PART 2.5: PAYMENT FORECAST CHART (Moved to bottom) ── */}
       <div className={`mt-6 mb-6 ${includePrintForecast ? 'print:block' : 'no-print'}`}>
-        <PaymentForecastChart milestones={milestones} projects={projects} />
+        <PaymentForecastChart milestones={milestones} projects={filteredProjects} />
       </div>
 
 

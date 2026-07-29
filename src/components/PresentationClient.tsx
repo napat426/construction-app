@@ -77,17 +77,21 @@ export function PresentationClient({
   // Presets state
   const [presets, setPresets] = useState<Preset[]>([])
 
-  // Filtering states matching ProjectsClient.tsx
+  // Filtering states matching ProjectsClient.tsx (All supervisors & work groups checked by default)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([])
+  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>(() =>
+    [...new Set(initialProjects.flatMap((p) => (p.supervisor || '').split(',').map((s) => s.trim()).filter(Boolean)))].sort()
+  )
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
-    'กำลังดำเนินการ',
     'ออกแบบ สำรวจ ประมาณการ',
     'จัดซื้อจัดจ้าง',
     'รอดำเนินการ',
+    'กำลังดำเนินการ',
     'ระงับ',
   ])
-  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>([])
+  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>(() =>
+    [...new Set(initialProjects.map((p) => p.work_group || '').filter(Boolean))].sort()
+  )
 
   // Dropdown open states
   const [supervisorOpen, setSupervisorOpen] = useState(false)
@@ -493,15 +497,23 @@ export function PresentationClient({
                   <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto">
                     <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
                       <span className="text-[10px] font-black uppercase text-slate-400">เลือกผู้ควบคุม</span>
-                      {selectedSupervisors.length > 0 && (
+                      <div className="flex items-center gap-2 text-[10px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSupervisors(supervisors)}
+                          className="text-primary-600 dark:text-primary-400 hover:underline"
+                        >
+                          เลือกทั้งหมด
+                        </button>
+                        <span className="text-slate-300">|</span>
                         <button
                           type="button"
                           onClick={() => setSelectedSupervisors([])}
-                          className="text-[10px] font-bold text-red-500 hover:underline"
+                          className="text-red-500 hover:underline"
                         >
                           ล้างค่า
                         </button>
-                      )}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       {supervisors.map((s) => {
@@ -556,15 +568,23 @@ export function PresentationClient({
                   <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto">
                     <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
                       <span className="text-[10px] font-black uppercase text-slate-400">เลือกสถานะ</span>
-                      {selectedStatuses.length > 0 && (
+                      <div className="flex items-center gap-2 text-[10px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStatuses([...ALL_STATUSES])}
+                          className="text-primary-600 dark:text-primary-400 hover:underline"
+                        >
+                          เลือกทั้งหมด
+                        </button>
+                        <span className="text-slate-300">|</span>
                         <button
                           type="button"
                           onClick={() => setSelectedStatuses([])}
-                          className="text-[10px] font-bold text-red-500 hover:underline"
+                          className="text-red-500 hover:underline"
                         >
                           ล้างค่า
                         </button>
-                      )}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       {ALL_STATUSES.map((st) => {
@@ -619,15 +639,23 @@ export function PresentationClient({
                   <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto">
                     <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
                       <span className="text-[10px] font-black uppercase text-slate-400">เลือกกลุ่มงาน</span>
-                      {selectedWorkGroups.length > 0 && (
+                      <div className="flex items-center gap-2 text-[10px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedWorkGroups([...workGroups])}
+                          className="text-primary-600 dark:text-primary-400 hover:underline"
+                        >
+                          เลือกทั้งหมด
+                        </button>
+                        <span className="text-slate-300">|</span>
                         <button
                           type="button"
                           onClick={() => setSelectedWorkGroups([])}
-                          className="text-[10px] font-bold text-red-500 hover:underline"
+                          className="text-red-500 hover:underline"
                         >
                           ล้างค่า
                         </button>
-                      )}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       {workGroups.map((wg) => {

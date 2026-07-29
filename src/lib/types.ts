@@ -210,6 +210,26 @@ export interface QuickLink {
   created_at?: string
 }
 
+export type ChecklistStatus = 'passed' | 'failed' | 'na' | 'pending'
+
+export interface ChecklistMaster {
+  id: string
+  category: string
+  title: string
+  description: string | null
+  sort_order: number
+  created_at?: string
+}
+
+export interface ProjectChecklistResult {
+  id: string
+  project_id: string
+  master_id: string
+  status: ChecklistStatus
+  note?: string | null
+  updated_at?: string
+}
+
 export interface PunchList {
   id: string
   project_id: string

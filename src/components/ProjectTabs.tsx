@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, CalendarRange, Package, FileText, ClipboardCheck } from 'lucide-react'
+import { LayoutDashboard, CalendarRange, Package, FileText, ClipboardCheck, ListChecks } from 'lucide-react'
 
 interface ProjectTabsProps {
   projectId: string
@@ -41,6 +41,12 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
       label: 'Reports',
       icon: FileText,
       active: pathname.startsWith(`/projects/${projectId}/reports`),
+    },
+    {
+      href: `/projects/${projectId}/checklist`,
+      label: 'Check list',
+      icon: ListChecks,
+      active: pathname.startsWith(`/projects/${projectId}/checklist`),
     },
   ]
 

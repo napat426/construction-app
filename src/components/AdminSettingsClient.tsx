@@ -198,6 +198,194 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
           </div>
         </div>
       </div>
+
+      <hr className="border-slate-200 dark:border-[#252548]" />
+
+      {/* ── LINE NOTIFICATION SETTINGS SECTION ── */}
+      <div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
+          <span>💬 ระบบแจ้งเตือนทาง LINE Notification (Morning Briefing & Red Flag Alerts)</span>
+        </h3>
+        <p className="text-xs text-slate-400 mb-5">
+          ตั้งค่า LINE Token กลาง, กำหนดเวลาส่งสรุปงานประจำวัน (Morning Briefing) และกำหนดเกณฑ์วิกฤตเตือนภัย (Red Zone Alert)
+        </p>
+
+        <div className="space-y-6">
+          {/* Global Token Input & Test Button */}
+          <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-3">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+              LINE Token กลางของระบบ (LINE Notify Token)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                placeholder="กรอก LINE Token กลาง (เช่น Bearer Token จาก LINE Notify / Messaging API)"
+                value={settings['line_global_token'] || ''}
+                onChange={(e) => setSettings((prev) => ({ ...prev, line_global_token: e.target.value }))}
+                onBlur={async (e) => {
+                  setIsSaving(true)
+                  try {
+                    const key = 'line_global_token'
+                    const val = e.target.value
+                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
+                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
+                    else await supabase.from('system_settings').insert({ key, value: val })
+                  } catch {}
+                  setIsSaving(false)
+                }}
+                className="input-base text-xs font-mono flex-1"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const token = settings['line_global_token']
+                  if (!token) {
+                    alert('กรุณากรอก LINE Token ก่อนกดทดลองส่ง')
+                    return
+                  }
+                  setIsSaving(true)
+                  try {
+                    const res = await fetch('/api/cron/line-briefing', { method: 'POST' })
+                    const resJson = await res.json()
+                    if (resJson.success) {
+                      alert(`✅ ทดลองส่ง LINE เรียบร้อยแล้ว!\nส่งสำเร็จ: ${resJson.message}`)
+                    } else {
+                      alert(`❌ เกิดข้อผิดพลาด: ${resJson.error || resJson.message}`)
+                    }
+                  } catch (err: any) {
+                    alert(`❌ ส่งข้อผิดพลาด: ${err.message}`)
+                  } finally {
+                    setIsSaving(false)
+                  }
+                }}
+                disabled={isSaving}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                📲 ทดลองส่ง LINE Briefing
+              </button>
+            </div>
+          </div>
+
+          {/* Morning Briefing Scheduled Settings */}
+          <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-white text-sm">🌅 1. Scheduled Morning Briefing (สรุปงานประจำวัน 08:00 น.)</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  ส่งรายงานสรุป % Planned, % Actual, CPI/SPI, คนงาน และสภาพอากาศเข้ากลุ่ม LINE ตามเวลาที่กำหนด
+                </p>
+              </div>
+              <button
+                onClick={() => handleToggle('line_cron_enabled')}
+                disabled={isSaving}
+                className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 disabled:opacity-50 ${settings['line_cron_enabled'] !== 'false' ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+              >
+                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings['line_cron_enabled'] !== 'false' ? 'translate-x-6' : ''}`} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">เวลาส่งประจำวัน (24 ชม.)</label>
+                <input
+                  type="text"
+                  value={settings['line_cron_time'] || '08:00'}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, line_cron_time: e.target.value }))}
+                  onBlur={async (e) => {
+                    const key = 'line_cron_time'
+                    const val = e.target.value
+                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
+                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
+                    else await supabase.from('system_settings').insert({ key, value: val })
+                  }}
+                  className="input-base text-xs font-bold w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">ความถี่ในการส่ง</label>
+                <div className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/40 p-2 rounded-lg border border-primary-200/50">
+                  📅 ส่งทุกวัน (Daily Schedule) ผ่าน Vercel Cron / Scheduler
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Threshold-Based Red Flag Warning Settings */}
+          <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-white text-sm">🚨 2. Threshold-Based LINE Alert (เตือนภัยวิกฤต Red Zone)</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  ส่งการแจ้งเตือน Real-time เมื่อพบโครงการเข้าขั้นวิกฤต (จำกัดสูงสุด 1 ครั้ง/วัน/โครงการ ป้องกันสแปม)
+                </p>
+              </div>
+              <button
+                onClick={() => handleToggle('line_alert_enabled')}
+                disabled={isSaving}
+                className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 disabled:opacity-50 ${settings['line_alert_enabled'] !== 'false' ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+              >
+                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings['line_alert_enabled'] !== 'false' ? 'translate-x-6' : ''}`} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">เกณฑ์วิกฤต SPI (ต่ำกว่า)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={settings['line_alert_spi_threshold'] || '0.90'}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_spi_threshold: e.target.value }))}
+                  onBlur={async (e) => {
+                    const key = 'line_alert_spi_threshold'
+                    const val = e.target.value
+                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
+                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
+                    else await supabase.from('system_settings').insert({ key, value: val })
+                  }}
+                  className="input-base text-xs font-bold w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">เกณฑ์วิกฤต CPI (ต่ำกว่า)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={settings['line_alert_cpi_threshold'] || '0.90'}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_cpi_threshold: e.target.value }))}
+                  onBlur={async (e) => {
+                    const key = 'line_alert_cpi_threshold'
+                    const val = e.target.value
+                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
+                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
+                    else await supabase.from('system_settings').insert({ key, value: val })
+                  }}
+                  className="input-base text-xs font-bold w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">% ล่าช้ากว่าแผนสะสม (เกินกว่า %)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={settings['line_alert_diff_threshold'] || '5'}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_diff_threshold: e.target.value }))}
+                  onBlur={async (e) => {
+                    const key = 'line_alert_diff_threshold'
+                    const val = e.target.value
+                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
+                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
+                    else await supabase.from('system_settings').insert({ key, value: val })
+                  }}
+                  className="input-base text-xs font-bold w-full"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

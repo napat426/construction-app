@@ -30,8 +30,9 @@ export async function createProject(
   const contractor           = (formData.get('contractor') as string)?.trim()           || null
   const contract_no          = (formData.get('contract_no') as string)?.trim()          || null
   const work_group           = (formData.get('work_group') as string)?.trim()           || null
+  const line_token           = (formData.get('line_token') as string)?.trim()           || null
 
-  const { error } = await supabase.from('projects').insert({
+  const insertPayload: Record<string, any> = {
     name,
     description,
     location,
@@ -45,7 +46,13 @@ export async function createProject(
     contractor,
     contract_no,
     work_group,
-  })
+  }
+
+  if (line_token) {
+    insertPayload.line_token = line_token
+  }
+
+  const { error } = await supabase.from('projects').insert(insertPayload)
 
   if (error) {
     return { error: `บันทึกไม่สำเร็จ: ${error.message}` }
@@ -111,32 +118,45 @@ export async function updateProjectBaseline(
   const contractor           = (formData.get('contractor') as string)?.trim()           || null
   const contract_no          = (formData.get('contract_no') as string)?.trim()          || null
   const work_group           = (formData.get('work_group') as string)?.trim()           || null
+  const line_token           = (formData.get('line_token') as string)?.trim()           || null
+
+  const updatePayload: Record<string, any> = {
+    name,
+    supervisor,
+    description,
+    location,
+    status,
+    budget: budget && !isNaN(budget) ? budget : null,
+    paid_amount: paid_amount && !isNaN(paid_amount) ? paid_amount : 0,
+    penalty_rate: penalty_rate && !isNaN(penalty_rate) ? penalty_rate : 0,
+    start_date: start_date || null,
+    end_date: end_date || null,
+    progress,
+    planned_progress,
+    inspection_committee,
+    contractor,
+    contract_no,
+    work_group,
+  }
+
+  if (line_token !== null) {
+    updatePayload.line_token = line_token
+  }
 
   const { error } = await supabase
     .from('projects')
-    .update({
-      name,
-      supervisor,
-      description,
-      location,
-      status,
-      budget: budget && !isNaN(budget) ? budget : null,
-      paid_amount: paid_amount && !isNaN(paid_amount) ? paid_amount : 0,
-      penalty_rate: penalty_rate && !isNaN(penalty_rate) ? penalty_rate : 0,
-      start_date: start_date || null,
-      end_date: end_date || null,
-      progress,
-      planned_progress,
-      inspection_committee,
-      contractor,
-      contract_no,
-      work_group,
-    })
+    .update(updatePayload)
     .eq('id', id)
 
   if (error) {
     return { error: `แก้ไขข้อมูลโครงการไม่สำเร็จ: ${error.message}` }
   }
+
+  // Trigger Red Flag threshold check asynchronously
+  try {
+    const { checkAndSendRedFlagAlert } = await import('@/lib/line')
+    checkAndSendRedFlagAlert(id).catch(err => console.error('Error in checkAndSendRedFlagAlert background trigger:', err))
+  } catch (err) {}
 
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)

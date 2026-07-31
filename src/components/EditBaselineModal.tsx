@@ -334,6 +334,17 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                   className={inputCls}
                 />
               </div>
+              <div>
+                <label className={labelCls} htmlFor="line_token">💬 LINE Token เฉพาะโครงการ</label>
+                <input
+                  id="line_token"
+                  name="line_token"
+                  type="password"
+                  placeholder="เว้นว่างไว้เพื่อใช้ Token กลาง"
+                  defaultValue={(project as any).line_token || ''}
+                  className={inputCls}
+                />
+              </div>
             </div>
           </div>
 

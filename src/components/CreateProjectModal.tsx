@@ -202,6 +202,18 @@ export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalPr
             </select>
           </div>
 
+          {/* LINE Token เฉพาะโครงการ */}
+          <div>
+            <label className={labelCls} htmlFor="line_token">💬 LINE Token เฉพาะโครงการ (สำหรับส่งเข้ากลุ่ม LINE นี้)</label>
+            <input
+              id="line_token"
+              name="line_token"
+              type="password"
+              placeholder="เว้นว่างไว้เพื่อใช้ Token กลางของระบบ"
+              className={inputCls}
+            />
+          </div>
+
 
 
           {/* Actions */}

@@ -6,6 +6,7 @@ import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
@@ -70,6 +71,15 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
     if (settingsData) {
       settingsData.forEach((s) => {
         settings[s.key] = s.value
+      })
+    }
+
+    // Emergency Master Check: Stop immediately if globally disabled!
+    if (!isTestMode && !isForce && settings['line_cron_enabled'] === 'false') {
+      return NextResponse.json({
+        success: false,
+        message: 'LINE Cron is globally disabled in System Settings.',
+        sentCount: 0,
       })
     }
 

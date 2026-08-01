@@ -15,8 +15,6 @@ export const metadata: Metadata = {
   description: 'ระบบบริหารจัดการโครงการก่อสร้างแบบครบวงจร | Construction Management System',
 }
 
-import CronPoller from '@/components/CronPoller'
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,10 +31,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen antialiased">
-        <ThemeProvider>
-          <CronPoller />
-          {children}
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )

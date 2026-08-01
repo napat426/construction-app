@@ -53,9 +53,9 @@ function isSlotMatching(
   const [slotH, slotM] = (slot.time || '08:00').split(':').map(Number)
   const slotTotalMinutes = (slotH || 0) * 60 + (slotM || 0)
 
-  // Strict 2-minute window tolerance so it ONLY triggers at the exact minute of the schedule!
+  // Exact minute matching so it ONLY triggers when hours and minutes match the schedule exactly!
   const diff = Math.abs(currentTotalMinutes - slotTotalMinutes)
-  return diff <= 2
+  return diff <= 1
 }
 
 async function handleCronJob(options: { isTest?: boolean; overrideToken?: string | null; isForce?: boolean }) {

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/auto-generate",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/line-briefing",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

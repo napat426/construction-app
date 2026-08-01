@@ -25,6 +25,8 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
 
   const [slotDay, setSlotDay] = useState('Mon')
   const [slotTime, setSlotTime] = useState('08:30')
+  const [newChannelName, setNewChannelName] = useState('')
+  const [newChannelToken, setNewChannelToken] = useState('')
 
   const ALL_DAYS = [
     { id: 'Mon', label: 'จันทร์' },
@@ -59,6 +61,27 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
       { day: 'Mon', time: '08:30' },
       { day: 'Wed', time: '13:00' },
     ]
+  }
+
+  const getLineChannels = (): { id: string; name: string; token: string; enabled: boolean }[] => {
+    try {
+      const val = settings['line_channels']
+      if (val) {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {}
+    if (settings['line_global_token']) {
+      return [
+        {
+          id: 'default_ch',
+          name: 'กลุ่มแจ้งเตือนหลัก (Main Group)',
+          token: settings['line_global_token'],
+          enabled: true,
+        },
+      ]
+    }
+    return []
   }
 
   const saveSettingKey = async (key: string, value: string) => {
@@ -263,36 +286,24 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
         </p>
 
         <div className="space-y-6">
-          {/* Global Token Input & Test Button */}
-          <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-3">
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
-              LINE Token กลางของระบบ (LINE Messaging API: AccessToken|TargetID หรือ LINE Notify Token)
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="password"
-                placeholder="LINE Messaging API (รูปแบบ: ChannelAccessToken|GroupId) หรือ LINE Notify Token"
-                value={settings['line_global_token'] || ''}
-                onChange={(e) => setSettings((prev) => ({ ...prev, line_global_token: e.target.value }))}
-                onBlur={async (e) => {
-                  setIsSaving(true)
-                  try {
-                    const key = 'line_global_token'
-                    const val = e.target.value
-                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
-                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
-                    else await supabase.from('system_settings').insert({ key, value: val })
-                  } catch {}
-                  setIsSaving(false)
-                }}
-                className="input-base text-xs font-mono flex-1"
-              />
+          {/* Multi-Channel & Multi-Group Notification Targets Manager */}
+          <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
+                  <span>📱 จัดการช่องทาง & กลุ่มแจ้งเตือน LINE (Multi-Channel Group Targets)</span>
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  แยกเพิ่มกลุ่มแจ้งเตือนและตั้งชื่อแต่ละกลุ่มได้อย่างอิสระ (เช่น กลุ่มผู้บริหาร, กลุ่มวิศวกรสนาม, กลุ่มที่ปรึกษา)
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={async () => {
-                  const token = settings['line_global_token']
-                  if (!token) {
-                    alert('กรุณากรอก LINE Token ก่อนกดทดลองส่ง')
+                  const channels = getLineChannels()
+                  const activeChannels = channels.filter(c => c.enabled && c.token)
+                  if (activeChannels.length === 0 && !settings['line_global_token']) {
+                    alert('กรุณาเพิ่มกลุ่มแจ้งเตือนอย่างน้อย 1 กลุ่มพร้อมกรอก Token ก่อนกดทดลองส่ง')
                     return
                   }
                   setIsSaving(true)
@@ -300,11 +311,11 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
                     const res = await fetch('/api/cron/line-briefing', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ token }),
+                      body: JSON.stringify({ token: settings['line_global_token'] || '' }),
                     })
                     const resJson = await res.json()
                     if (resJson.success) {
-                      alert(`✅ ทดลองส่ง LINE เรียบร้อยแล้ว!\n${resJson.message}`)
+                      alert(`✅ ทดลองส่ง LINE กระจายทุกกลุ่มเรียบร้อยแล้ว!\n${resJson.message}`)
                     } else {
                       alert(`❌ เกิดข้อผิดพลาด: ${resJson.error || resJson.message}`)
                     }
@@ -317,8 +328,169 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
                 disabled={isSaving}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-colors flex items-center gap-1 cursor-pointer shrink-0"
               >
-                📲 ทดลองส่ง LINE Briefing
+                📲 ทดลองส่งกระจายทุกกลุ่ม
               </button>
+            </div>
+
+            {/* Configured Channels List */}
+            <div className="space-y-3 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
+              {getLineChannels().length === 0 ? (
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded-lg text-xs font-medium">
+                  ⚠️ ยังไม่มีกลุ่มแจ้งเตือนในระบบ กรุณากรอกชื่อกลุ่มและ LINE Token ด้านล่างเพื่อเริ่มใช้งาน
+                </div>
+              ) : (
+                getLineChannels().map((ch, idx) => (
+                  <div
+                    key={ch.id || idx}
+                    className="p-3 bg-white dark:bg-[#13132a] rounded-xl border border-slate-200 dark:border-[#252548] space-y-2 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-sm">👥</span>
+                        <input
+                          type="text"
+                          value={ch.name}
+                          onChange={(e) => {
+                            const updated = [...getLineChannels()]
+                            updated[idx].name = e.target.value
+                            saveSettingKey('line_channels', JSON.stringify(updated))
+                          }}
+                          className="font-bold text-xs text-slate-800 dark:text-white bg-transparent border-b border-transparent hover:border-slate-300 focus:border-primary-500 focus:outline-none px-1 py-0.5 flex-1"
+                          placeholder="ชื่อกลุ่ม เช่น กลุ่มผู้บริหาร"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Toggle switch */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...getLineChannels()]
+                            updated[idx].enabled = !updated[idx].enabled
+                            saveSettingKey('line_channels', JSON.stringify(updated))
+                          }}
+                          className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
+                            ch.enabled
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                              : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                          }`}
+                        >
+                          {ch.enabled ? '🟢 เปิดส่ง' : '🔴 ปิดส่ง'}
+                        </button>
+
+                        {/* Test channel button */}
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!ch.token) {
+                              alert('กรุณากรอก Token สำหรับกลุ่มนี้ก่อนทดลองส่ง')
+                              return
+                            }
+                            setIsSaving(true)
+                            try {
+                              const res = await fetch('/api/cron/line-briefing', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ token: ch.token }),
+                              })
+                              const resJson = await res.json()
+                              if (resJson.success) {
+                                alert(`✅ ส่งข้อความทดสอบเข้ากลุ่ม "${ch.name}" เรียบร้อยแล้ว!`)
+                              } else {
+                                alert(`❌ ส่งเข้ากลุ่ม "${ch.name}" ล้มเหลว: ${resJson.error}`)
+                              }
+                            } catch (e: any) {
+                              alert(`❌ ข้อผิดพลาด: ${e.message}`)
+                            } finally {
+                              setIsSaving(false)
+                            }
+                          }}
+                          className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-[11px] rounded transition-colors cursor-pointer"
+                        >
+                          📲 ทดลองส่งเข้ากลุ่มนี้
+                        </button>
+
+                        {/* Delete channel button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = getLineChannels().filter((_, i) => i !== idx)
+                            saveSettingKey('line_channels', JSON.stringify(updated))
+                          }}
+                          className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors cursor-pointer"
+                          title="ลบกลุ่มนี้"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <input
+                        type="password"
+                        value={ch.token}
+                        onChange={(e) => {
+                          const updated = [...getLineChannels()]
+                          updated[idx].token = e.target.value
+                          saveSettingKey('line_channels', JSON.stringify(updated))
+                        }}
+                        placeholder="LINE Messaging API Token (ChannelAccessToken|GroupId) หรือ Notify Token"
+                        className="input-base text-xs font-mono w-full py-1.5"
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Add New Channel Form */}
+              <div className="p-3 bg-slate-100/70 dark:bg-[#181832] rounded-xl border border-slate-200/80 dark:border-[#252548] space-y-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  ➕ เพิ่มช่องทาง / กลุ่มแจ้งเตือนใหม่:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="ชื่อกลุ่ม เช่น กลุ่มผู้บริหาร / กลุ่มวิศวกรสนาม"
+                    value={newChannelName}
+                    onChange={(e) => setNewChannelName(e.target.value)}
+                    className="input-base text-xs font-bold py-1.5"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      placeholder="LINE Token ประจำกลุ่ม"
+                      value={newChannelToken}
+                      onChange={(e) => setNewChannelToken(e.target.value)}
+                      className="input-base text-xs font-mono flex-1 py-1.5"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newChannelName.trim() || !newChannelToken.trim()) {
+                          alert('กรุณากรอกทั้งชื่อกลุ่มและ LINE Token')
+                          return
+                        }
+                        const current = getLineChannels()
+                        const newCh = {
+                          id: `ch_${Date.now()}`,
+                          name: newChannelName.trim(),
+                          token: newChannelToken.trim(),
+                          enabled: true,
+                        }
+                        const updated = [...current, newCh]
+                        saveSettingKey('line_channels', JSON.stringify(updated))
+                        // Also sync line_global_token for fallback compatibility
+                        saveSettingKey('line_global_token', newChannelToken.trim())
+                        setNewChannelName('')
+                        setNewChannelToken('')
+                      }}
+                      className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Plus size={14} /> เพิ่มกลุ่มนี้
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -109,6 +109,65 @@ export async function sendLineMessage(token: string, message: string): Promise<L
   }
 }
 
+export interface LineChannelTarget {
+  id: string
+  name: string
+  token: string
+  enabled: boolean
+}
+
+/**
+ * Send message to all configured LINE Group channels
+ */
+export async function sendLineMessageToAllChannels(
+  defaultToken: string,
+  message: string,
+  settings?: Record<string, string>
+): Promise<{ success: boolean; sentCount: number; errors: string[] }> {
+  let channels: LineChannelTarget[] = []
+
+  if (settings && settings['line_channels']) {
+    try {
+      const parsed = JSON.parse(settings['line_channels'])
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        channels = parsed.filter((c: LineChannelTarget) => c.enabled && c.token && c.token.trim())
+      }
+    } catch {}
+  }
+
+  if (channels.length === 0) {
+    if (!defaultToken || !defaultToken.trim()) {
+      return { success: false, sentCount: 0, errors: ['No LINE channels or token available'] }
+    }
+    const res = await sendLineMessage(defaultToken, message)
+    return {
+      success: res.success,
+      sentCount: res.success ? 1 : 0,
+      errors: res.error ? [res.error] : [],
+    }
+  }
+
+  let sentCount = 0
+  const errors: string[] = []
+
+  await Promise.all(
+    channels.map(async (ch) => {
+      const res = await sendLineMessage(ch.token, message)
+      if (res.success) {
+        sentCount++
+      } else {
+        errors.push(`กลุ่ม "${ch.name}": ${res.error || 'Failed'}`)
+      }
+    })
+  )
+
+  return {
+    success: sentCount > 0,
+    sentCount,
+    errors,
+  }
+}
+
 /**
  * Format Morning Briefing Message
  */
@@ -348,7 +407,7 @@ export async function checkAndSendRedFlagAlert(projectId: string): Promise<{ ale
       planningUrl,
     })
 
-    const sendRes = await sendLineMessage(targetToken, message)
+    const sendRes = await sendLineMessageToAllChannels(targetToken, message, settings)
     if (sendRes.success) {
       // Update last_red_flag_alert_date in database
       try {
@@ -356,7 +415,7 @@ export async function checkAndSendRedFlagAlert(projectId: string): Promise<{ ale
       } catch {}
       return { alerted: true }
     } else {
-      return { alerted: false, reason: sendRes.error }
+      return { alerted: false, reason: sendRes.errors.join('; ') || 'Failed to send alert' }
     }
   } catch (err: any) {
     console.error('Error in checkAndSendRedFlagAlert:', err)

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { sendLineMessage, formatMorningBriefingMessage } from '@/lib/line'
+import { sendLineMessage, sendLineMessageToAllChannels, formatMorningBriefingMessage } from '@/lib/line'
 import { computeTaskDates } from '@/lib/scheduler'
 import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 
@@ -67,18 +67,18 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       }
 
       const testMsg = `📲 [ทดสอบระบบแจ้งเตือน LINE]\n\nเชื่อมต่อระบบควบคุมงานก่อสร้างกับ LINE Messaging API สำเร็จเรียบร้อยแล้ว!\n\n📊 ข้อมูลในระบบปัจจุบัน:\n• โครงการทั้งหมด: ${activeProjects.length} โครงการ\n📅 วันที่ทดสอบ: ${dateStr}\n⏰ เวลา: ${new Date().toLocaleTimeString('th-TH')}\n\n(ระบบจะส่งสรุป Morning Briefing ของทุกโครงการอัตโนมัติทุกเช้าตามเวลาที่ตั้งไว้)`
-      const testRes = await sendLineMessage(globalToken, testMsg)
+      const testRes = await sendLineMessageToAllChannels(globalToken, testMsg, settings)
 
       if (testRes.success) {
         return NextResponse.json({
           success: true,
-          message: `เชื่อมต่อสำเร็จ! ส่งข้อความทดสอบเข้า LINE เรียบร้อยแล้ว (พบ ${activeProjects.length} โครงการเตรียมส่งประจำวัน)`,
-          sentCount: 1,
+          message: `เชื่อมต่อสำเร็จ! ส่งข้อความทดสอบเข้า LINE เรียบร้อยแล้ว (ส่งสำเร็จ ${testRes.sentCount} ช่องทาง/กลุ่ม)`,
+          sentCount: testRes.sentCount,
         })
       } else {
         return NextResponse.json({
           success: false,
-          error: testRes.error || 'ไม่สามารถส่งข้อความได้ กรุณาตรวจสอบ Token',
+          error: testRes.errors.join('; ') || 'ไม่สามารถส่งข้อความได้ กรุณาตรวจสอบ Token',
         })
       }
     }
@@ -240,12 +240,12 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
         projectUrl,
       })
 
-      const res = await sendLineMessage(targetToken, message)
+      const res = await sendLineMessageToAllChannels(targetToken, message, settings)
       if (res.success) {
-        sentCount++
+        sentCount += res.sentCount
         results.push({ projectId: p.id, projectName: p.name, success: true })
       } else {
-        results.push({ projectId: p.id, projectName: p.name, success: false, error: res.error })
+        results.push({ projectId: p.id, projectName: p.name, success: false, error: res.errors.join('; ') })
       }
     }
 

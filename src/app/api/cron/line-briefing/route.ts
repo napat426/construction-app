@@ -83,10 +83,30 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       }
     }
 
-    // ── CRON JOB MODE (รันอัตโนมัติประจำวัน 08:00 น.): วนลูปส่งสรุปทุกโครงการ ──
+    // ── CRON JOB MODE (รันอัตโนมัติ): เช็ควันในสัปดาห์และเวลาที่เลือก ──
     const cronEnabled = settings['line_cron_enabled'] !== 'false'
     if (!cronEnabled) {
       return NextResponse.json({ success: false, message: 'LINE Cron Briefing is disabled in System Settings' })
+    }
+
+    // Check configured days of week
+    let configuredDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    try {
+      if (settings['line_cron_days']) {
+        const parsed = JSON.parse(settings['line_cron_days'])
+        if (Array.isArray(parsed)) configuredDays = parsed
+      }
+    } catch {}
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const todayDayName = dayNames[new Date().getDay()]
+
+    if (!configuredDays.includes(todayDayName)) {
+      return NextResponse.json({
+        success: true,
+        message: `Today (${todayDayName}) is not in scheduled days (${configuredDays.join(', ')}). Skipped execution.`,
+        sentCount: 0,
+      })
     }
 
     // Fetch WBS Tasks, Milestones, Daily Reports for full cron run

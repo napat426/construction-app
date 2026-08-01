@@ -23,6 +23,57 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
     return ['งานงบลงทุนเร่งด่วน', 'งานแผนสนับสนุน']
   })
 
+  const [newTime, setNewTime] = useState('12:00')
+
+  const ALL_DAYS = [
+    { id: 'Mon', label: 'จันทร์' },
+    { id: 'Tue', label: 'อังคาร' },
+    { id: 'Wed', label: 'พุธ' },
+    { id: 'Thu', label: 'พฤหัสบดี' },
+    { id: 'Fri', label: 'ศุกร์' },
+    { id: 'Sat', label: 'เสาร์' },
+    { id: 'Sun', label: 'อาทิตย์' },
+  ]
+
+  const getCronDays = (): string[] => {
+    try {
+      const val = settings['line_cron_days']
+      if (val) {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed)) return parsed
+      }
+    } catch {}
+    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  }
+
+  const getCronTimes = (): string[] => {
+    try {
+      const val = settings['line_cron_times']
+      if (val) {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+      if (settings['line_cron_time']) {
+        return [settings['line_cron_time']]
+      }
+    } catch {}
+    return ['08:00']
+  }
+
+  const saveSettingKey = async (key: string, value: string) => {
+    setSettings((prev) => ({ ...prev, [key]: value }))
+    setIsSaving(true)
+    try {
+      const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
+      if (data) await supabase.from('system_settings').update({ value }).eq('key', key)
+      else await supabase.from('system_settings').insert({ key, value })
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const handleToggle = async (key: string) => {
     const newVal = settings[key] === 'true' ? 'false' : 'true'
     setSettings(prev => ({ ...prev, [key]: newVal }))
@@ -271,12 +322,14 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
           </div>
 
           {/* Morning Briefing Scheduled Settings */}
-          <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-4">
+          <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-slate-800 dark:text-white text-sm">🌅 1. Scheduled Morning Briefing (สรุปงานประจำวัน 08:00 น.)</h4>
+                <h4 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
+                  <span>🌅 1. Scheduled Briefing System (ตั้งค่าความถี่และเวลาส่งแบบอิสระ)</span>
+                </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  ส่งรายงานสรุป % Planned, % Actual, CPI/SPI, คนงาน และสภาพอากาศเข้ากลุ่ม LINE ตามเวลาที่กำหนด
+                  เลือกวันส่ง (รายวัน/รายสัปดาห์) และกำหนดเวลาส่งในแต่ละวันได้หลายรอบตามต้องการ
                 </p>
               </div>
               <button
@@ -288,27 +341,125 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
+            <div className="space-y-4 pt-3 border-t border-slate-200/60 dark:border-[#252548]">
+              {/* 🗓️ Selection for Days of Week */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">เวลาส่งประจำวัน (24 ชม.)</label>
-                <input
-                  type="text"
-                  value={settings['line_cron_time'] || '08:00'}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, line_cron_time: e.target.value }))}
-                  onBlur={async (e) => {
-                    const key = 'line_cron_time'
-                    const val = e.target.value
-                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
-                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
-                    else await supabase.from('system_settings').insert({ key, value: val })
-                  }}
-                  className="input-base text-xs font-bold w-full"
-                />
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                    🗓️ เลือกวันที่จะส่งข้อความ (Days of Week)
+                  </label>
+                  
+                  {/* Preset buttons */}
+                  <div className="flex items-center gap-1 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => saveSettingKey('line_cron_days', JSON.stringify(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']))}
+                      className="px-2 py-0.5 rounded bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300 hover:bg-primary-200 transition-colors"
+                    >
+                      เลือกทุกวัน (Daily)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveSettingKey('line_cron_days', JSON.stringify(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']))}
+                      className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-300 transition-colors"
+                    >
+                      วันทำการ (จ-ศ)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveSettingKey('line_cron_days', JSON.stringify(['Sat', 'Sun']))}
+                      className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-300 transition-colors"
+                    >
+                      สุดสัปดาห์ (ส-อา)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveSettingKey('line_cron_days', JSON.stringify(['Mon']))}
+                      className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 hover:bg-amber-200 transition-colors"
+                    >
+                      รายสัปดาห์ (จันทร์)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {ALL_DAYS.map((day) => {
+                    const currentDays = getCronDays()
+                    const isSelected = currentDays.includes(day.id)
+                    return (
+                      <button
+                        key={day.id}
+                        type="button"
+                        onClick={() => {
+                          const updated = isSelected
+                            ? currentDays.filter((d) => d !== day.id)
+                            : [...currentDays, day.id]
+                          saveSettingKey('line_cron_days', JSON.stringify(updated))
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                          isSelected
+                            ? 'bg-primary-600 border-primary-600 text-white shadow-sm scale-105'
+                            : 'bg-white dark:bg-[#13132a] border-slate-200 dark:border-[#252548] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1a1a36]'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : ''}{day.label}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
+
+              {/* ⏰ Selection for Send Times per Day */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">ความถี่ในการส่ง</label>
-                <div className="text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/40 p-2 rounded-lg border border-primary-200/50">
-                  📅 ส่งทุกวัน (Daily Schedule) ผ่าน Vercel Cron / Scheduler
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
+                  ⏰ เลือกรอบเวลาส่งประจำวัน (สามารถเพิ่มได้หลายรอบต่อวัน)
+                </label>
+
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {getCronTimes().map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-bold shadow-sm"
+                    >
+                      <span>⏰ {t} น.</span>
+                      {getCronTimes().length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = getCronTimes().filter((time) => time !== t)
+                            saveSettingKey('line_cron_times', JSON.stringify(updated))
+                          }}
+                          className="hover:text-red-500 p-0.5 rounded transition-colors"
+                          title="ลบเวลาส่งนี้"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 max-w-xs">
+                  <input
+                    type="time"
+                    value={newTime}
+                    onChange={(e) => setNewTime(e.target.value)}
+                    className="input-base text-xs font-bold py-1.5"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newTime) return
+                      const times = getCronTimes()
+                      if (!times.includes(newTime)) {
+                        const updated = [...times, newTime].sort()
+                        saveSettingKey('line_cron_times', JSON.stringify(updated))
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-lg transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus size={14} /> เพิ่มเวลาส่ง
+                  </button>
                 </div>
               </div>
             </div>

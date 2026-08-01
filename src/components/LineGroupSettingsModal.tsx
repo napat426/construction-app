@@ -37,6 +37,9 @@ export function LineGroupSettingsModal({
   const [newSlotDay, setNewSlotDay] = useState('Mon')
   const [newSlotTime, setNewSlotTime] = useState('08:30')
 
+  const [newAlertSlotDay, setNewAlertSlotDay] = useState('Tue')
+  const [newAlertSlotTime, setNewAlertSlotTime] = useState('09:00')
+
   const [spiInput, setSpiInput] = useState('0.9')
   const [cpiInput, setCpiInput] = useState('0.9')
   const [diffInput, setDiffInput] = useState('5')
@@ -51,6 +54,10 @@ export function LineGroupSettingsModal({
       setCpiInput(String(cpi))
       setDiffInput(String(diff))
 
+      const defaultAlertSchedule = channel.alert_schedule && channel.alert_schedule.length > 0
+        ? channel.alert_schedule
+        : [{ day: channel.alert_day || 'Tue', time: channel.alert_time || '09:00' }]
+
       setFormData({
         ...channel,
         project_ids: channel.project_ids ?? 'all',
@@ -59,6 +66,7 @@ export function LineGroupSettingsModal({
         alert_enabled: channel.alert_enabled ?? true,
         alert_day: channel.alert_day ?? 'Tue',
         alert_time: channel.alert_time ?? '09:00',
+        alert_schedule: defaultAlertSchedule,
         alert_spi_threshold: spi,
         alert_cpi_threshold: cpi,
         alert_diff_threshold: diff,
@@ -419,37 +427,70 @@ export function LineGroupSettingsModal({
             </div>
 
             {formData.alert_enabled && (
-              <div className="space-y-3.5 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      🗓️ วันที่ส่งเตือนวิกฤต
-                    </label>
-                    <select
-                      value={formData.alert_day || 'Tue'}
-                      onChange={(e) => setFormData({ ...formData, alert_day: e.target.value })}
-                      className="input-base text-xs font-bold w-full"
+              <div className="space-y-3 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
+                {/* Active Alert Slots list */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {(formData.alert_schedule || []).map((slot, sIdx) => (
+                    <span
+                      key={`alert-${slot.day}-${slot.time}-${sIdx}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800/60 text-red-800 dark:text-red-200 rounded-lg text-xs font-bold"
                     >
-                      {ALL_DAYS.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          ทุกวัน{d.label}
-                        </option>
-                      ))}
-                      <option value="all">ทุกวัน</option>
-                    </select>
-                  </div>
+                      <span>🗓️ {ALL_DAYS.find((d) => d.id === slot.day)?.label || slot.day} ⏰ {slot.time} น.</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedSlots = (formData.alert_schedule || []).filter((_, i) => i !== sIdx)
+                          setFormData({ ...formData, alert_schedule: updatedSlots })
+                        }}
+                        className="hover:text-red-600 p-0.5 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      ⏰ เวลาที่ส่งเตือนวิกฤต
-                    </label>
-                    <input
-                      type="time"
-                      value={formData.alert_time || '09:00'}
-                      onChange={(e) => setFormData({ ...formData, alert_time: e.target.value })}
-                      className="input-base text-xs font-bold w-full max-w-[160px]"
-                    />
-                  </div>
+                {/* Add Alert slot form */}
+                <div className="flex flex-wrap items-center gap-2 p-2 bg-white dark:bg-[#13132a] rounded-xl border border-slate-200 dark:border-[#252548]">
+                  <select
+                    value={newAlertSlotDay}
+                    onChange={(e) => setNewAlertSlotDay(e.target.value)}
+                    className="input-base text-xs font-bold py-1 w-auto"
+                  >
+                    {ALL_DAYS.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        วัน{d.label}
+                      </option>
+                    ))}
+                    <option value="all">ทุกวัน</option>
+                  </select>
+
+                  <input
+                    type="time"
+                    value={newAlertSlotTime}
+                    onChange={(e) => setNewAlertSlotTime(e.target.value)}
+                    className="input-base text-xs font-bold py-1 w-auto max-w-[130px]"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentSlots = formData.alert_schedule || []
+                      const exists = currentSlots.some((s) => s.day === newAlertSlotDay && s.time === newAlertSlotTime)
+                      if (!exists) {
+                        const updatedSlots = [...currentSlots, { day: newAlertSlotDay, time: newAlertSlotTime }]
+                        setFormData({
+                          ...formData,
+                          alert_schedule: updatedSlots,
+                          alert_day: newAlertSlotDay,
+                          alert_time: newAlertSlotTime,
+                        })
+                      }
+                    }}
+                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0 shadow-xs"
+                  >
+                    <Plus size={14} /> เพิ่มรอบเตือนวิกฤต
+                  </button>
                 </div>
 
                 {/* Per-group Threshold Inputs */}

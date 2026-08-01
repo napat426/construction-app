@@ -24,16 +24,16 @@ export async function POST(request: Request) {
 
 function getBangkokCurrentTime() {
   const now = new Date()
-  const bkkStr = now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })
-  const bkkDate = new Date(bkkStr)
+  
+  const dayName = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', weekday: 'short' }).format(now)
+  const hoursStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }).format(now)
+  const minutesStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', minute: 'numeric' }).format(now)
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const dayName = dayNames[bkkDate.getDay()]
-  const hours = bkkDate.getHours()
-  const minutes = bkkDate.getMinutes()
+  const hours = parseInt(hoursStr, 10) % 24
+  const minutes = parseInt(minutesStr, 10)
   const currentTotalMinutes = hours * 60 + minutes
 
-  return { bkkDate, dayName, hours, minutes, currentTotalMinutes }
+  return { dayName, hours, minutes, currentTotalMinutes }
 }
 
 function isSlotMatching(
@@ -50,9 +50,9 @@ function isSlotMatching(
   const [slotH, slotM] = (slot.time || '08:00').split(':').map(Number)
   const slotTotalMinutes = (slotH || 0) * 60 + (slotM || 0)
 
-  // Allow a 15-minute window for Cron execution tolerances
+  // Allow a 25-minute window for Cron execution tolerances
   const diff = Math.abs(currentTotalMinutes - slotTotalMinutes)
-  return diff <= 15
+  return diff <= 25
 }
 
 async function handleCronJob(options: { isTest?: boolean; overrideToken?: string | null; isForce?: boolean }) {
@@ -92,7 +92,7 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
     const activeProjects = projects.filter((p) => p.status !== 'เสร็จสิ้น')
 
     const bkkTime = getBangkokCurrentTime()
-    const todayDateOnly = new Date(bkkTime.bkkDate)
+    const todayDateOnly = new Date()
     todayDateOnly.setHours(0, 0, 0, 0)
     const dateStr = todayDateOnly.toLocaleDateString('th-TH', { dateStyle: 'medium' })
 

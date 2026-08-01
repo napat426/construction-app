@@ -1,0 +1,14 @@
+name: LINE Briefing Cron Trigger
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger LINE Briefing API Route
+        run: |
+          curl -s "https://construction-app-dun.vercel.app/api/cron/line-briefing"

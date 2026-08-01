@@ -17,7 +17,7 @@ export async function sendLineMessage(token: string, message: string): Promise<L
 
   const cleanToken = token.trim()
 
-  // 1. Support LINE Messaging API (Format: CHANNEL_ACCESS_TOKEN|GROUP_ID)
+  // 1. Support LINE Messaging API Push Message (Format: CHANNEL_ACCESS_TOKEN|GROUP_ID)
   if (cleanToken.includes('|')) {
     const parts = cleanToken.split('|').map((s) => s.trim())
     const channelAccessToken = parts[0]
@@ -53,7 +53,35 @@ export async function sendLineMessage(token: string, message: string): Promise<L
     }
   }
 
-  // 2. Legacy LINE Notify (https://notify-api.line.me/api/notify)
+  // 2. If token is a single Channel Access Token (without '|'), try LINE Messaging API Broadcast
+  try {
+    const response = await fetch('https://api.line.me/v2/bot/message/broadcast', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cleanToken}`,
+      },
+      body: JSON.stringify({
+        messages: [{ type: 'text', text: message.trim() }],
+      }),
+    })
+
+    if (response.ok) {
+      return { success: true }
+    }
+
+    const resJson = await response.json().catch(() => ({}))
+    if (resJson.message) {
+      return {
+        success: false,
+        error: `LINE Messaging API: ${resJson.message} ${resJson.details?.[0]?.message || ''}`,
+      }
+    }
+  } catch (err: any) {
+    console.error('LINE Broadcast API attempt failed:', err)
+  }
+
+  // 3. Fallback Legacy LINE Notify (catch network / DNS fetch errors safely)
   try {
     const response = await fetch('https://notify-api.line.me/api/notify', {
       method: 'POST',
@@ -74,8 +102,10 @@ export async function sendLineMessage(token: string, message: string): Promise<L
       error: resJson.message || `HTTP ${response.status}: ${response.statusText}`,
     }
   } catch (err: any) {
-    console.error('Error sending LINE notification:', err)
-    return { success: false, error: err.message || 'Network error' }
+    return {
+      success: false,
+      error: 'LINE Notify ยุติบริการแล้ว กรุณาใส่ Token ในรูปแบบ ChannelAccessToken|GroupId หรือใช้ ChannelAccessToken จาก LINE Developers',
+    }
   }
 }
 

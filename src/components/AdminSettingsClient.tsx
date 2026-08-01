@@ -214,12 +214,12 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
           {/* Global Token Input & Test Button */}
           <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-3">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
-              LINE Token กลางของระบบ (LINE Notify Token)
+              LINE Token กลางของระบบ (LINE Messaging API: AccessToken|TargetID หรือ LINE Notify Token)
             </label>
             <div className="flex gap-2">
               <input
                 type="password"
-                placeholder="กรอก LINE Token กลาง (เช่น Bearer Token จาก LINE Notify / Messaging API)"
+                placeholder="LINE Messaging API (รูปแบบ: ChannelAccessToken|GroupId) หรือ LINE Notify Token"
                 value={settings['line_global_token'] || ''}
                 onChange={(e) => setSettings((prev) => ({ ...prev, line_global_token: e.target.value }))}
                 onBlur={async (e) => {

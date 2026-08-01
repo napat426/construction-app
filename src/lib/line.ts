@@ -17,13 +17,49 @@ export async function sendLineMessage(token: string, message: string): Promise<L
 
   const cleanToken = token.trim()
 
+  // 1. Support LINE Messaging API (Format: CHANNEL_ACCESS_TOKEN|GROUP_ID)
+  if (cleanToken.includes('|')) {
+    const parts = cleanToken.split('|').map((s) => s.trim())
+    const channelAccessToken = parts[0]
+    const targetId = parts[1]
+
+    if (channelAccessToken && targetId) {
+      try {
+        const response = await fetch('https://api.line.me/v2/bot/message/push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${channelAccessToken}`,
+          },
+          body: JSON.stringify({
+            to: targetId,
+            messages: [{ type: 'text', text: message.trim() }],
+          }),
+        })
+
+        if (response.ok) {
+          return { success: true }
+        }
+
+        const resJson = await response.json().catch(() => ({}))
+        return {
+          success: false,
+          error: resJson.message || resJson.details?.[0]?.message || `LINE Messaging API Error (HTTP ${response.status})`,
+        }
+      } catch (err: any) {
+        console.error('Error sending LINE Messaging API push:', err)
+        return { success: false, error: err.message || 'Messaging API Network error' }
+      }
+    }
+  }
+
+  // 2. Legacy LINE Notify (https://notify-api.line.me/api/notify)
   try {
-    // If token starts with Bearer or standard token format, send to LINE Notify API
     const response = await fetch('https://notify-api.line.me/api/notify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Bearer ${cleanToken}`,
+        Authorization: `Bearer ${cleanToken}`,
       },
       body: new URLSearchParams({ message }).toString(),
     })

@@ -342,6 +342,7 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
 
     return NextResponse.json({
       success: true,
+      version: 'v2.5-multi-channel',
       message: `Checked Cron at Bangkok time (${bkkTime.dayName} ${bkkTime.hours}:${bkkTime.minutes}). Dispatched ${totalDispatchesCount} messages across channels.`,
       bangkokTime: `${bkkTime.dayName} ${bkkTime.hours.toString().padStart(2, '0')}:${bkkTime.minutes.toString().padStart(2, '0')} ICT`,
       totalDispatchesCount,

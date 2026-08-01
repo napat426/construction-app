@@ -33,15 +33,15 @@ function getBangkokCurrentTime() {
 
   const hours = parseInt(hoursStr, 10) % 24
   const minutes = parseInt(minutesStr, 10)
-  const currentTotalMinutes = hours * 60 + minutes
 
-  return { dayName, hours, minutes, currentTotalMinutes }
+  return { dayName, hours, minutes }
 }
 
-function isSlotMatching(
+function isExactSlotMatching(
   slot: { day: string; time: string },
   currentDayName: string,
-  currentTotalMinutes: number,
+  currentHours: number,
+  currentMinutes: number,
   isForce: boolean
 ): boolean {
   if (isForce) return true
@@ -52,11 +52,9 @@ function isSlotMatching(
   if (!dayMatch) return false
 
   const [slotH, slotM] = (slot.time || '08:00').split(':').map(Number)
-  const slotTotalMinutes = (slotH || 0) * 60 + (slotM || 0)
-
-  // Exact minute matching so it ONLY triggers when hours and minutes match the schedule exactly!
-  const diff = Math.abs(currentTotalMinutes - slotTotalMinutes)
-  return diff <= 1
+  
+  // Exact HH:MM match! Only returns true if hour === slotH AND minute === slotM!
+  return currentHours === (slotH || 0) && currentMinutes === (slotM || 0)
 }
 
 async function handleCronJob(options: { isTest?: boolean; overrideToken?: string | null; isForce?: boolean }) {
@@ -188,7 +186,7 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       const isCronEnabled = ch.cron_enabled !== false
 
       const matchedCronSlot = isCronEnabled
-        ? cronSlots.find((slot) => isSlotMatching(slot, bkkTime.dayName, bkkTime.currentTotalMinutes, isForce))
+        ? cronSlots.find((slot) => isExactSlotMatching(slot, bkkTime.dayName, bkkTime.hours, bkkTime.minutes, isForce))
         : null
 
       const alertSlots = ch.alert_schedule && ch.alert_schedule.length > 0
@@ -197,7 +195,7 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       const isAlertEnabled = ch.alert_enabled !== false
 
       const matchedAlertSlot = isAlertEnabled
-        ? alertSlots.find((slot) => isSlotMatching(slot, bkkTime.dayName, bkkTime.currentTotalMinutes, isForce))
+        ? alertSlots.find((slot) => isExactSlotMatching(slot, bkkTime.dayName, bkkTime.hours, bkkTime.minutes, isForce))
         : null
 
       if (!matchedCronSlot && !matchedAlertSlot) continue
@@ -352,7 +350,7 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
 
     return NextResponse.json({
       success: true,
-      version: 'v2.5-multi-channel',
+      version: 'v3.0-exact-match',
       message: `Checked Cron at Bangkok time (${bkkTime.dayName} ${bkkTime.hours}:${bkkTime.minutes}). Dispatched ${totalDispatchesCount} messages across channels.`,
       bangkokTime: `${bkkTime.dayName} ${bkkTime.hours.toString().padStart(2, '0')}:${bkkTime.minutes.toString().padStart(2, '0')} ICT`,
       totalDispatchesCount,

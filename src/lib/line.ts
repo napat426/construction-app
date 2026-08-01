@@ -120,6 +120,9 @@ export interface LineChannelTarget {
   alert_enabled?: boolean
   alert_day?: string
   alert_time?: string
+  alert_spi_threshold?: number
+  alert_cpi_threshold?: number
+  alert_diff_threshold?: number
 }
 
 /**

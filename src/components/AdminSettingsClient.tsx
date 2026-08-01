@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight, Settings } from 'lucide-react'
 import { AdminChecklistMasterModal } from '@/components/AdminChecklistMasterModal'
+import { LineGroupSettingsModal } from '@/components/LineGroupSettingsModal'
+import type { LineChannelTarget } from '@/lib/line'
 
 export function AdminSettingsClient({
   initialSettings,
@@ -17,6 +19,7 @@ export function AdminSettingsClient({
   const [newGroupName, setNewGroupName] = useState('')
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false)
   const [masterCount, setMasterCount] = useState(37)
+  const [activeModalChannel, setActiveModalChannel] = useState<LineChannelTarget | null>(null)
 
   const [workGroups, setWorkGroups] = useState<string[]>(() => {
     try {
@@ -494,76 +497,86 @@ export function AdminSettingsClient({
                         )}
                       </div>
 
-                      {/* 2 Control Action Buttons */}
-                      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#202042]">
-                        {/* ปุ่ม 1: ทดสอบการเชื่อมต่อ */}
+                      {/* 3 Control Action Buttons */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-[#202042]">
                         <button
                           type="button"
-                          onClick={async () => {
-                            if (!ch.token) {
-                              alert('กรุณากรอก Token สำหรับกลุ่มนี้ก่อนทดลองส่ง')
-                              return
-                            }
-                            setIsSaving(true)
-                            try {
-                              const res = await fetch('/api/admin/line-channel/dispatch', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ channelId: ch.id, mode: 'test' }),
-                              })
-                              const resJson = await res.json()
-                              if (resJson.success) {
-                                alert(`✅ ${resJson.message}`)
-                              } else {
-                                alert(`❌ ทดสอบไม่สำเร็จ: ${resJson.error}`)
-                              }
-                            } catch (e: any) {
-                              alert(`❌ ข้อผิดพลาด: ${e.message}`)
-                            } finally {
-                              setIsSaving(false)
-                            }
-                          }}
-                          disabled={isSaving}
-                          className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          onClick={() => setActiveModalChannel(ch)}
+                          className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
-                          📡 1. ทดสอบการเชื่อมต่อ
+                          <Settings size={14} /> ⚙️ ตั้งค่าและกำหนดเงื่อนไขกลุ่มนี้
                         </button>
 
-                        {/* ปุ่ม 2: ส่งสรุปตอนนี้เลย */}
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!ch.token) {
-                              alert('กรุณากรอก Token สำหรับกลุ่มนี้ก่อนสั่งส่ง')
-                              return
-                            }
-                            const confirmSend = confirm(`คุณต้องการส่งสรุปรายงานโครงการเข้ากลุ่ม "${ch.name}" ทันทีตอนนี้เลยใช่หรือไม่?`)
-                            if (!confirmSend) return
-
-                            setIsSaving(true)
-                            try {
-                              const res = await fetch('/api/admin/line-channel/dispatch', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ channelId: ch.id, mode: 'send_now' }),
-                              })
-                              const resJson = await res.json()
-                              if (resJson.success) {
-                                alert(`🎉 ${resJson.message}`)
-                              } else {
-                                alert(`❌ ไม่สามารถส่งสรุปได้: ${resJson.error}`)
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* ปุ่ม 1: ทดสอบการเชื่อมต่อ */}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!ch.token) {
+                                alert('กรุณากรอก Token สำหรับกลุ่มนี้ก่อนทดลองส่ง')
+                                return
                               }
-                            } catch (e: any) {
-                              alert(`❌ ข้อผิดพลาด: ${e.message}`)
-                            } finally {
-                              setIsSaving(false)
-                            }
-                          }}
-                          disabled={isSaving}
-                          className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
-                        >
-                          🚀 2. ส่งสรุปตอนนี้เลย
-                        </button>
+                              setIsSaving(true)
+                              try {
+                                const res = await fetch('/api/admin/line-channel/dispatch', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ channelId: ch.id, mode: 'test' }),
+                                })
+                                const resJson = await res.json()
+                                if (resJson.success) {
+                                  alert(`✅ ${resJson.message}`)
+                                } else {
+                                  alert(`❌ ทดสอบไม่สำเร็จ: ${resJson.error}`)
+                                }
+                              } catch (e: any) {
+                                alert(`❌ ข้อผิดพลาด: ${e.message}`)
+                              } finally {
+                                setIsSaving(false)
+                              }
+                            }}
+                            disabled={isSaving}
+                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            📡 1. ทดสอบการเชื่อมต่อ
+                          </button>
+
+                          {/* ปุ่ม 2: ส่งสรุปตอนนี้เลย */}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!ch.token) {
+                                alert('กรุณากรอก Token สำหรับกลุ่มนี้ก่อนสั่งส่ง')
+                                return
+                              }
+                              const confirmSend = confirm(`คุณต้องการส่งสรุปรายงานโครงการเข้ากลุ่ม "${ch.name}" ทันทีตอนนี้เลยใช่หรือไม่?`)
+                              if (!confirmSend) return
+
+                              setIsSaving(true)
+                              try {
+                                const res = await fetch('/api/admin/line-channel/dispatch', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ channelId: ch.id, mode: 'send_now' }),
+                                })
+                                const resJson = await res.json()
+                                if (resJson.success) {
+                                  alert(`🎉 ${resJson.message}`)
+                                } else {
+                                  alert(`❌ ไม่สามารถส่งสรุปได้: ${resJson.error}`)
+                                }
+                              } catch (e: any) {
+                                alert(`❌ ข้อผิดพลาด: ${e.message}`)
+                              } finally {
+                                setIsSaving(false)
+                              }
+                            }}
+                            disabled={isSaving}
+                            className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                          >
+                            🚀 2. ส่งสรุปตอนนี้เลย
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )
@@ -865,6 +878,28 @@ export function AdminSettingsClient({
           </div>
         </div>
       </div>
+
+      {/* Render Per-Group Settings Modal */}
+      <LineGroupSettingsModal
+        isOpen={!!activeModalChannel}
+        onClose={() => setActiveModalChannel(null)}
+        channel={activeModalChannel}
+        projects={projects}
+        onSave={async (updatedChannel) => {
+          const currentChannels = getLineChannels()
+          const channelIndex = currentChannels.findIndex((c) => c.id === updatedChannel.id)
+
+          let updatedChannelsList: LineChannelTarget[] = []
+          if (channelIndex >= 0) {
+            updatedChannelsList = [...currentChannels]
+            updatedChannelsList[channelIndex] = updatedChannel
+          } else {
+            updatedChannelsList = [...currentChannels, updatedChannel]
+          }
+
+          await saveSettingKey('line_channels', JSON.stringify(updatedChannelsList))
+        }}
+      />
     </div>
   )
 }

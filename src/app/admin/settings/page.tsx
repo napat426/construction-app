@@ -14,10 +14,11 @@ export default async function AdminSettingsPage() {
     redirect('/')
   }
 
-  // Fetch settings
-  const { data: settingsData, error } = await supabase
-    .from('system_settings')
-    .select('key, value')
+  // Fetch settings and projects
+  const [{ data: settingsData, error }, { data: projectsData }] = await Promise.all([
+    supabase.from('system_settings').select('key, value'),
+    supabase.from('projects').select('id, name, status, supervisor').order('created_at', { ascending: false }),
+  ])
 
   const initialSettings = (settingsData || []).reduce((acc: Record<string, string>, curr) => {
     acc[curr.key] = curr.value
@@ -40,7 +41,7 @@ export default async function AdminSettingsPage() {
             </div>
           )}
 
-          <AdminSettingsClient initialSettings={initialSettings} />
+          <AdminSettingsClient initialSettings={initialSettings} projects={projectsData || []} />
         </main>
       </div>
     </div>

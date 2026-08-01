@@ -5,7 +5,13 @@ import { supabase } from '@/lib/supabase'
 import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight } from 'lucide-react'
 import { AdminChecklistMasterModal } from '@/components/AdminChecklistMasterModal'
 
-export function AdminSettingsClient({ initialSettings }: { initialSettings: Record<string, string> }) {
+export function AdminSettingsClient({
+  initialSettings,
+  projects = [],
+}: {
+  initialSettings: Record<string, string>
+  projects?: { id: string; name: string; status: string; supervisor?: string | null }[]
+}) {
   const [settings, setSettings] = useState(initialSettings)
   const [isSaving, setIsSaving] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
@@ -63,7 +69,18 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
     ]
   }
 
-  const getLineChannels = (): { id: string; name: string; token: string; enabled: boolean }[] => {
+  const getLineChannels = (): {
+    id: string
+    name: string
+    token: string
+    enabled: boolean
+    project_ids?: string[] | 'all'
+    cron_enabled?: boolean
+    cron_schedule?: { day: string; time: string }[]
+    alert_enabled?: boolean
+    alert_day?: string
+    alert_time?: string
+  }[] => {
     try {
       const val = settings['line_channels']
       if (val) {
@@ -78,6 +95,12 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
           name: 'กลุ่มแจ้งเตือนหลัก (Main Group)',
           token: settings['line_global_token'],
           enabled: true,
+          project_ids: 'all',
+          cron_enabled: true,
+          cron_schedule: [{ day: 'Mon', time: '08:30' }],
+          alert_enabled: true,
+          alert_day: 'Tue',
+          alert_time: '09:00',
         },
       ]
     }
@@ -333,52 +356,147 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
             </div>
 
             {/* Configured Channels List */}
-            <div className="space-y-3 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
+            <div className="space-y-4 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
               {getLineChannels().length === 0 ? (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded-lg text-xs font-medium">
                   ⚠️ ยังไม่มีกลุ่มแจ้งเตือนในระบบ กรุณากรอกชื่อกลุ่มและ LINE Token ด้านล่างเพื่อเริ่มใช้งาน
                 </div>
               ) : (
-                getLineChannels().map((ch, idx) => (
-                  <div
-                    key={ch.id || idx}
-                    className="p-3 bg-white dark:bg-[#13132a] rounded-xl border border-slate-200 dark:border-[#252548] space-y-2 shadow-sm"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="text-sm">👥</span>
+                getLineChannels().map((ch, idx) => {
+                  const selectedProjects = ch.project_ids === 'all' || !ch.project_ids ? 'all' : ch.project_ids
+
+                  return (
+                    <div
+                      key={ch.id || idx}
+                      className="p-4 bg-white dark:bg-[#13132a] rounded-2xl border border-slate-200 dark:border-[#252548] space-y-3.5 shadow-xs"
+                    >
+                      {/* Title & Enable Switch & Delete */}
+                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-[#202042]">
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-base">👥</span>
+                          <input
+                            type="text"
+                            value={ch.name}
+                            onChange={(e) => {
+                              const updated = [...getLineChannels()]
+                              updated[idx].name = e.target.value
+                              saveSettingKey('line_channels', JSON.stringify(updated))
+                            }}
+                            className="font-bold text-sm text-slate-900 dark:text-white bg-transparent border-b border-slate-200 dark:border-[#252548] focus:border-primary-500 focus:outline-none px-1.5 py-0.5 flex-1"
+                            placeholder="ชื่อกลุ่ม เช่น กลุ่มผู้บริหาร"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...getLineChannels()]
+                              updated[idx].enabled = !updated[idx].enabled
+                              saveSettingKey('line_channels', JSON.stringify(updated))
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                              ch.enabled
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                            }`}
+                          >
+                            {ch.enabled ? '🟢 เปิดส่ง' : '🔴 ปิดส่ง'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = getLineChannels().filter((_, i) => i !== idx)
+                              saveSettingKey('line_channels', JSON.stringify(updated))
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
+                            title="ลบกลุ่มนี้"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Token Input */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                          🔑 LINE Token ประจำกลุ่ม (ChannelAccessToken|GroupId)
+                        </label>
                         <input
-                          type="text"
-                          value={ch.name}
+                          type="password"
+                          value={ch.token}
                           onChange={(e) => {
                             const updated = [...getLineChannels()]
-                            updated[idx].name = e.target.value
+                            updated[idx].token = e.target.value
                             saveSettingKey('line_channels', JSON.stringify(updated))
                           }}
-                          className="font-bold text-xs text-slate-800 dark:text-white bg-transparent border-b border-transparent hover:border-slate-300 focus:border-primary-500 focus:outline-none px-1 py-0.5 flex-1"
-                          placeholder="ชื่อกลุ่ม เช่น กลุ่มผู้บริหาร"
+                          placeholder="วาง LINE Token ของกลุ่มนี้"
+                          className="input-base text-xs font-mono w-full py-1.5"
                         />
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {/* Toggle switch */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = [...getLineChannels()]
-                            updated[idx].enabled = !updated[idx].enabled
-                            saveSettingKey('line_channels', JSON.stringify(updated))
-                          }}
-                          className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer transition-colors ${
-                            ch.enabled
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                              : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                          }`}
-                        >
-                          {ch.enabled ? '🟢 เปิดส่ง' : '🔴 ปิดส่ง'}
-                        </button>
+                      {/* Project Scope Selector */}
+                      <div className="p-3 bg-slate-50/80 dark:bg-[#1a1a36]/80 rounded-xl border border-slate-100 dark:border-[#252548] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                            🏗️ เลือกโครงการที่จะแจ้งเตือนเข้ากลุ่มนี้:
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-bold cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedProjects === 'all'}
+                                onChange={(e) => {
+                                  const updated = [...getLineChannels()]
+                                  updated[idx].project_ids = e.target.checked ? 'all' : []
+                                  saveSettingKey('line_channels', JSON.stringify(updated))
+                                }}
+                                className="rounded text-primary-600"
+                              />
+                              ทุกโครงการ (All Projects)
+                            </label>
+                          </div>
+                        </div>
 
-                        {/* Test channel button */}
+                        {selectedProjects !== 'all' && (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {projects.map((proj) => {
+                              const isChecked = Array.isArray(selectedProjects) && selectedProjects.includes(proj.id)
+                              return (
+                                <label
+                                  key={proj.id}
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border cursor-pointer transition-all ${
+                                    isChecked
+                                      ? 'bg-primary-500/10 border-primary-500/30 text-primary-700 dark:text-primary-300 font-bold'
+                                      : 'bg-white dark:bg-[#13132a] border-slate-200 dark:border-[#252548] text-slate-600 dark:text-slate-400'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      const currentList = Array.isArray(ch.project_ids) ? [...ch.project_ids] : []
+                                      const updatedList = e.target.checked
+                                        ? [...currentList, proj.id]
+                                        : currentList.filter((id) => id !== proj.id)
+                                      const updated = [...getLineChannels()]
+                                      updated[idx].project_ids = updatedList
+                                      saveSettingKey('line_channels', JSON.stringify(updated))
+                                    }}
+                                    className="rounded text-primary-600"
+                                  />
+                                  <span>{proj.name}</span>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2 Control Action Buttons */}
+                      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#202042]">
+                        {/* ปุ่ม 1: ทดสอบการเชื่อมต่อ */}
                         <button
                           type="button"
                           onClick={async () => {
@@ -388,16 +506,16 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
                             }
                             setIsSaving(true)
                             try {
-                              const res = await fetch('/api/cron/line-briefing', {
+                              const res = await fetch('/api/admin/line-channel/dispatch', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ token: ch.token }),
+                                body: JSON.stringify({ channelId: ch.id, mode: 'test' }),
                               })
                               const resJson = await res.json()
                               if (resJson.success) {
-                                alert(`✅ ส่งข้อความทดสอบเข้ากลุ่ม "${ch.name}" เรียบร้อยแล้ว!`)
+                                alert(`✅ ${resJson.message}`)
                               } else {
-                                alert(`❌ ส่งเข้ากลุ่ม "${ch.name}" ล้มเหลว: ${resJson.error}`)
+                                alert(`❌ ทดสอบไม่สำเร็จ: ${resJson.error}`)
                               }
                             } catch (e: any) {
                               alert(`❌ ข้อผิดพลาด: ${e.message}`)
@@ -405,41 +523,51 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
                               setIsSaving(false)
                             }
                           }}
-                          className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-[11px] rounded transition-colors cursor-pointer"
+                          disabled={isSaving}
+                          className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                         >
-                          📲 ทดลองส่งเข้ากลุ่มนี้
+                          📡 1. ทดสอบการเชื่อมต่อ
                         </button>
 
-                        {/* Delete channel button */}
+                        {/* ปุ่ม 2: ส่งสรุปตอนนี้เลย */}
                         <button
                           type="button"
-                          onClick={() => {
-                            const updated = getLineChannels().filter((_, i) => i !== idx)
-                            saveSettingKey('line_channels', JSON.stringify(updated))
+                          onClick={async () => {
+                            if (!ch.token) {
+                              alert('กรุณากรอก Token สำหรับกลุ่มนี้ก่อนสั่งส่ง')
+                              return
+                            }
+                            const confirmSend = confirm(`คุณต้องการส่งสรุปรายงานโครงการเข้ากลุ่ม "${ch.name}" ทันทีตอนนี้เลยใช่หรือไม่?`)
+                            if (!confirmSend) return
+
+                            setIsSaving(true)
+                            try {
+                              const res = await fetch('/api/admin/line-channel/dispatch', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ channelId: ch.id, mode: 'send_now' }),
+                              })
+                              const resJson = await res.json()
+                              if (resJson.success) {
+                                alert(`🎉 ${resJson.message}`)
+                              } else {
+                                alert(`❌ ไม่สามารถส่งสรุปได้: ${resJson.error}`)
+                              }
+                            } catch (e: any) {
+                              alert(`❌ ข้อผิดพลาด: ${e.message}`)
+                            } finally {
+                              setIsSaving(false)
+                            }
                           }}
-                          className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors cursor-pointer"
-                          title="ลบกลุ่มนี้"
+                          disabled={isSaving}
+                          className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
                         >
-                          <Trash2 size={14} />
+                          🚀 2. ส่งสรุปตอนนี้เลย
                         </button>
                       </div>
                     </div>
-
-                    <div>
-                      <input
-                        type="password"
-                        value={ch.token}
-                        onChange={(e) => {
-                          const updated = [...getLineChannels()]
-                          updated[idx].token = e.target.value
-                          saveSettingKey('line_channels', JSON.stringify(updated))
-                        }}
-                        placeholder="LINE Messaging API Token (ChannelAccessToken|GroupId) หรือ Notify Token"
-                        className="input-base text-xs font-mono w-full py-1.5"
-                      />
-                    </div>
-                  </div>
-                ))
+                  )
+                })
               )}
 
               {/* Add New Channel Form */}
@@ -476,10 +604,10 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
                           name: newChannelName.trim(),
                           token: newChannelToken.trim(),
                           enabled: true,
+                          project_ids: 'all',
                         }
                         const updated = [...current, newCh]
                         saveSettingKey('line_channels', JSON.stringify(updated))
-                        // Also sync line_global_token for fallback compatibility
                         saveSettingKey('line_global_token', newChannelToken.trim())
                         setNewChannelName('')
                         setNewChannelToken('')

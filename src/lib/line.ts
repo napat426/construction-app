@@ -114,6 +114,12 @@ export interface LineChannelTarget {
   name: string
   token: string
   enabled: boolean
+  project_ids?: string[] | 'all'
+  cron_enabled?: boolean
+  cron_schedule?: { day: string; time: string }[]
+  alert_enabled?: boolean
+  alert_day?: string
+  alert_time?: string
 }
 
 /**

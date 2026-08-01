@@ -469,9 +469,9 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
           <div className="p-4 bg-slate-50 dark:bg-[#1c1c38] rounded-xl border border-slate-200 dark:border-[#252548] space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-bold text-slate-800 dark:text-white text-sm">🚨 2. Threshold-Based LINE Alert (เตือนภัยวิกฤต Red Zone)</h4>
+                <h4 className="font-bold text-slate-800 dark:text-white text-sm">🚨 2. Threshold-Based LINE Alert (เตือนภัยวิกฤต Red Zone ประจำสัปดาห์)</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  ส่งการแจ้งเตือน Real-time เมื่อพบโครงการเข้าขั้นวิกฤต (จำกัดสูงสุด 1 ครั้ง/วัน/โครงการ ป้องกันสแปม)
+                  สรุปแจ้งเตือนเฉพาะโครงการที่ติดวิกฤตสัปดาห์ละ 1 ครั้ง โดยสามารถกำหนดวันและเวลาส่งได้เองตามต้องการ
                 </p>
               </div>
               <button
@@ -483,59 +483,86 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">เกณฑ์วิกฤต SPI (ต่ำกว่า)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={settings['line_alert_spi_threshold'] || '0.90'}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_spi_threshold: e.target.value }))}
-                  onBlur={async (e) => {
-                    const key = 'line_alert_spi_threshold'
-                    const val = e.target.value
-                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
-                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
-                    else await supabase.from('system_settings').insert({ key, value: val })
-                  }}
-                  className="input-base text-xs font-bold w-full"
-                />
+            <div className="space-y-4 pt-3 border-t border-slate-200/60 dark:border-[#252548]">
+              {/* Day & Time Selection for Red Zone Alert */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                    🗓️ วันที่จะส่งเตือนวิกฤตประจำสัปดาห์
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ALL_DAYS.map((day) => {
+                      const selectedDay = settings['line_alert_day'] || 'Mon'
+                      const isSelected = selectedDay === day.id
+                      return (
+                        <button
+                          key={day.id}
+                          type="button"
+                          onClick={() => saveSettingKey('line_alert_day', day.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                            isSelected
+                              ? 'bg-red-600 border-red-600 text-white shadow-sm scale-105'
+                              : 'bg-white dark:bg-[#13132a] border-slate-200 dark:border-[#252548] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1a1a36]'
+                          }`}
+                        >
+                          {isSelected ? '✓ ' : ''}{day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                    ⏰ เวลาที่ส่งเตือนวิกฤต (24 ชม.)
+                  </label>
+                  <input
+                    type="time"
+                    value={settings['line_alert_time'] || '09:00'}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_time: e.target.value }))}
+                    onBlur={(e) => saveSettingKey('line_alert_time', e.target.value)}
+                    className="input-base text-xs font-bold max-w-[160px]"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">เกณฑ์วิกฤต CPI (ต่ำกว่า)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={settings['line_alert_cpi_threshold'] || '0.90'}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_cpi_threshold: e.target.value }))}
-                  onBlur={async (e) => {
-                    const key = 'line_alert_cpi_threshold'
-                    const val = e.target.value
-                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
-                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
-                    else await supabase.from('system_settings').insert({ key, value: val })
-                  }}
-                  className="input-base text-xs font-bold w-full"
-                />
-              </div>
+              {/* Threshold inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-200/60 dark:border-[#252548]">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">เกณฑ์วิกฤต SPI (ต่ำกว่า)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={settings['line_alert_spi_threshold'] || '0.90'}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_spi_threshold: e.target.value }))}
+                    onBlur={(e) => saveSettingKey('line_alert_spi_threshold', e.target.value)}
+                    className="input-base text-xs font-bold w-full"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">% ล่าช้ากว่าแผนสะสม (เกินกว่า %)</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={settings['line_alert_diff_threshold'] || '5'}
-                  onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_diff_threshold: e.target.value }))}
-                  onBlur={async (e) => {
-                    const key = 'line_alert_diff_threshold'
-                    const val = e.target.value
-                    const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
-                    if (data) await supabase.from('system_settings').update({ value: val }).eq('key', key)
-                    else await supabase.from('system_settings').insert({ key, value: val })
-                  }}
-                  className="input-base text-xs font-bold w-full"
-                />
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">เกณฑ์วิกฤต CPI (ต่ำกว่า)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={settings['line_alert_cpi_threshold'] || '0.90'}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_cpi_threshold: e.target.value }))}
+                    onBlur={(e) => saveSettingKey('line_alert_cpi_threshold', e.target.value)}
+                    className="input-base text-xs font-bold w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">% ล่าช้ากว่าแผนสะสม (เกินกว่า %)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={settings['line_alert_diff_threshold'] || '5'}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, line_alert_diff_threshold: e.target.value }))}
+                    onBlur={(e) => saveSettingKey('line_alert_diff_threshold', e.target.value)}
+                    className="input-base text-xs font-bold w-full"
+                  />
+                </div>
               </div>
             </div>
           </div>

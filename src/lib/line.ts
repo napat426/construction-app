@@ -192,6 +192,14 @@ export async function checkAndSendRedFlagAlert(projectId: string): Promise<{ ale
     const cpiThreshold = parseFloat(settings['line_alert_cpi_threshold'] || '0.90')
     const diffThreshold = parseFloat(settings['line_alert_diff_threshold'] || '5')
 
+    // Check configured weekly alert day
+    const alertDay = settings['line_alert_day'] || 'Mon'
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const todayDayName = dayNames[new Date().getDay()]
+    if (alertDay !== 'all' && alertDay !== todayDayName) {
+      return { alerted: false, reason: `Today (${todayDayName}) is not the configured Red Zone alert day (${alertDay})` }
+    }
+
     // 2. Fetch Project Data
     const { data: projData, error: projErr } = await supabase.from('projects').select('*').eq('id', projectId).single()
     if (projErr || !projData) {

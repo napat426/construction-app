@@ -18,12 +18,13 @@ envLocal.split(/\r?\n/).forEach(line => {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-  console.log('Testing column select...');
-  const { data, error } = await supabase.from('projects').select('id, line_token, last_red_flag_alert_date').limit(1);
+  console.log('Fetching projects and statuses...');
+  const { data, error } = await supabase.from('projects').select('id, name, status');
   if (error) {
-    console.log('Error selecting columns:', error.message);
+    console.log('Error:', error.message);
   } else {
-    console.log('Columns exist successfully!', data);
+    console.log(`Total projects: ${data.length}`);
+    data.forEach((p, i) => console.log(`${i+1}. ${p.name} -> status: "${p.status}"`));
   }
 }
 

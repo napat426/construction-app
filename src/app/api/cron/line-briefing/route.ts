@@ -53,7 +53,8 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       return NextResponse.json({ success: false, error: 'Failed to fetch projects' }, { status: 500 })
     }
     const projects = projData as (Project & { line_token?: string | null })[]
-    const activeProjects = projects.filter((p) => p.status !== 'ระงับ')
+    // Send all projects EXCEPT those with status 'เสร็จสิ้น'
+    const activeProjects = projects.filter((p) => p.status !== 'เสร็จสิ้น')
 
     const todayDateOnly = new Date()
     todayDateOnly.setHours(0, 0, 0, 0)

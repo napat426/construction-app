@@ -132,7 +132,8 @@ export interface LineChannelTarget {
 export async function sendLineMessageToAllChannels(
   defaultToken: string,
   message: string,
-  settings?: Record<string, string>
+  settings?: Record<string, string>,
+  projectId?: string
 ): Promise<{ success: boolean; sentCount: number; errors: string[] }> {
   let channels: LineChannelTarget[] = []
 
@@ -140,7 +141,13 @@ export async function sendLineMessageToAllChannels(
     try {
       const parsed = JSON.parse(settings['line_channels'])
       if (Array.isArray(parsed) && parsed.length > 0) {
-        channels = parsed.filter((c: LineChannelTarget) => c.enabled && c.token && c.token.trim())
+        channels = parsed.filter((c: LineChannelTarget) => {
+          if (!c.enabled || !c.token || !c.token.trim()) return false
+          if (projectId && c.project_ids && Array.isArray(c.project_ids) && c.project_ids.length > 0) {
+            return c.project_ids.includes(projectId)
+          }
+          return true
+        })
       }
     } catch {}
   }

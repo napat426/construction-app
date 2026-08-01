@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
 function getBangkokCurrentTime() {
   const now = new Date()
-  
+
   const dayName = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', weekday: 'short' }).format(now)
   const hoursStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }).format(now)
   const minutesStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', minute: 'numeric' }).format(now)
@@ -45,15 +45,17 @@ function isSlotMatching(
 ): boolean {
   if (isForce) return true
 
-  const dayMatch = slot.day === 'All' || slot.day === 'all' || slot.day === currentDayName
+  const sDay = (slot.day || '').toLowerCase()
+  const cDay = (currentDayName || '').toLowerCase()
+  const dayMatch = sDay === 'all' || sDay === cDay
   if (!dayMatch) return false
 
   const [slotH, slotM] = (slot.time || '08:00').split(':').map(Number)
   const slotTotalMinutes = (slotH || 0) * 60 + (slotM || 0)
 
-  // Allow a 25-minute window for Cron execution tolerances
+  // Allow a 45-minute window for Cron execution tolerances
   const diff = Math.abs(currentTotalMinutes - slotTotalMinutes)
-  return diff <= 25
+  return diff <= 45
 }
 
 async function handleCronJob(options: { isTest?: boolean; overrideToken?: string | null; isForce?: boolean }) {
@@ -73,10 +75,9 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
 
     let globalToken = (overrideToken || settings['line_global_token'] || '').trim()
 
-    // If overrideToken provided, save it to DB
     if (overrideToken && overrideToken.trim()) {
       globalToken = overrideToken.trim()
-      const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'line_global_token').single()
+      const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'line_global_token').maybeSingle()
       if (existing) {
         await supabase.from('system_settings').update({ value: globalToken }).eq('key', 'line_global_token')
       } else {
@@ -95,6 +96,7 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
     const bkkTime = getBangkokCurrentTime()
     const todayDateOnly = new Date()
     todayDateOnly.setHours(0, 0, 0, 0)
+    const todayDateStr = todayDateOnly.toISOString().split('T')[0]
     const dateStr = todayDateOnly.toLocaleDateString('th-TH', { dateStyle: 'medium' })
 
     // ── IF TEST MODE (กดปุ่มทดลองส่ง): ส่งข้อความทดสอบ ──
@@ -119,6 +121,15 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       }
     }
 
+    // Parse last dispatched slots map for deduplication
+    let lastDispatchedSlots: string[] = []
+    if (settings['last_cron_dispatched']) {
+      try {
+        const parsed = JSON.parse(settings['last_cron_dispatched'])
+        if (Array.isArray(parsed)) lastDispatchedSlots = parsed
+      } catch {}
+    }
+
     // ── CRON MODE: Process channels in line_channels ──
     let lineChannels: LineChannelTarget[] = []
     if (settings['line_channels']) {
@@ -128,7 +139,6 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       } catch {}
     }
 
-    // Fallback channel if line_channels is empty but globalToken exists
     if (lineChannels.length === 0 && globalToken) {
       lineChannels = [
         {
@@ -156,35 +166,41 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://construction-app-dun.vercel.app'
 
     let totalDispatchesCount = 0
+    const newlyDispatchedSlotKeys: string[] = []
     const channelDispatchLog: { channelName: string; success: boolean; dispatchedProjects: number; error?: string }[] = []
 
     for (const ch of lineChannels) {
       if (!ch.enabled || !ch.token || !ch.token.trim()) continue
 
-      // 1. Check Morning Briefing Schedule
       const cronSlots = ch.cron_schedule && ch.cron_schedule.length > 0
         ? ch.cron_schedule
         : [{ day: 'Mon', time: '08:30' }]
       const isCronEnabled = ch.cron_enabled !== false
 
-      const isCronMatched = isCronEnabled && cronSlots.some((slot) =>
-        isSlotMatching(slot, bkkTime.dayName, bkkTime.currentTotalMinutes, isForce)
-      )
+      const matchedCronSlot = isCronEnabled
+        ? cronSlots.find((slot) => isSlotMatching(slot, bkkTime.dayName, bkkTime.currentTotalMinutes, isForce))
+        : null
 
-      // 2. Check Red Zone Alert Schedule
       const alertSlots = ch.alert_schedule && ch.alert_schedule.length > 0
         ? ch.alert_schedule
         : [{ day: ch.alert_day || 'Tue', time: ch.alert_time || '09:00' }]
       const isAlertEnabled = ch.alert_enabled !== false
 
-      const isAlertMatched = isAlertEnabled && alertSlots.some((slot) =>
-        isSlotMatching(slot, bkkTime.dayName, bkkTime.currentTotalMinutes, isForce)
-      )
+      const matchedAlertSlot = isAlertEnabled
+        ? alertSlots.find((slot) => isSlotMatching(slot, bkkTime.dayName, bkkTime.currentTotalMinutes, isForce))
+        : null
 
-      // Skip if neither Morning Briefing nor Red Zone Alert matched this channel right now
-      if (!isCronMatched && !isAlertMatched) continue
+      if (!matchedCronSlot && !matchedAlertSlot) continue
 
-      // Filter target projects for this channel
+      // Deduplication check
+      const activeSlot = matchedCronSlot || matchedAlertSlot
+      const slotKey = `${ch.id}-${activeSlot?.day}-${activeSlot?.time}-${todayDateStr}`
+
+      if (!isForce && lastDispatchedSlots.includes(slotKey)) {
+        console.log(`Slot ${slotKey} already dispatched today. Skipping duplicate dispatch.`)
+        continue
+      }
+
       let targetProjects = activeProjects
       if (ch.project_ids && Array.isArray(ch.project_ids) && ch.project_ids.length > 0) {
         targetProjects = activeProjects.filter((p) => ch.project_ids!.includes(p.id))
@@ -192,7 +208,6 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
 
       if (targetProjects.length === 0) continue
 
-      // Build & Send Morning Briefing for matched target projects
       for (const p of targetProjects) {
         const pTasks = allTasks.filter((t) => t.project_id === p.id)
         const pMilestones = allMilestones.filter((m) => m.project_id === p.id)
@@ -305,11 +320,24 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
         }
       }
 
+      newlyDispatchedSlotKeys.push(slotKey)
       channelDispatchLog.push({
         channelName: ch.name,
         success: true,
         dispatchedProjects: targetProjects.length,
       })
+    }
+
+    // Save newly dispatched slot keys to Supabase system_settings for deduplication
+    if (newlyDispatchedSlotKeys.length > 0 && !isForce) {
+      const updatedSlotsList = Array.from(new Set([...lastDispatchedSlots, ...newlyDispatchedSlotKeys])).slice(-100)
+      const valStr = JSON.stringify(updatedSlotsList)
+      const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'last_cron_dispatched').maybeSingle()
+      if (existing) {
+        await supabase.from('system_settings').update({ value: valStr }).eq('key', 'last_cron_dispatched')
+      } else {
+        await supabase.from('system_settings').insert({ key: 'last_cron_dispatched', value: valStr })
+      }
     }
 
     return NextResponse.json({

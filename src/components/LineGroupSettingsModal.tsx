@@ -37,8 +37,20 @@ export function LineGroupSettingsModal({
   const [newSlotDay, setNewSlotDay] = useState('Mon')
   const [newSlotTime, setNewSlotTime] = useState('08:30')
 
+  const [spiInput, setSpiInput] = useState('0.9')
+  const [cpiInput, setCpiInput] = useState('0.9')
+  const [diffInput, setDiffInput] = useState('5')
+
   useEffect(() => {
     if (channel) {
+      const spi = channel.alert_spi_threshold ?? 0.9
+      const cpi = channel.alert_cpi_threshold ?? 0.9
+      const diff = channel.alert_diff_threshold ?? 5
+
+      setSpiInput(String(spi))
+      setCpiInput(String(cpi))
+      setDiffInput(String(diff))
+
       setFormData({
         ...channel,
         project_ids: channel.project_ids ?? 'all',
@@ -47,9 +59,9 @@ export function LineGroupSettingsModal({
         alert_enabled: channel.alert_enabled ?? true,
         alert_day: channel.alert_day ?? 'Tue',
         alert_time: channel.alert_time ?? '09:00',
-        alert_spi_threshold: channel.alert_spi_threshold ?? 0.9,
-        alert_cpi_threshold: channel.alert_cpi_threshold ?? 0.9,
-        alert_diff_threshold: channel.alert_diff_threshold ?? 5,
+        alert_spi_threshold: spi,
+        alert_cpi_threshold: cpi,
+        alert_diff_threshold: diff,
       })
     }
   }, [channel])
@@ -67,7 +79,18 @@ export function LineGroupSettingsModal({
     }
     setIsSaving(true)
     try {
-      await onSave(formData)
+      const parsedSpi = parseFloat(spiInput)
+      const parsedCpi = parseFloat(cpiInput)
+      const parsedDiff = parseFloat(diffInput)
+
+      const finalChannel: LineChannelTarget = {
+        ...formData,
+        alert_spi_threshold: isNaN(parsedSpi) ? 0.9 : parsedSpi,
+        alert_cpi_threshold: isNaN(parsedCpi) ? 0.9 : parsedCpi,
+        alert_diff_threshold: isNaN(parsedDiff) ? 5 : parsedDiff,
+      }
+
+      await onSave(finalChannel)
       onClose()
     } catch (e: any) {
       alert(`ไม่สามารถบันทึกได้: ${e.message}`)
@@ -438,10 +461,9 @@ export function LineGroupSettingsModal({
                     <input
                       type="number"
                       step="0.01"
-                      value={formData.alert_spi_threshold ?? 0.9}
-                      onChange={(e) =>
-                        setFormData({ ...formData, alert_spi_threshold: parseFloat(e.target.value) || 0.9 })
-                      }
+                      value={spiInput}
+                      onChange={(e) => setSpiInput(e.target.value)}
+                      placeholder="0.9"
                       className="input-base text-xs font-bold w-full"
                     />
                   </div>
@@ -453,10 +475,9 @@ export function LineGroupSettingsModal({
                     <input
                       type="number"
                       step="0.01"
-                      value={formData.alert_cpi_threshold ?? 0.9}
-                      onChange={(e) =>
-                        setFormData({ ...formData, alert_cpi_threshold: parseFloat(e.target.value) || 0.9 })
-                      }
+                      value={cpiInput}
+                      onChange={(e) => setCpiInput(e.target.value)}
+                      placeholder="0.9"
                       className="input-base text-xs font-bold w-full"
                     />
                   </div>
@@ -468,10 +489,9 @@ export function LineGroupSettingsModal({
                     <input
                       type="number"
                       step="0.5"
-                      value={formData.alert_diff_threshold ?? 5}
-                      onChange={(e) =>
-                        setFormData({ ...formData, alert_diff_threshold: parseFloat(e.target.value) || 5 })
-                      }
+                      value={diffInput}
+                      onChange={(e) => setDiffInput(e.target.value)}
+                      placeholder="5"
                       className="input-base text-xs font-bold w-full"
                     />
                   </div>

@@ -245,10 +245,14 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
                   }
                   setIsSaving(true)
                   try {
-                    const res = await fetch('/api/cron/line-briefing', { method: 'POST' })
+                    const res = await fetch('/api/cron/line-briefing', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ token }),
+                    })
                     const resJson = await res.json()
                     if (resJson.success) {
-                      alert(`✅ ทดลองส่ง LINE เรียบร้อยแล้ว!\nส่งสำเร็จ: ${resJson.message}`)
+                      alert(`✅ ทดลองส่ง LINE เรียบร้อยแล้ว!\n${resJson.message}`)
                     } else {
                       alert(`❌ เกิดข้อผิดพลาด: ${resJson.error || resJson.message}`)
                     }

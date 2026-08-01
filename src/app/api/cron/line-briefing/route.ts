@@ -2,19 +2,25 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { sendLineMessage, formatMorningBriefingMessage } from '@/lib/line'
 import { computeTaskDates } from '@/lib/scheduler'
-import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  return handleCronJob()
+  return handleCronJob(null)
 }
 
 export async function POST(request: Request) {
-  return handleCronJob()
+  try {
+    const body = await request.json().catch(() => ({}))
+    const token = body.token || null
+    return handleCronJob(token)
+  } catch (e) {
+    return handleCronJob(null)
+  }
 }
 
-async function handleCronJob() {
+async function handleCronJob(overrideToken: string | null) {
   try {
     // 1. Fetch System Settings
     const { data: settingsData } = await supabase.from('system_settings').select('*')
@@ -25,12 +31,18 @@ async function handleCronJob() {
       })
     }
 
-    const cronEnabled = settings['line_cron_enabled'] !== 'false'
-    if (!cronEnabled) {
-      return NextResponse.json({ success: false, message: 'LINE Cron Briefing is disabled in System Settings' })
-    }
+    let globalToken = (overrideToken || settings['line_global_token'] || '').trim()
 
-    const globalToken = (settings['line_global_token'] || '').trim()
+    // If overrideToken provided, save it to DB
+    if (overrideToken && overrideToken.trim()) {
+      globalToken = overrideToken.trim()
+      const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'line_global_token').single()
+      if (existing) {
+        await supabase.from('system_settings').update({ value: globalToken }).eq('key', 'line_global_token')
+      } else {
+        await supabase.from('system_settings').insert({ key: 'line_global_token', value: globalToken })
+      }
+    }
 
     // 2. Fetch Projects
     const { data: projData, error: projErr } = await supabase.from('projects').select('*').order('created_at', { ascending: false })
@@ -70,7 +82,7 @@ async function handleCronJob() {
 
       const pTasks = allTasks.filter((t) => t.project_id === p.id)
       const pMilestones = allMilestones.filter((m) => m.project_id === p.id)
-      const pDaily = allDailyReports.filter((d) => d.project_id === p.id)[0] // Latest daily report
+      const pDaily = allDailyReports.filter((d) => d.project_id === p.id)[0]
 
       let pvCumulative = 0
       let evCumulative = p.progress || 0
@@ -149,7 +161,6 @@ async function handleCronJob() {
       const SPI = pvCumulative > 0 ? evCumulative / pvCumulative : 1.0
       const CPI = acPercent > 0 ? evCumulative / acPercent : 1.0
 
-      // Calculate Manpower & Weather from latest Daily Report
       let manpower = 0
       let weather = 'ไม่มีข้อมูล'
       if (pDaily) {
@@ -183,10 +194,25 @@ async function handleCronJob() {
       }
     }
 
+    // 5. If test token was provided or sentCount is 0, send a direct Test Message so user gets feedback immediately!
+    if (globalToken && (sentCount === 0 || overrideToken)) {
+      const testMsg = `📲 [ทดสอบระบบแจ้งเตือน LINE]\n\nเชื่อมต่อระบบควบคุมงานก่อสร้าง (Construction App) กับ LINE Messaging API สำเร็จเรียบร้อยแล้ว!\n\n📅 วันที่ทดสอบ: ${dateStr}\n⏰ เวลา: ${new Date().toLocaleTimeString('th-TH')}`
+      const testRes = await sendLineMessage(globalToken, testMsg)
+      if (testRes.success) {
+        sentCount++
+        results.push({ projectId: 'test', projectName: 'Direct Test Message', success: true })
+      } else {
+        results.push({ projectId: 'test', projectName: 'Direct Test Message', success: false, error: testRes.error })
+      }
+    }
+
+    const firstError = results.find(r => !r.success && r.error)?.error
+
     return NextResponse.json({
-      success: true,
-      message: `Sent ${sentCount} LINE Morning Briefings`,
+      success: sentCount > 0,
+      message: sentCount > 0 ? `ส่งการแจ้งเตือนสำเร็จ ${sentCount} ข้อความ` : (firstError || 'ไม่สามารถส่งข้อความได้ กรุณาตรวจสอบ Token'),
       totalProjects: projects.length,
+      sentCount,
       results,
     })
   } catch (err: any) {

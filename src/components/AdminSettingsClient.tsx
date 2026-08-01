@@ -23,7 +23,8 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
     return ['งานงบลงทุนเร่งด่วน', 'งานแผนสนับสนุน']
   })
 
-  const [newTime, setNewTime] = useState('12:00')
+  const [slotDay, setSlotDay] = useState('Mon')
+  const [slotTime, setSlotTime] = useState('08:30')
 
   const ALL_DAYS = [
     { id: 'Mon', label: 'จันทร์' },
@@ -35,29 +36,29 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
     { id: 'Sun', label: 'อาทิตย์' },
   ]
 
-  const getCronDays = (): string[] => {
-    try {
-      const val = settings['line_cron_days']
-      if (val) {
-        const parsed = JSON.parse(val)
-        if (Array.isArray(parsed)) return parsed
-      }
-    } catch {}
-    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const DAY_LABEL_MAP: Record<string, string> = {
+    Mon: 'วันจันทร์',
+    Tue: 'วันอังคาร',
+    Wed: 'วันพุธ',
+    Thu: 'วันพฤหัสบดี',
+    Fri: 'วันศุกร์',
+    Sat: 'วันเสาร์',
+    Sun: 'วันอาทิตย์',
+    All: 'ทุกวัน',
   }
 
-  const getCronTimes = (): string[] => {
+  const getScheduleSlots = (): { day: string; time: string }[] => {
     try {
-      const val = settings['line_cron_times']
+      const val = settings['line_cron_schedule']
       if (val) {
         const parsed = JSON.parse(val)
         if (Array.isArray(parsed) && parsed.length > 0) return parsed
       }
-      if (settings['line_cron_time']) {
-        return [settings['line_cron_time']]
-      }
     } catch {}
-    return ['08:00']
+    return [
+      { day: 'Mon', time: '08:30' },
+      { day: 'Wed', time: '13:00' },
+    ]
   }
 
   const saveSettingKey = async (key: string, value: string) => {
@@ -326,10 +327,10 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-1.5">
-                  <span>🌅 1. Scheduled Briefing System (ตั้งค่าความถี่และเวลาส่งแบบอิสระ)</span>
+                  <span>🌅 1. Scheduled Briefing System (ตั้งค่ารอบส่งผูกวัน + เวลาแบบอิสระ)</span>
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  เลือกวันส่ง (รายวัน/รายสัปดาห์) และกำหนดเวลาส่งในแต่ละวันได้หลายรอบตามต้องการ
+                  กำหนดรอบเวลาส่งผูกวันและเวลาได้อย่างอิสระ (เช่น รอบแรกวันจันทร์ 08:30 น., รอบสองวันพุธ 13:00 น.)
                 </p>
               </div>
               <button
@@ -342,123 +343,119 @@ export function AdminSettingsClient({ initialSettings }: { initialSettings: Reco
             </div>
 
             <div className="space-y-4 pt-3 border-t border-slate-200/60 dark:border-[#252548]">
-              {/* 🗓️ Selection for Days of Week */}
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
-                    🗓️ เลือกวันที่จะส่งข้อความ (Days of Week)
-                  </label>
-                  
-                  {/* Preset buttons */}
-                  <div className="flex items-center gap-1 text-[11px] font-bold">
-                    <button
-                      type="button"
-                      onClick={() => saveSettingKey('line_cron_days', JSON.stringify(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']))}
-                      className="px-2 py-0.5 rounded bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300 hover:bg-primary-200 transition-colors"
-                    >
-                      เลือกทุกวัน (Daily)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => saveSettingKey('line_cron_days', JSON.stringify(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']))}
-                      className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-300 transition-colors"
-                    >
-                      วันทำการ (จ-ศ)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => saveSettingKey('line_cron_days', JSON.stringify(['Sat', 'Sun']))}
-                      className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-300 transition-colors"
-                    >
-                      สุดสัปดาห์ (ส-อา)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => saveSettingKey('line_cron_days', JSON.stringify(['Mon']))}
-                      className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 hover:bg-amber-200 transition-colors"
-                    >
-                      รายสัปดาห์ (จันทร์)
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5">
-                  {ALL_DAYS.map((day) => {
-                    const currentDays = getCronDays()
-                    const isSelected = currentDays.includes(day.id)
-                    return (
-                      <button
-                        key={day.id}
-                        type="button"
-                        onClick={() => {
-                          const updated = isSelected
-                            ? currentDays.filter((d) => d !== day.id)
-                            : [...currentDays, day.id]
-                          saveSettingKey('line_cron_days', JSON.stringify(updated))
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                          isSelected
-                            ? 'bg-primary-600 border-primary-600 text-white shadow-sm scale-105'
-                            : 'bg-white dark:bg-[#13132a] border-slate-200 dark:border-[#252548] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1a1a36]'
-                        }`}
-                      >
-                        {isSelected ? '✓ ' : ''}{day.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* ⏰ Selection for Send Times per Day */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
-                  ⏰ เลือกรอบเวลาส่งประจำวัน (สามารถเพิ่มได้หลายรอบต่อวัน)
+              {/* Presets & Active Slots Header */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                  📌 รายการรอบส่งปัจจุบัน (Schedule Slots Matrix)
                 </label>
-
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {getCronTimes().map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-bold shadow-sm"
-                    >
-                      <span>⏰ {t} น.</span>
-                      {getCronTimes().length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = getCronTimes().filter((time) => time !== t)
-                            saveSettingKey('line_cron_times', JSON.stringify(updated))
-                          }}
-                          className="hover:text-red-500 p-0.5 rounded transition-colors"
-                          title="ลบเวลาส่งนี้"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-2 max-w-xs">
-                  <input
-                    type="time"
-                    value={newTime}
-                    onChange={(e) => setNewTime(e.target.value)}
-                    className="input-base text-xs font-bold py-1.5"
-                  />
+                
+                {/* Presets */}
+                <div className="flex flex-wrap items-center gap-1 text-[11px] font-bold">
                   <button
                     type="button"
                     onClick={() => {
-                      if (!newTime) return
-                      const times = getCronTimes()
-                      if (!times.includes(newTime)) {
-                        const updated = [...times, newTime].sort()
-                        saveSettingKey('line_cron_times', JSON.stringify(updated))
+                      const daily = ALL_DAYS.map(d => ({ day: d.id, time: '08:00' }))
+                      saveSettingKey('line_cron_schedule', JSON.stringify(daily))
+                    }}
+                    className="px-2 py-0.5 rounded bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300 hover:bg-primary-200 transition-colors"
+                  >
+                    ทุกวัน 08:00
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const workdays = ALL_DAYS.slice(0, 5).map(d => ({ day: d.id, time: '08:00' }))
+                      saveSettingKey('line_cron_schedule', JSON.stringify(workdays))
+                    }}
+                    className="px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-300 transition-colors"
+                  >
+                    จ-ศ 08:00
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const customExample = [
+                        { day: 'Mon', time: '08:30' },
+                        { day: 'Wed', time: '13:00' },
+                      ]
+                      saveSettingKey('line_cron_schedule', JSON.stringify(customExample))
+                    }}
+                    className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 hover:bg-amber-200 transition-colors"
+                  >
+                    ตัวอย่าง: จันทร์ 08:30 + พุธ 13:00
+                  </button>
+                </div>
+              </div>
+
+              {/* List of configured schedule slots */}
+              <div className="flex flex-wrap items-center gap-2 min-h-[38px] p-2.5 bg-white dark:bg-[#13132a] rounded-xl border border-slate-200 dark:border-[#252548]">
+                {getScheduleSlots().length === 0 ? (
+                  <span className="text-xs text-slate-400 italic">ยังไม่มีการตั้งรอบส่ง</span>
+                ) : (
+                  getScheduleSlots().map((slot, index) => (
+                    <span
+                      key={`${slot.day}-${slot.time}-${index}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-200 rounded-lg text-xs font-bold shadow-sm"
+                    >
+                      <span>🗓️ {DAY_LABEL_MAP[slot.day] || slot.day} ⏰ {slot.time} น.</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = getScheduleSlots().filter((_, i) => i !== index)
+                          saveSettingKey('line_cron_schedule', JSON.stringify(updated))
+                        }}
+                        className="hover:text-red-500 p-0.5 rounded transition-colors cursor-pointer"
+                        title="ลบรอบส่งนี้"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+
+              {/* Add new Slot Form */}
+              <div className="p-3 bg-slate-100/70 dark:bg-[#181832] rounded-xl border border-slate-200/80 dark:border-[#252548] space-y-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  ➕ เพิ่มรอบส่งใหม่ (เลือกวัน + เวลาที่ต้องการ):
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={slotDay}
+                    onChange={(e) => setSlotDay(e.target.value)}
+                    className="input-base text-xs font-bold w-auto min-w-[120px] py-1.5"
+                  >
+                    <option value="Mon">วันจันทร์</option>
+                    <option value="Tue">วันอังคาร</option>
+                    <option value="Wed">วันพุธ</option>
+                    <option value="Thu">วันพฤหัสบดี</option>
+                    <option value="Fri">วันศุกร์</option>
+                    <option value="Sat">วันเสาร์</option>
+                    <option value="Sun">วันอาทิตย์</option>
+                    <option value="All">ทุกวัน</option>
+                  </select>
+
+                  <input
+                    type="time"
+                    value={slotTime}
+                    onChange={(e) => setSlotTime(e.target.value)}
+                    className="input-base text-xs font-bold max-w-[130px] py-1.5"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!slotDay || !slotTime) return
+                      const slots = getScheduleSlots()
+                      const exists = slots.some((s) => s.day === slotDay && s.time === slotTime)
+                      if (!exists) {
+                        const updated = [...slots, { day: slotDay, time: slotTime }]
+                        saveSettingKey('line_cron_schedule', JSON.stringify(updated))
                       }
                     }}
-                    className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-lg transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                    className="px-3.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                   >
-                    <Plus size={14} /> เพิ่มเวลาส่ง
+                    <Plus size={14} /> เพิ่มรอบส่งนี้
                   </button>
                 </div>
               </div>

@@ -114,11 +114,14 @@ export function AdminSettingsClient({
     setSettings((prev) => ({ ...prev, [key]: value }))
     setIsSaving(true)
     try {
-      const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
-      if (data) await supabase.from('system_settings').update({ value }).eq('key', key)
-      else await supabase.from('system_settings').insert({ key, value })
+      const { data, error } = await supabase.from('system_settings').select('id').eq('key', key).maybeSingle()
+      if (data) {
+        await supabase.from('system_settings').update({ value }).eq('key', key)
+      } else {
+        await supabase.from('system_settings').insert({ key, value })
+      }
     } catch (e) {
-      console.error(e)
+      console.error('Error in saveSettingKey:', e)
     } finally {
       setIsSaving(false)
     }
@@ -130,14 +133,14 @@ export function AdminSettingsClient({
     
     setIsSaving(true)
     try {
-      const { data } = await supabase.from('system_settings').select('id').eq('key', key).single()
+      const { data, error } = await supabase.from('system_settings').select('id').eq('key', key).maybeSingle()
       if (data) {
         await supabase.from('system_settings').update({ value: newVal }).eq('key', key)
       } else {
         await supabase.from('system_settings').insert({ key, value: newVal })
       }
     } catch (e) {
-      console.error(e)
+      console.error('Error in handleToggle:', e)
     } finally {
       setIsSaving(false)
     }

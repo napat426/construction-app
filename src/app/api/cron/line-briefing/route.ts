@@ -24,19 +24,50 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * Get the current time in Bangkok timezone accurately.
+ * Returns dayName (e.g. "Sat"), hours (0-23), minutes (0-59),
+ * and bangkokDateStr (e.g. "2026-08-01") for deduplication keys.
+ */
 function getBangkokCurrentTime() {
   const now = new Date()
 
-  const dayName = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', weekday: 'short' }).format(now)
-  const hoursStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }).format(now)
-  const minutesStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', minute: 'numeric' }).format(now)
+  const dayName = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    weekday: 'short',
+  }).format(now)
+
+  const hoursStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    hour: 'numeric',
+    hour12: false,
+  }).format(now)
+
+  const minutesStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    minute: 'numeric',
+  }).format(now)
 
   const hours = parseInt(hoursStr, 10) % 24
   const minutes = parseInt(minutesStr, 10)
 
-  return { dayName, hours, minutes }
+  // FIX: Use Bangkok date for dedup keys (not UTC date which drifts by 7 hours)
+  // en-CA format gives "YYYY-MM-DD" without locale quirks
+  const bangkokDateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+  }).format(now)
+
+  // Bangkok date object (for message display)
+  const bangkokDate = new Date(bangkokDateStr + 'T00:00:00+07:00')
+  const dateStr = bangkokDate.toLocaleDateString('th-TH', { dateStyle: 'medium' })
+
+  return { dayName, hours, minutes, bangkokDateStr, dateStr }
 }
 
+/**
+ * Exact minute match: returns true ONLY when the slot's day+hour+minute match NOW exactly.
+ * isForce=true bypasses time check (manual trigger).
+ */
 function isExactSlotMatching(
   slot: { day: string; time: string },
   currentDayName: string,
@@ -52,8 +83,8 @@ function isExactSlotMatching(
   if (!dayMatch) return false
 
   const [slotH, slotM] = (slot.time || '08:00').split(':').map(Number)
-  
-  // Exact HH:MM match! Only returns true if hour === slotH AND minute === slotM!
+
+  // Exact HH:MM match — only true when hour and minute both match exactly!
   return currentHours === (slotH || 0) && currentMinutes === (slotM || 0)
 }
 
@@ -85,27 +116,29 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
 
     if (overrideToken && overrideToken.trim()) {
       globalToken = overrideToken.trim()
-      const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'line_global_token').maybeSingle()
-      if (existing) {
-        await supabase.from('system_settings').update({ value: globalToken }).eq('key', 'line_global_token')
-      } else {
-        await supabase.from('system_settings').insert({ key: 'line_global_token', value: globalToken })
-      }
+      // Use UPSERT to safely save token (atomic, no race condition)
+      await supabase
+        .from('system_settings')
+        .upsert({ key: 'line_global_token', value: globalToken }, { onConflict: 'key' })
     }
 
     // 2. Fetch Projects
-    const { data: projData, error: projErr } = await supabase.from('projects').select('*').order('created_at', { ascending: false })
+    const { data: projData, error: projErr } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false })
     if (projErr || !projData) {
       return NextResponse.json({ success: false, error: 'Failed to fetch projects' }, { status: 500 })
     }
     const projects = projData as Project[]
     const activeProjects = projects.filter((p) => p.status !== 'เสร็จสิ้น')
 
+    // FIX: Always use Bangkok timezone for time and date
     const bkkTime = getBangkokCurrentTime()
-    const todayDateOnly = new Date()
-    todayDateOnly.setHours(0, 0, 0, 0)
-    const todayDateStr = todayDateOnly.toISOString().split('T')[0]
-    const dateStr = todayDateOnly.toLocaleDateString('th-TH', { dateStyle: 'medium' })
+    const { bangkokDateStr, dateStr } = bkkTime
+
+    // Bangkok date object (midnight Bangkok) used for EVM calculations
+    const todayDateOnly = new Date(bangkokDateStr + 'T00:00:00+07:00')
 
     // ── IF TEST MODE (กดปุ่มทดลองส่ง): ส่งข้อความทดสอบ ──
     if (isTestMode) {
@@ -113,7 +146,7 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
         return NextResponse.json({ success: false, error: 'กรุณากรอก LINE Token ก่อนกดทดลองส่ง' })
       }
 
-      const testMsg = `📲 [ทดสอบระบบแจ้งเตือน LINE]\n\nเชื่อมต่อระบบควบคุมงานก่อสร้างกับ LINE Messaging API สำเร็จเรียบร้อยแล้ว!\n\n📊 ข้อมูลในระบบปัจจุบัน:\n• โครงการทั้งหมด: ${activeProjects.length} โครงการ\n📅 วันที่ทดสอบ: ${dateStr}\n⏰ เวลา (เวลาไทย ICT): ${bkkTime.hours.toString().padStart(2, '0')}:${bkkTime.minutes.toString().padStart(2, '0')} น.\n\n(ระบบจะส่งสรุป Morning Briefing ของทุกโครงการอัตโนมัติทุกเช้าตามเวลาที่ตั้งไว้)`
+      const testMsg = `📲 [ทดสอบระบบแจ้งเตือน LINE]\n\nเชื่อมต่อระบบควบคุมงานก่อสร้างกับ LINE Messaging API สำเร็จเรียบร้อยแล้ว!\n\n📊 ข้อมูลในระบบปัจจุบัน:\n• โครงการทั้งหมด: ${activeProjects.length} โครงการ\n📅 วันที่ทดสอบ: ${dateStr}\n⏰ เวลา (เวลาไทย ICT): ${bkkTime.hours.toString().padStart(2, '0')}:${bkkTime.minutes.toString().padStart(2, '0')} น.\n\n(ระบบจะส่งสรุป Morning Briefing ของทุกโครงการอัตโนมัติตามเวลาที่ตั้งไว้)`
       const sendRes = await sendLineMessage(globalToken, testMsg)
 
       if (sendRes.success) {
@@ -129,7 +162,7 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       }
     }
 
-    // Parse last dispatched slots map for deduplication
+    // FIX: Read last dispatched slots (with Bangkok date-based keys)
     let lastDispatchedSlots: string[] = []
     if (settings['last_cron_dispatched']) {
       try {
@@ -156,7 +189,9 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
           enabled: settings['line_cron_enabled'] !== 'false',
           project_ids: 'all',
           cron_enabled: settings['line_cron_enabled'] !== 'false',
-          cron_schedule: settings['line_cron_schedule'] ? JSON.parse(settings['line_cron_schedule']) : [{ day: 'Mon', time: '08:30' }],
+          cron_schedule: settings['line_cron_schedule']
+            ? JSON.parse(settings['line_cron_schedule'])
+            : [{ day: 'Mon', time: '08:30' }],
         },
       ]
     }
@@ -175,46 +210,67 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
 
     let totalDispatchesCount = 0
     const newlyDispatchedSlotKeys: string[] = []
-    const channelDispatchLog: { channelName: string; success: boolean; dispatchedProjects: number; error?: string }[] = []
+    const channelDispatchLog: {
+      channelName: string
+      success: boolean
+      dispatchedProjects: number
+      skipped?: boolean
+      error?: string
+    }[] = []
 
     for (const ch of lineChannels) {
       if (!ch.enabled || !ch.token || !ch.token.trim()) continue
 
-      const cronSlots = ch.cron_schedule && ch.cron_schedule.length > 0
-        ? ch.cron_schedule
-        : [{ day: 'Mon', time: '08:30' }]
+      const cronSlots =
+        ch.cron_schedule && ch.cron_schedule.length > 0 ? ch.cron_schedule : [{ day: 'Mon', time: '08:30' }]
       const isCronEnabled = ch.cron_enabled !== false
 
       const matchedCronSlot = isCronEnabled
-        ? cronSlots.find((slot) => isExactSlotMatching(slot, bkkTime.dayName, bkkTime.hours, bkkTime.minutes, isForce))
+        ? cronSlots.find((slot) =>
+            isExactSlotMatching(slot, bkkTime.dayName, bkkTime.hours, bkkTime.minutes, isForce)
+          )
         : null
 
-      const alertSlots = ch.alert_schedule && ch.alert_schedule.length > 0
-        ? ch.alert_schedule
-        : [{ day: ch.alert_day || 'Tue', time: ch.alert_time || '09:00' }]
+      const alertSlots =
+        ch.alert_schedule && ch.alert_schedule.length > 0
+          ? ch.alert_schedule
+          : [{ day: ch.alert_day || 'Tue', time: ch.alert_time || '09:00' }]
       const isAlertEnabled = ch.alert_enabled !== false
 
       const matchedAlertSlot = isAlertEnabled
-        ? alertSlots.find((slot) => isExactSlotMatching(slot, bkkTime.dayName, bkkTime.hours, bkkTime.minutes, isForce))
+        ? alertSlots.find((slot) =>
+            isExactSlotMatching(slot, bkkTime.dayName, bkkTime.hours, bkkTime.minutes, isForce)
+          )
         : null
 
       if (!matchedCronSlot && !matchedAlertSlot) continue
 
-      // Deduplication check
+      // FIX: Dedup key uses Bangkok date (not UTC date)
       const activeSlot = matchedCronSlot || matchedAlertSlot
-      const slotKey = `${ch.id}-${activeSlot?.day}-${activeSlot?.time}-${todayDateStr}`
+      const slotKey = `${ch.id}-${activeSlot?.day}-${activeSlot?.time}-${bangkokDateStr}`
 
       if (!isForce && lastDispatchedSlots.includes(slotKey)) {
-        console.log(`Slot ${slotKey} already dispatched today. Skipping duplicate dispatch.`)
+        console.log(`[LINE Cron] Slot ${slotKey} already dispatched today (Bangkok date). Skipping.`)
+        channelDispatchLog.push({
+          channelName: ch.name,
+          success: true,
+          dispatchedProjects: 0,
+          skipped: true,
+        })
         continue
       }
 
       let targetProjects = activeProjects
       if (ch.project_ids && Array.isArray(ch.project_ids) && ch.project_ids.length > 0) {
-        targetProjects = activeProjects.filter((p) => ch.project_ids!.includes(p.id))
+        targetProjects = activeProjects.filter((p) => (ch.project_ids as string[]).includes(p.id))
       }
 
-      if (targetProjects.length === 0) continue
+      if (targetProjects.length === 0) {
+        console.log(`[LINE Cron] Channel "${ch.name}": no target projects found. Skipping.`)
+        continue
+      }
+
+      let channelSentCount = 0
 
       for (const p of targetProjects) {
         const pTasks = allTasks.filter((t) => t.project_id === p.id)
@@ -257,7 +313,8 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
           } else {
             let totalPlanned = 0
             let totalActual = 0
-            for (const t of scheduledTasks) {
+            const scheduledTasks2 = computeTaskDates(pTasks, p.start_date)
+            for (const t of scheduledTasks2) {
               const tStart = new Date(t.computedStartDate)
               const tEnd = new Date(t.computedEndDate)
               tStart.setHours(0, 0, 0, 0)
@@ -275,9 +332,9 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
               totalPlanned += plannedProgress
               totalActual += t.actual_progress || 0
             }
-            if (scheduledTasks.length > 0) {
-              pvCumulative = totalPlanned / scheduledTasks.length
-              evCumulative = totalActual / scheduledTasks.length
+            if (scheduledTasks2.length > 0) {
+              pvCumulative = totalPlanned / scheduledTasks2.length
+              evCumulative = totalActual / scheduledTasks2.length
             }
           }
         } else if (p.start_date && p.end_date) {
@@ -325,34 +382,35 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
         const sendResult = await sendLineMessage(ch.token, message)
         if (sendResult.success) {
           totalDispatchesCount++
+          channelSentCount++
         }
       }
 
+      // Mark slot as dispatched BEFORE saving so we track it correctly
       newlyDispatchedSlotKeys.push(slotKey)
       channelDispatchLog.push({
         channelName: ch.name,
-        success: true,
-        dispatchedProjects: targetProjects.length,
+        success: channelSentCount > 0,
+        dispatchedProjects: channelSentCount,
       })
     }
 
-    // Save newly dispatched slot keys to Supabase system_settings for deduplication
+    // FIX: Use atomic UPSERT to save dispatched slots (no race condition)
+    // This replaces the old separate select+insert/update pattern
     if (newlyDispatchedSlotKeys.length > 0 && !isForce) {
-      const updatedSlotsList = Array.from(new Set([...lastDispatchedSlots, ...newlyDispatchedSlotKeys])).slice(-100)
+      const updatedSlotsList = Array.from(new Set([...lastDispatchedSlots, ...newlyDispatchedSlotKeys])).slice(-200)
       const valStr = JSON.stringify(updatedSlotsList)
-      const { data: existing } = await supabase.from('system_settings').select('id').eq('key', 'last_cron_dispatched').maybeSingle()
-      if (existing) {
-        await supabase.from('system_settings').update({ value: valStr }).eq('key', 'last_cron_dispatched')
-      } else {
-        await supabase.from('system_settings').insert({ key: 'last_cron_dispatched', value: valStr })
-      }
+      await supabase
+        .from('system_settings')
+        .upsert({ key: 'last_cron_dispatched', value: valStr }, { onConflict: 'key' })
     }
 
     return NextResponse.json({
       success: true,
-      version: 'v3.0-exact-match',
+      version: 'v4.0-bangkok-timezone-safe',
       message: `Checked Cron at Bangkok time (${bkkTime.dayName} ${bkkTime.hours}:${bkkTime.minutes}). Dispatched ${totalDispatchesCount} messages across channels.`,
       bangkokTime: `${bkkTime.dayName} ${bkkTime.hours.toString().padStart(2, '0')}:${bkkTime.minutes.toString().padStart(2, '0')} ICT`,
+      bangkokDate: bangkokDateStr,
       totalDispatchesCount,
       channelDispatchLog,
     })

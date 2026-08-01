@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { sendLineMessage, formatMorningBriefingMessage, type LineChannelTarget } from '@/lib/line'
+import {
+  sendLineMessage,
+  formatMorningBriefingMessage,
+  checkAndSendRedFlagAlert,
+  type LineChannelTarget,
+} from '@/lib/line'
 import { computeTaskDates } from '@/lib/scheduler'
 import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 
@@ -395,6 +400,56 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
       })
     }
 
+    // ── RED ZONE ALERT: Process alert_schedule for each channel ──────────────────
+    // (Separate pass: alert schedule may differ from cron_schedule)
+    let totalRedZoneAlerts = 0
+    const redZoneLog: { channelName: string; projectName: string; alerted: boolean; reason?: string }[] = []
+
+    for (const ch of lineChannels) {
+      if (!ch.enabled || !ch.token || !ch.token.trim()) continue
+      if (ch.alert_enabled === false) continue
+
+      const alertSlots =
+        ch.alert_schedule && ch.alert_schedule.length > 0
+          ? ch.alert_schedule
+          : [{ day: ch.alert_day || 'Mon', time: ch.alert_time || '08:30' }]
+
+      const matchedAlert = alertSlots.find((slot) =>
+        isExactSlotMatching(slot, bkkTime.dayName, bkkTime.hours, bkkTime.minutes, isForce)
+      )
+      if (!matchedAlert) continue
+
+      // Dedup key for alert (separate from morning briefing key)
+      const alertSlotKey = `alert-${ch.id}-${matchedAlert.day}-${matchedAlert.time}-${bangkokDateStr}`
+      if (!isForce && lastDispatchedSlots.includes(alertSlotKey)) {
+        console.log(`[Red Zone] Alert slot ${alertSlotKey} already dispatched today. Skipping.`)
+        continue
+      }
+
+      // Determine target projects for this channel
+      let alertTargetProjects = activeProjects
+      if (ch.project_ids && Array.isArray(ch.project_ids) && ch.project_ids.length > 0) {
+        alertTargetProjects = activeProjects.filter((p) => (ch.project_ids as string[]).includes(p.id))
+      }
+
+      if (alertTargetProjects.length === 0) continue
+
+      // Run Red Zone check per project using this channel's thresholds and token
+      for (const p of alertTargetProjects) {
+        const result = await checkAndSendRedFlagAlert(p.id, {
+          token: ch.token,
+          spiThreshold: ch.alert_spi_threshold ?? 0.9,
+          cpiThreshold: ch.alert_cpi_threshold ?? 0.9,
+          diffThreshold: ch.alert_diff_threshold ?? 5,
+        })
+        redZoneLog.push({ channelName: ch.name, projectName: p.name, alerted: result.alerted, reason: result.reason })
+        if (result.alerted) totalRedZoneAlerts++
+      }
+
+      // Mark alert slot as dispatched
+      newlyDispatchedSlotKeys.push(alertSlotKey)
+    }
+
     // FIX: Use atomic UPSERT to save dispatched slots (no race condition)
     // This replaces the old separate select+insert/update pattern
     if (newlyDispatchedSlotKeys.length > 0 && !isForce) {
@@ -407,12 +462,14 @@ async function handleCronJob(options: { isTest?: boolean; overrideToken?: string
 
     return NextResponse.json({
       success: true,
-      version: 'v4.0-bangkok-timezone-safe',
-      message: `Checked Cron at Bangkok time (${bkkTime.dayName} ${bkkTime.hours}:${bkkTime.minutes}). Dispatched ${totalDispatchesCount} messages across channels.`,
+      version: 'v5.0-with-red-zone-alert',
+      message: `Checked Cron at Bangkok time (${bkkTime.dayName} ${bkkTime.hours}:${bkkTime.minutes}). Briefings: ${totalDispatchesCount}, Red Zone alerts: ${totalRedZoneAlerts}.`,
       bangkokTime: `${bkkTime.dayName} ${bkkTime.hours.toString().padStart(2, '0')}:${bkkTime.minutes.toString().padStart(2, '0')} ICT`,
       bangkokDate: bangkokDateStr,
       totalDispatchesCount,
+      totalRedZoneAlerts,
       channelDispatchLog,
+      redZoneLog,
     })
   } catch (err: any) {
     console.error('Error in LINE briefing cron route:', err)

@@ -244,10 +244,21 @@ export function formatRedFlagAlertMessage(data: {
 }
 
 /**
- * Check threshold rules and send Red Flag alert if triggered
+ * Check threshold rules and send Red Flag alert if triggered.
  * Ensures Spam Control: Only sends ONCE per day per project.
+ * @param projectId  - the project to evaluate
+ * @param channelOverride - if provided, use this channel's token & thresholds (called from cron)
+ *                          if null, use project.line_token or global token (called from UI update)
  */
-export async function checkAndSendRedFlagAlert(projectId: string): Promise<{ alerted: boolean; reason?: string }> {
+export async function checkAndSendRedFlagAlert(
+  projectId: string,
+  channelOverride?: {
+    token: string
+    spiThreshold: number
+    cpiThreshold: number
+    diffThreshold: number
+  } | null
+): Promise<{ alerted: boolean; reason?: string }> {
   try {
     // 1. Fetch System Settings
     const { data: settingsData } = await supabase.from('system_settings').select('*')
@@ -264,16 +275,20 @@ export async function checkAndSendRedFlagAlert(projectId: string): Promise<{ ale
     }
 
     const globalToken = settings['line_global_token'] || ''
-    const spiThreshold = parseFloat(settings['line_alert_spi_threshold'] || '0.90')
-    const cpiThreshold = parseFloat(settings['line_alert_cpi_threshold'] || '0.90')
-    const diffThreshold = parseFloat(settings['line_alert_diff_threshold'] || '5')
 
-    // Check configured weekly alert day
-    const alertDay = settings['line_alert_day'] || 'Mon'
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    const todayDayName = dayNames[new Date().getDay()]
-    if (alertDay !== 'all' && alertDay !== todayDayName) {
-      return { alerted: false, reason: `Today (${todayDayName}) is not the configured Red Zone alert day (${alertDay})` }
+    // Thresholds: use channel override if called from cron, else fall back to system settings
+    const spiThreshold = channelOverride?.spiThreshold ?? parseFloat(settings['line_alert_spi_threshold'] || '0.90')
+    const cpiThreshold = channelOverride?.cpiThreshold ?? parseFloat(settings['line_alert_cpi_threshold'] || '0.90')
+    const diffThreshold = channelOverride?.diffThreshold ?? parseFloat(settings['line_alert_diff_threshold'] || '5')
+
+    // When called from UI update (no channelOverride): check system-wide alert day using Bangkok timezone
+    if (!channelOverride) {
+      const alertDay = settings['line_alert_day'] || 'Mon'
+      // FIX: Use Bangkok timezone for day name (not UTC)
+      const todayDayName = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Bangkok', weekday: 'short' }).format(new Date())
+      if (alertDay !== 'all' && alertDay !== todayDayName) {
+        return { alerted: false, reason: `Today (${todayDayName}) is not the configured Red Zone alert day (${alertDay})` }
+      }
     }
 
     // 2. Fetch Project Data
@@ -283,13 +298,14 @@ export async function checkAndSendRedFlagAlert(projectId: string): Promise<{ ale
     }
     const project = projData as Project & { line_token?: string | null; last_red_flag_alert_date?: string | null }
 
-    const targetToken = project.line_token?.trim() || globalToken.trim()
+    // Token: use channelOverride token (from cron), or project-specific token, or global token
+    const targetToken = channelOverride?.token?.trim() || project.line_token?.trim() || globalToken.trim()
     if (!targetToken) {
       return { alerted: false, reason: 'No LINE Token available for project or global settings' }
     }
 
-    // 3. Spam Control: Check if already alerted today (YYYY-MM-DD)
-    const todayStr = new Date().toISOString().split('T')[0]
+    // 3. Spam Control: Check if already alerted today — use Bangkok date!
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date())
     if (project.last_red_flag_alert_date === todayStr) {
       return { alerted: false, reason: 'Already alerted today (Spam Prevention)' }
     }

@@ -7,21 +7,24 @@ import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  return handleCronJob(null)
+  return handleCronJob({ isTest: false })
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
     const token = body.token || null
-    return handleCronJob(token)
+    return handleCronJob({ isTest: true, overrideToken: token })
   } catch (e) {
-    return handleCronJob(null)
+    return handleCronJob({ isTest: true })
   }
 }
 
-async function handleCronJob(overrideToken: string | null) {
+async function handleCronJob(options: { isTest?: boolean; overrideToken?: string | null }) {
   try {
+    const isTestMode = options.isTest === true
+    const overrideToken = options.overrideToken || null
+
     // 1. Fetch System Settings
     const { data: settingsData } = await supabase.from('system_settings').select('*')
     const settings: Record<string, string> = {}
@@ -50,8 +53,42 @@ async function handleCronJob(overrideToken: string | null) {
       return NextResponse.json({ success: false, error: 'Failed to fetch projects' }, { status: 500 })
     }
     const projects = projData as (Project & { line_token?: string | null })[]
+    const activeProjects = projects.filter((p) => p.status !== 'ระงับ')
 
-    // 3. Fetch WBS Tasks, Milestones, Daily Reports
+    const todayDateOnly = new Date()
+    todayDateOnly.setHours(0, 0, 0, 0)
+    const dateStr = todayDateOnly.toLocaleDateString('th-TH', { dateStyle: 'medium' })
+
+    // ── IF TEST MODE (กดปุ่มทดลองส่ง): ส่งข้อความทดสอบเพียง 1 ข้อความเท่านั้น! ──
+    if (isTestMode) {
+      if (!globalToken) {
+        return NextResponse.json({ success: false, error: 'กรุณากรอก LINE Token ก่อนกดทดลองส่ง' })
+      }
+
+      const testMsg = `📲 [ทดสอบระบบแจ้งเตือน LINE]\n\nเชื่อมต่อระบบควบคุมงานก่อสร้างกับ LINE Messaging API สำเร็จเรียบร้อยแล้ว!\n\n📊 ข้อมูลในระบบปัจจุบัน:\n• โครงการทั้งหมด: ${activeProjects.length} โครงการ\n📅 วันที่ทดสอบ: ${dateStr}\n⏰ เวลา: ${new Date().toLocaleTimeString('th-TH')}\n\n(ระบบจะส่งสรุป Morning Briefing ของทุกโครงการอัตโนมัติทุกเช้าตามเวลาที่ตั้งไว้)`
+      const testRes = await sendLineMessage(globalToken, testMsg)
+
+      if (testRes.success) {
+        return NextResponse.json({
+          success: true,
+          message: `เชื่อมต่อสำเร็จ! ส่งข้อความทดสอบเข้า LINE เรียบร้อยแล้ว (พบ ${activeProjects.length} โครงการเตรียมส่งประจำวัน)`,
+          sentCount: 1,
+        })
+      } else {
+        return NextResponse.json({
+          success: false,
+          error: testRes.error || 'ไม่สามารถส่งข้อความได้ กรุณาตรวจสอบ Token',
+        })
+      }
+    }
+
+    // ── CRON JOB MODE (รันอัตโนมัติประจำวัน 08:00 น.): วนลูปส่งสรุปทุกโครงการ ──
+    const cronEnabled = settings['line_cron_enabled'] !== 'false'
+    if (!cronEnabled) {
+      return NextResponse.json({ success: false, message: 'LINE Cron Briefing is disabled in System Settings' })
+    }
+
+    // Fetch WBS Tasks, Milestones, Daily Reports for full cron run
     const [tasksRes, milestonesRes, dailyRes] = await Promise.all([
       supabase.from('tasks').select('*'),
       supabase.from('project_milestones').select('*'),
@@ -63,17 +100,10 @@ async function handleCronJob(overrideToken: string | null) {
     const allDailyReports = dailyRes.data || []
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://construction-app-dun.vercel.app'
-    const todayDateOnly = new Date()
-    todayDateOnly.setHours(0, 0, 0, 0)
-    const dateStr = todayDateOnly.toLocaleDateString('th-TH', { dateStyle: 'medium' })
-
     let sentCount = 0
     const results: { projectId: string; projectName: string; success: boolean; error?: string }[] = []
 
-    // 4. Process Each Active Project
-    for (const p of projects) {
-      if (p.status === 'ระงับ') continue
-
+    for (const p of activeProjects) {
       const targetToken = (p.line_token || '').trim() || globalToken
       if (!targetToken) {
         results.push({ projectId: p.id, projectName: p.name, success: false, error: 'No LINE Token' })
@@ -194,24 +224,10 @@ async function handleCronJob(overrideToken: string | null) {
       }
     }
 
-    // 5. If test token was provided or sentCount is 0, send a direct Test Message so user gets feedback immediately!
-    if (globalToken && (sentCount === 0 || overrideToken)) {
-      const testMsg = `📲 [ทดสอบระบบแจ้งเตือน LINE]\n\nเชื่อมต่อระบบควบคุมงานก่อสร้าง (Construction App) กับ LINE Messaging API สำเร็จเรียบร้อยแล้ว!\n\n📅 วันที่ทดสอบ: ${dateStr}\n⏰ เวลา: ${new Date().toLocaleTimeString('th-TH')}`
-      const testRes = await sendLineMessage(globalToken, testMsg)
-      if (testRes.success) {
-        sentCount++
-        results.push({ projectId: 'test', projectName: 'Direct Test Message', success: true })
-      } else {
-        results.push({ projectId: 'test', projectName: 'Direct Test Message', success: false, error: testRes.error })
-      }
-    }
-
-    const firstError = results.find(r => !r.success && r.error)?.error
-
     return NextResponse.json({
-      success: sentCount > 0,
-      message: sentCount > 0 ? `ส่งการแจ้งเตือนสำเร็จ ${sentCount} ข้อความ` : (firstError || 'ไม่สามารถส่งข้อความได้ กรุณาตรวจสอบ Token'),
-      totalProjects: projects.length,
+      success: true,
+      message: `Sent ${sentCount} LINE Morning Briefings`,
+      totalProjects: activeProjects.length,
       sentCount,
       results,
     })

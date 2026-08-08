@@ -89,7 +89,7 @@ export function NotesClient({ project, initialNotes, initialFolders, user }: Not
   }
 
   const handleSaveNote = useCallback(
-    async (data: { title?: string; content?: string; drawing_data?: string }) => {
+    async (data: { title?: string; content?: string; drawing_data?: string; folder?: string }) => {
       if (!openNote || !user) return
       const updated: ProjectNote = {
         ...openNote,
@@ -328,6 +328,8 @@ export function NotesClient({ project, initialNotes, initialFolders, user }: Not
                   content={openNote.content}
                   drawingData={openNote.drawing_data}
                   color={openNote.color}
+                  folder={openNote.folder}
+                  folders={folders}
                   canEdit={canEdit}
                   onSave={handleSaveNote}
                   onClose={() => setOpenNote(null)}

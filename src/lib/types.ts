@@ -299,3 +299,17 @@ export interface SystemSetting {
   key: string
   value: any
 }
+
+export interface ProjectNote {
+  id: string
+  project_id: string
+  folder: string
+  title: string
+  content: string | null
+  drawing_data: string | null
+  color: string
+  is_pinned: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}

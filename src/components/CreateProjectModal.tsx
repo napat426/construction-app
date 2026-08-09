@@ -191,15 +191,27 @@ export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalPr
             </div>
           </div>
 
-          {/* กลุ่มงาน */}
-          <div>
-            <label className={labelCls} htmlFor="work_group">กลุ่มงาน (Work Group)</label>
-            <select id="work_group" name="work_group" className={inputCls}>
-              <option value="">-- ไม่ระบุกลุ่มงาน --</option>
-              {workGroups.map((group) => (
-                <option key={group} value={group}>{group}</option>
-              ))}
-            </select>
+          {/* หมายเลขงาน WBS + กลุ่มงาน */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls} htmlFor="wbs_no">หมายเลขงาน (WBS)</label>
+              <input
+                id="wbs_no"
+                name="wbs_no"
+                type="text"
+                placeholder="เช่น WBS-1002"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="work_group">กลุ่มงาน (Work Group)</label>
+              <select id="work_group" name="work_group" className={inputCls}>
+                <option value="">-- ไม่ระบุกลุ่มงาน --</option>
+                {workGroups.map((group) => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* LINE Token เฉพาะโครงการ */}

@@ -31,6 +31,7 @@ export async function createProject(
   const contract_no          = (formData.get('contract_no') as string)?.trim()          || null
   const work_group           = (formData.get('work_group') as string)?.trim()           || null
   const line_token           = (formData.get('line_token') as string)?.trim()           || null
+  const wbs_no               = (formData.get('wbs_no') as string)?.trim()               || null
 
   const insertPayload: Record<string, any> = {
     name,
@@ -46,6 +47,7 @@ export async function createProject(
     contractor,
     contract_no,
     work_group,
+    wbs_no,
   }
 
   if (line_token) {
@@ -119,6 +121,7 @@ export async function updateProjectBaseline(
   const contract_no          = (formData.get('contract_no') as string)?.trim()          || null
   const work_group           = (formData.get('work_group') as string)?.trim()           || null
   const line_token           = (formData.get('line_token') as string)?.trim()           || null
+  const wbs_no               = (formData.get('wbs_no') as string)?.trim()               || null
 
   const updatePayload: Record<string, any> = {
     name,
@@ -137,6 +140,7 @@ export async function updateProjectBaseline(
     contractor,
     contract_no,
     work_group,
+    wbs_no,
   }
 
   if (line_token !== null) {

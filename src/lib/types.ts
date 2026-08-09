@@ -24,6 +24,7 @@ export interface Project {
   contractor: string | null
   contract_no: string | null
   work_group: string | null
+  wbs_no?: string | null
   created_at: string
 }
 

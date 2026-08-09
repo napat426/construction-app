@@ -214,6 +214,12 @@ export function ProjectCard({ project, tasks = [], amendments = [], user }: Proj
 
         {/* Detail rows */}
         <div className="space-y-1.5 mb-4 flex-1">
+          {project.wbs_no && (
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="w-4 flex-shrink-0 text-[10px] font-bold text-slate-400">WBS</span>
+              <span className="truncate text-indigo-600 dark:text-indigo-400 font-mono font-bold">{project.wbs_no}</span>
+            </div>
+          )}
           <DetailRow icon={<User size={13} />} value={project.supervisor} />
           {project.location && (
             <DetailRow icon={<MapPin size={13} />} value={project.location} />

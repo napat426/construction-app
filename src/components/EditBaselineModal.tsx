@@ -224,7 +224,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <label className={labelCls} htmlFor="location">สถานที่ก่อสร้าง</label>
               <input
@@ -245,6 +245,17 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                 <option value="ระงับ">5. ระงับ</option>
                 <option value="เสร็จสิ้น">6. เสร็จสิ้น</option>
               </select>
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="wbs_no">หมายเลขงาน (WBS)</label>
+              <input
+                id="wbs_no"
+                name="wbs_no"
+                type="text"
+                defaultValue={project.wbs_no || ''}
+                placeholder="เช่น WBS-1002"
+                className={inputCls}
+              />
             </div>
             <div>
               <label className={labelCls} htmlFor="work_group">กลุ่มงาน (Work Group)</label>

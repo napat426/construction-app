@@ -280,6 +280,11 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
               <span className="text-xs font-bold uppercase tracking-wider bg-primary-600/10 dark:bg-primary-600/20 text-primary-700 dark:text-primary-400 px-2.5 py-1 rounded-md">
                 {project.status}
               </span>
+              {project.wbs_no && (
+                <span className="text-xs font-bold uppercase tracking-wider bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-400 px-2.5 py-1 rounded-md">
+                  WBS: {project.wbs_no}
+                </span>
+              )}
               {project.location && (
                 <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
                   <MapPin size={12} /> {project.location}
@@ -723,7 +728,11 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
             <User size={16} className="text-primary-600 dark:text-primary-400" />
             ข้อมูลสัญญา & คณะกรรมการตรวจรับ
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className={labelCls}>หมายเลขงาน (WBS)</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white mt-1 font-mono">{project.wbs_no || '—'}</p>
+            </div>
             <div>
               <p className={labelCls}>เลขที่สัญญา</p>
               <p className="text-sm font-bold text-slate-900 dark:text-white mt-1 font-mono">{project.contract_no || '—'}</p>

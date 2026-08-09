@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { Pencil, Trash2, Eraser, Save, Loader2, Maximize2, Minimize2, Image as ImageIcon, Folder, Plus } from 'lucide-react'
+import { Pencil, Trash2, Eraser, Save, Loader2, Maximize2, Minimize2, Image as ImageIcon, Folder } from 'lucide-react'
 
 interface Stroke {
   points: { x: number; y: number; pressure: number }[]
@@ -49,28 +49,10 @@ export function NoteEditor({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   
   // Parse strokes and background image from unified drawingData JSON object
-  const [strokes, setStrokes] = useState<Stroke[]>(() => {
-    try {
-      if (drawingData) {
-        const parsed = JSON.parse(drawingData)
-        if (Array.isArray(parsed)) return parsed // legacy format
-        if (parsed && Array.isArray(parsed.strokes)) return parsed.strokes
-      }
-    } catch {}
-    return []
-  })
-  
-  const [backgroundImage, setBackgroundImage] = useState<string | null>(() => {
-    try {
-      if (drawingData) {
-        const parsed = JSON.parse(drawingData)
-        if (parsed && typeof parsed.backgroundImage === 'string') return parsed.backgroundImage
-      }
-    } catch {}
-    return null
-  })
-
+  const [strokes, setStrokes] = useState<Stroke[]>([])
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null)
   const [bgImageEl, setBgImageEl] = useState<HTMLImageElement | null>(null)
+
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [penColor, setPenColor] = useState('#1a1a1a')
@@ -79,6 +61,40 @@ export function NoteEditor({
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ─── Sync props to local state ─────────────────────────────────────────────
+  useEffect(() => {
+    setNoteTitle(title)
+  }, [title])
+
+  useEffect(() => {
+    setNoteContent(content || '')
+  }, [content])
+
+  useEffect(() => {
+    setNoteFolder(folder)
+  }, [folder])
+
+  useEffect(() => {
+    try {
+      if (drawingData) {
+        const parsed = JSON.parse(drawingData)
+        if (Array.isArray(parsed)) {
+          setStrokes(parsed)
+          setBackgroundImage(null)
+        } else if (parsed) {
+          setStrokes(parsed.strokes || [])
+          setBackgroundImage(parsed.backgroundImage || null)
+        }
+      } else {
+        setStrokes([])
+        setBackgroundImage(null)
+      }
+    } catch {
+      setStrokes([])
+      setBackgroundImage(null)
+    }
+  }, [drawingData])
 
   // Load image element when background image string changes
   useEffect(() => {
@@ -282,7 +298,7 @@ export function NoteEditor({
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       await doSave()
-    }, 2000)
+    }, 1500)
   }, [noteTitle, noteContent, noteFolder, strokes, backgroundImage]) // eslint-disable-line
 
   const doSave = async () => {
@@ -320,7 +336,7 @@ export function NoteEditor({
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#1c1c34] mb-4">
         {/* Title */}
         <input
-          className="text-lg font-extrabold bg-transparent border-none outline-none text-slate-800 dark:text-white placeholder-slate-400 min-w-[200px] flex-1"
+          className="text-lg font-extrabold bg-transparent border-none outline-none text-slate-800 dark:text-white placeholder-slate-400 min-w-[200px] flex-1 font-sans"
           value={noteTitle}
           onChange={(e) => {
             setNoteTitle(e.target.value)
@@ -378,37 +394,41 @@ export function NoteEditor({
         </div>
       </div>
 
-      {/* Unified Editor Area */}
-      <div className="flex-1 flex flex-col md:flex-row gap-5 min-h-0 overflow-y-auto pr-1">
-        {/* Text Section (Left / Top) */}
-        <div className="flex-1 flex flex-col gap-2 min-h-[150px]">
-          <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">ข้อความบันทึก (พิมพ์ได้เลย)</label>
+      {/* Unified Paper Canvas Layout */}
+      <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto pr-1 bg-[#fbfbfd] dark:bg-[#070716] border border-slate-200 dark:border-[#1c1c34] rounded-2xl p-5 shadow-inner">
+        
+        {/* Text Section (Top half of the paper sheet) */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">พิมพ์ข้อความบันทึก</label>
           <textarea
-            className="flex-1 w-full min-h-[120px] p-4 bg-slate-50 dark:bg-[#0a0a16] border border-slate-200 dark:border-[#1c1c34] rounded-2xl resize-none outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-200 text-sm leading-relaxed placeholder-slate-400 dark:placeholder-slate-600"
+            className="w-full min-h-[140px] bg-transparent border-none outline-none resize-none text-slate-800 dark:text-slate-200 text-sm leading-relaxed placeholder-slate-400 dark:placeholder-slate-600 focus:ring-0 focus:border-0"
             value={noteContent}
             onChange={(e) => {
               setNoteContent(e.target.value)
               triggerAutoSave()
             }}
-            placeholder={canEdit ? 'พิมพ์รายละเอียดของโน้ตที่นี่...' : '(ไม่มีข้อความ)'}
+            placeholder={canEdit ? 'เริ่มพิมพ์เนื้อหาของโน้ตที่นี่...' : '(ไม่มีข้อความ)'}
             disabled={!canEdit}
           />
         </div>
 
-        {/* Drawing Section (Right / Bottom) */}
-        <div className="flex-1 flex flex-col gap-2 min-h-[350px]">
+        {/* Unified Divider (Notepad Tearing Line) */}
+        <div className="border-t border-dashed border-slate-200 dark:border-slate-800 my-1" />
+
+        {/* Drawing Section (Bottom half of the paper sheet) */}
+        <div className="flex-1 flex flex-col gap-2 min-h-[380px]">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">พื้นที่วาดภาพเขียนมือ & แนบรูป</label>
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">วาดเขียนหรือแนบรูปภาพอธิบาย</label>
             
             {canEdit && (
               <div className="flex items-center gap-3 flex-wrap">
                 {/* Photo upload button */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-slate-100 dark:bg-[#1e1e38] text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-[#252548] text-xs font-semibold transition-all"
+                  className="flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-[#1e1e38] text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-50 border border-slate-200 dark:border-[#252548] text-xs font-semibold transition-all shadow-xs"
                   title="แนบรูปถ่ายหน้างานเพื่อวาดเขียนอธิบายช่าง"
                 >
-                  <ImageIcon size={13} /> แนบรูปภาพ
+                  <ImageIcon size={12} /> แนบรูปภาพ
                 </button>
                 <input
                   type="file"
@@ -419,7 +439,7 @@ export function NoteEditor({
                 />
 
                 {/* Tool toggle */}
-                <div className="flex gap-1 bg-slate-100 dark:bg-[#1e1e38] p-0.5 rounded-lg">
+                <div className="flex gap-1 bg-white dark:bg-[#1e1e38] p-0.5 rounded-lg border border-slate-200 dark:border-[#252548] shadow-xs">
                   <button
                     onClick={() => setActiveTool('pen')}
                     className={`p-1 rounded-md transition-all ${
@@ -427,7 +447,7 @@ export function NoteEditor({
                     }`}
                     title="ปากกา"
                   >
-                    <Pencil size={13} />
+                    <Pencil size={12} />
                   </button>
                   <button
                     onClick={() => setActiveTool('eraser')}
@@ -436,12 +456,12 @@ export function NoteEditor({
                     }`}
                     title="ยางลบ"
                   >
-                    <Eraser size={13} />
+                    <Eraser size={12} />
                   </button>
                 </div>
 
                 {/* Pen colors */}
-                <div className="flex gap-1">
+                <div className="flex gap-1 bg-white dark:bg-[#1e1e38] p-1 rounded-lg border border-slate-200 dark:border-[#252548]">
                   {PEN_COLORS.map((c) => (
                     <button
                       key={c}
@@ -449,7 +469,7 @@ export function NoteEditor({
                         setPenColor(c)
                         setActiveTool('pen')
                       }}
-                      className={`w-4 h-4 rounded-full border border-white/50 transition-transform hover:scale-110 ${
+                      className={`w-3.5 h-3.5 rounded-full border border-white/50 transition-transform hover:scale-110 ${
                         penColor === c && activeTool === 'pen' ? 'ring-2 ring-primary-500 scale-110' : ''
                       }`}
                       style={{ backgroundColor: c }}
@@ -461,17 +481,17 @@ export function NoteEditor({
                 <div className="flex gap-1">
                   <button
                     onClick={undoStroke}
-                    className="px-2 py-0.5 rounded bg-slate-100 dark:bg-[#1e1e38] hover:bg-slate-200 text-xs text-slate-600 dark:text-slate-300 transition-all"
+                    className="px-2 py-1 rounded-lg bg-white dark:bg-[#1e1e38] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 text-[10px] font-bold text-slate-600 dark:text-slate-300 transition-all shadow-xs"
                     title="ย้อนกลับ"
                   >
                     ย้อนกลับ
                   </button>
                   <button
                     onClick={clearCanvas}
-                    className="p-1 rounded bg-red-50 dark:bg-red-950/30 text-red-500 hover:bg-red-100 transition-all"
+                    className="p-1 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-500 hover:bg-red-100 transition-all border border-red-100 dark:border-red-900/30"
                     title="ล้างทั้งหมด"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </div>
@@ -481,12 +501,12 @@ export function NoteEditor({
           {/* Canvas container */}
           <div
             className="relative flex-1 border border-slate-200 dark:border-[#1c1c34] rounded-2xl overflow-hidden bg-white dark:bg-[#060613]"
-            style={{ minHeight: 300, cursor: canEdit ? (activeTool === 'eraser' ? 'cell' : 'crosshair') : 'default' }}
+            style={{ minHeight: 350, cursor: canEdit ? (activeTool === 'eraser' ? 'cell' : 'crosshair') : 'default' }}
           >
             {strokes.length === 0 && !isDrawing && !backgroundImage && canEdit && (
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4 text-center">
-                <Pencil size={24} className="text-slate-300 dark:text-slate-700 mb-1" />
-                <p className="text-xs text-slate-400 dark:text-slate-600">วาดเขียนหรือแนบรูปภาพอธิบายหน้างานได้ที่นี่</p>
+                <Pencil size={20} className="text-slate-300 dark:text-slate-700 mb-1" />
+                <p className="text-[11px] text-slate-400 dark:text-slate-600">วาดเขียนจดโน้ต หรือแนบรูปภาพอธิบายหน้างานได้ที่นี่</p>
               </div>
             )}
             <canvas

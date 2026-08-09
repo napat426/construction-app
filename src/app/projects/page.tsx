@@ -18,19 +18,21 @@ import { Bookmark } from 'lucide-react'
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes] = await Promise.all([
+  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes, milestonesRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single(),
     supabase.from('system_settings').select('*').eq('key', 'ai_ocr_enabled').single(),
     supabase.from('contract_amendments').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'work_groups').single(),
+    supabase.from('project_milestones').select('*'),
   ])
 
   const projects: Project[] = (projectsRes.data as Project[]) ?? []
   const error = projectsRes.error
   const tasks = tasksRes.data ?? []
   const amendments = amendmentsRes.data ?? []
+  const milestones = milestonesRes.data ?? []
   const aiEnabled = settingsRes.data?.value === 'true' || settingsRes.data?.value === true
   const aiOcrEnabled = ocrSettingsRes.data?.value === 'true' || ocrSettingsRes.data?.value === true
   
@@ -87,6 +89,7 @@ export default async function ProjectsPage() {
           <ProjectsClient 
             initialProjects={projects} 
             initialTasks={tasks} 
+            initialMilestones={milestones}
             amendments={amendments} 
             user={user} 
             aiEnabled={aiEnabled} 

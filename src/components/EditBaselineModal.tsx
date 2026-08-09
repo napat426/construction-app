@@ -405,17 +405,31 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
             </div>
           </div>
 
-          <div>
-            <label className={labelCls} htmlFor="budget">งบประมาณทั้งหมด (บาท)</label>
-            <input
-              id="budget"
-              name="budget"
-              type="number"
-              min="0"
-              step="10000"
-              defaultValue={project.budget || ''}
-              className={inputCls}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls} htmlFor="budget">งบประมาณทั้งหมด (บาท)</label>
+              <input
+                id="budget"
+                name="budget"
+                type="number"
+                min="0"
+                step="10000"
+                defaultValue={project.budget || ''}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="opening_pr">ยอดเปิด PR (บาท)</label>
+              <input
+                id="opening_pr"
+                name="opening_pr"
+                type="number"
+                min="0"
+                step="10000"
+                defaultValue={project.opening_pr || 0}
+                className={inputCls}
+              />
+            </div>
           </div>
 
           <hr className="border-slate-100 dark:border-[#1e1e38]" />
@@ -445,7 +459,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                   <th className="p-3 w-24">งวด</th>
                   <th className="p-3">ครอบคลุมงาน</th>
                   <th className="p-3 w-36">มูลค่างวด (฿)</th>
-                  <th className="p-3 w-16 text-center">ส่งแล้ว</th>
+                  <th className="p-3 w-32">สถานะการเงิน</th>
                   <th className="p-3 w-32">คาดการณ์เบิกจ่าย</th>
                   <th className="p-3 w-32">จ่ายจริง</th>
                   <th className="p-3 w-28">จ่ายสะสม</th>
@@ -454,13 +468,15 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1e1e38]">
                 {localMilestones.map((m, idx) => {
+                  const isPaid = m.status === 'Paid' || m.is_paid
                   let cumSum = 0
                   for (let j = 0; j <= idx; j++) {
-                    if (localMilestones[j].is_paid) {
+                    const isJPaid = localMilestones[j].status === 'Paid' || localMilestones[j].is_paid
+                    if (isJPaid) {
                       cumSum += Number(localMilestones[j].amount) || 0
                     }
                   }
-                  const cumDisplay = m.is_paid ? `฿ ${cumSum.toLocaleString()}` : '—'
+                  const cumDisplay = isPaid ? `฿ ${cumSum.toLocaleString()}` : '—'
 
                   return (
                     <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-[#14142a]/30">
@@ -486,19 +502,36 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                           className="w-full bg-transparent border-0 focus:ring-0 p-0 text-slate-950 dark:text-white placeholder-slate-400 font-mono font-bold focus:outline-none"
                         />
                       </td>
-                      <td className="p-3 text-center">
-                        <input
-                          type="checkbox"
-                          checked={m.is_paid}
-                          onChange={(e) => handleUpdateMilestone(idx, 'is_paid', e.target.checked)}
-                          className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 w-4 h-4 bg-transparent"
-                        />
+                      <td className="p-3">
+                        <select
+                          value={m.status || (m.is_paid ? 'Paid' : 'Pending')}
+                          onChange={(e) => {
+                            const newStatus = e.target.value
+                            const isPaidNow = newStatus === 'Paid'
+                            const updated = [...localMilestones]
+                            updated[idx] = {
+                              ...updated[idx],
+                              status: newStatus,
+                              is_paid: isPaidNow,
+                              payment_date: isPaidNow ? updated[idx].payment_date || new Date().toISOString().split('T')[0] : null
+                            }
+                            setLocalMilestones(updated)
+                          }}
+                          className="w-full bg-transparent border-0 focus:ring-0 p-0 text-slate-950 dark:text-white text-xs font-semibold focus:outline-none cursor-pointer"
+                        >
+                          <option value="Pending" className="text-slate-800 dark:text-white dark:bg-[#13132a]">1. รอดำเนินการ</option>
+                          <option value="PR" className="text-slate-800 dark:text-white dark:bg-[#13132a]">2. ขออนุมัติจัดจ้าง (PR)</option>
+                          <option value="PO" className="text-slate-800 dark:text-white dark:bg-[#13132a]">3. ทำสัญญาแล้ว (PO)</option>
+                          <option value="GR" className="text-slate-800 dark:text-white dark:bg-[#13132a]">4. ตรวจรับมอบแล้ว (GR)</option>
+                          <option value="IR" className="text-slate-800 dark:text-white dark:bg-[#13132a]">5. ตั้งหนี้แจ้งหนี้ (IR)</option>
+                          <option value="Paid" className="text-slate-800 dark:text-white dark:bg-[#13132a]">6. จ่ายเงินแล้ว (Paid)</option>
+                        </select>
                       </td>
                       <td className="p-3">
                         <input
                           type="date"
                           value={m.expected_payment_date || ''}
-                          disabled={m.is_paid}
+                          disabled={isPaid}
                           onChange={(e) => handleUpdateMilestone(idx, 'expected_payment_date', e.target.value)}
                           className="w-full bg-transparent border-0 focus:ring-0 p-0 text-slate-950 dark:text-white disabled:opacity-30 disabled:cursor-not-allowed text-xs focus:outline-none"
                         />
@@ -507,7 +540,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                         <input
                           type="date"
                           value={m.payment_date || ''}
-                          disabled={!m.is_paid}
+                          disabled={!isPaid}
                           onChange={(e) => handleUpdateMilestone(idx, 'payment_date', e.target.value)}
                           className="w-full bg-transparent border-0 focus:ring-0 p-0 text-slate-950 dark:text-white disabled:opacity-30 disabled:cursor-not-allowed text-xs focus:outline-none"
                         />

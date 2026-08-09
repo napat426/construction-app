@@ -26,9 +26,10 @@ export async function saveMilestones(projectId: string, milestones: ProjectMiles
       name: m.name || `งวดที่ ${idx + 1}`,
       work_scope: m.work_scope || null,
       amount: Number(m.amount) || 0,
-      is_paid: !!m.is_paid,
+      is_paid: m.status === 'Paid' || !!m.is_paid,
       payment_date: m.payment_date || null,
-      expected_payment_date: m.expected_payment_date || null
+      expected_payment_date: m.expected_payment_date || null,
+      status: m.status || (m.is_paid ? 'Paid' : 'Pending')
     }))
 
     const { error: insErr } = await supabase
@@ -43,7 +44,7 @@ export async function saveMilestones(projectId: string, milestones: ProjectMiles
 
   // 3. Calculate total paid amount
   const totalPaid = milestones
-    .filter(m => m.is_paid)
+    .filter(m => m.status === 'Paid' || m.is_paid)
     .reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
 
   // 4. Update project paid_amount in DB

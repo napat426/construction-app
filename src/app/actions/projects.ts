@@ -23,6 +23,8 @@ export async function createProject(
   const budget      = budgetRaw ? parseFloat(budgetRaw) : null
   const start_date  = (formData.get('start_date') as string)         || null
   const end_date    = (formData.get('end_date') as string)           || null
+  const opening_prRaw = formData.get('opening_pr') as string
+  const opening_pr    = opening_prRaw ? parseFloat(opening_prRaw) : 0
   const progressRaw = formData.get('progress') as string
   const progress    = progressRaw ? Math.max(0, Math.min(100, parseInt(progressRaw, 10))) : 0
 
@@ -48,6 +50,7 @@ export async function createProject(
     contract_no,
     work_group,
     wbs_no,
+    opening_pr: opening_pr && !isNaN(opening_pr) ? opening_pr : 0,
   }
 
   if (line_token) {
@@ -106,6 +109,8 @@ export async function updateProjectBaseline(
   
   const start_date         = (formData.get('start_date') as string) || null
   const end_date           = (formData.get('end_date') as string) || null
+  const opening_prRaw      = formData.get('opening_pr') as string
+  const opening_pr         = opening_prRaw ? parseFloat(opening_prRaw) : 0
   
   if (start_date && end_date && new Date(start_date) >= new Date(end_date)) {
     return { error: 'วันสิ้นสุดสัญญาต้องมาหลังวันเริ่มต้น' }
@@ -141,6 +146,7 @@ export async function updateProjectBaseline(
     contract_no,
     work_group,
     wbs_no,
+    opening_pr: opening_pr && !isNaN(opening_pr) ? opening_pr : 0,
   }
 
   if (line_token !== null) {

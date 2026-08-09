@@ -25,6 +25,7 @@ export interface Project {
   contract_no: string | null
   work_group: string | null
   wbs_no?: string | null
+  opening_pr?: number
   created_at: string
 }
 
@@ -66,6 +67,7 @@ export interface ProjectMilestone {
   is_paid: boolean
   payment_date: string | null
   expected_payment_date?: string | null
+  status?: string
   created_at?: string
 }
 

@@ -1,17 +1,19 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, Search, SlidersHorizontal, FolderOpen, Building2, TrendingUp } from 'lucide-react'
+import { Plus, Search, SlidersHorizontal, FolderOpen, Building2, TrendingUp, DollarSign, ChevronDown, ChevronUp, Download } from 'lucide-react'
 import Link from 'next/link'
 import { ProjectCard } from './ProjectCard'
 import { CreateProjectModal } from './CreateProjectModal'
 import { AIAssistantSection } from './ai/AIAssistantSection'
-import type { Project, WBSTask, ContractAmendment } from '@/lib/types'
+import { DisbursementsView } from './DisbursementsView'
+import type { Project, WBSTask, ContractAmendment, ProjectMilestone } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
 interface ProjectsClientProps {
   initialProjects: Project[]
   initialTasks: WBSTask[]
+  initialMilestones: ProjectMilestone[]
   amendments?: ContractAmendment[]
   user?: UserSession | null
   aiEnabled?: boolean
@@ -22,6 +24,7 @@ interface ProjectsClientProps {
 export function ProjectsClient({ 
   initialProjects, 
   initialTasks, 
+  initialMilestones,
   amendments = [], 
   user, 
   aiEnabled = false,
@@ -29,6 +32,9 @@ export function ProjectsClient({
   workGroups = []
 }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDisbursements, setShowDisbursements] = useState(false)
+  const [exVatEnabled, setExVatEnabled] = useState(true)
+  const [expandedProjects, setExpandedProjects] = useState<string[]>([])
   const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>(() =>
     [...new Set(initialProjects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort()
   )
@@ -360,6 +366,18 @@ export function ProjectsClient({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowDisbursements(!showDisbursements)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold border transition-colors cursor-pointer ${
+              showDisbursements
+                ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600'
+                : 'bg-white dark:bg-[#1a1a36] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-[#252548] hover:bg-slate-50'
+            }`}
+          >
+            <DollarSign size={16} className={showDisbursements ? 'text-white' : 'text-amber-500'} />
+            การเบิกจ่าย
+          </button>
+
           <Link
             href="/portfolio"
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#252548] transition-colors cursor-pointer"
@@ -392,19 +410,29 @@ export function ProjectsClient({
         </p>
       )}
 
-      {/* ── Projects grid ── */}
+      {/* ── Projects grid or Disbursements ── */}
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              tasks={initialTasks.filter((t) => t.project_id === project.id)}
-              amendments={amendments.filter((a) => a.project_id === project.id)}
-              user={user}
-            />
-          ))}
-        </div>
+        showDisbursements ? (
+          <DisbursementsView
+            projects={filtered}
+            milestones={initialMilestones}
+            tasks={initialTasks}
+            exVatEnabled={exVatEnabled}
+            setExVatEnabled={setExVatEnabled}
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                tasks={initialTasks.filter((t) => t.project_id === project.id)}
+                amendments={amendments.filter((a) => a.project_id === project.id)}
+                user={user}
+              />
+            ))}
+          </div>
+        )
       ) : (
         /* Empty state */
         <div className="flex flex-col items-center justify-center py-24 text-center">

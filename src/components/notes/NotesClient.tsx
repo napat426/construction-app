@@ -363,15 +363,15 @@ function NoteCard({
 }: NoteCardProps) {
   return (
     <div
-      className={`relative group rounded-2xl border-2 transition-all cursor-pointer overflow-hidden hover:shadow-md hover:-translate-y-0.5 ${
+      className={`relative group rounded-2xl border-2 transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${
         isOpen
           ? 'border-primary-500 shadow-md shadow-primary-100 dark:shadow-primary-900/30'
           : 'border-transparent hover:border-slate-200 dark:hover:border-[#252548]'
-      }`}
+      } ${note.color === '#ffffff' ? 'bg-white dark:bg-[#13132a]' : ''} ${showColorPicker ? 'z-20' : ''}`}
       style={{ backgroundColor: note.color === '#ffffff' ? undefined : note.color }}
       onClick={onClick}
     >
-      <div className={`p-4 ${note.color === '#ffffff' ? 'bg-white dark:bg-[#13132a]' : ''}`}>
+      <div className="p-4">
         {/* Pin badge */}
         {note.is_pinned && (
           <div className="absolute top-2 right-2">

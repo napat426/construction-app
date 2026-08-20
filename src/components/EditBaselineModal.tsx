@@ -456,13 +456,13 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 dark:bg-[#14142a] text-slate-400 dark:text-slate-500 uppercase font-bold text-[10px] tracking-wider border-b border-slate-100 dark:border-[#1e1e38]">
-                  <th className="p-3 w-24">งวด</th>
+                  <th className="p-3 w-20">งวด</th>
                   <th className="p-3">ครอบคลุมงาน</th>
-                  <th className="p-3 w-36">มูลค่างวด (฿)</th>
-                  <th className="p-3 w-32">สถานะการเงิน</th>
-                  <th className="p-3 w-32">คาดการณ์เบิกจ่าย</th>
-                  <th className="p-3 w-32">จ่ายจริง</th>
-                  <th className="p-3 w-28">จ่ายสะสม</th>
+                  <th className="p-3 w-28">มูลค่างวด (฿)</th>
+                  <th className="p-3 w-48">สถานะการเงิน</th>
+                  <th className="p-3 w-28">คาดการณ์เบิกจ่าย</th>
+                  <th className="p-3 w-28">จ่ายจริง</th>
+                  <th className="p-3 w-32">จ่ายสะสม</th>
                   <th className="p-3 w-10"></th>
                 </tr>
               </thead>

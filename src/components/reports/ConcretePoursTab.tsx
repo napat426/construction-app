@@ -130,6 +130,16 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
         .whitespace-nowrap {
           white-space: nowrap !important;
         }
+        th.print-structure-col, td.print-structure-col {
+          width: 140px !important;
+          max-width: 140px !important;
+          white-space: normal !important;
+          word-wrap: break-word !important;
+        }
+        th.print-curing-col, td.print-curing-col {
+          width: 320px !important;
+          min-width: 320px !important;
+        }
       `}</style>
       
       {/* ── Control Bar ── */}
@@ -202,10 +212,10 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                   <th className="px-4 py-3 w-10 text-center print:hidden"></th>
                 )}
                 <th className="px-3 py-3 text-center whitespace-nowrap w-[14%] min-w-[110px]">เลขที่ / วันที่เท</th>
-                <th className="px-3 py-3 text-center w-[20%] min-w-[140px] max-w-[180px] print:w-[130px]">ส่วนโครงสร้าง / กำลังอัด</th>
+                <th className="px-3 py-3 text-center w-[20%] min-w-[140px] max-w-[180px] print-structure-col">ส่วนโครงสร้าง / กำลังอัด</th>
                 <th className="px-3 py-3 text-center whitespace-nowrap w-[10%] min-w-[80px]">ปริมาณ (m³)</th>
                 <th className="px-3 py-3 text-center whitespace-nowrap w-[12%] min-w-[100px]">สลัมป์ (จริง/สเปก)</th>
-                <th className="px-3 py-3 text-center w-[44%] min-w-[280px]">สถานะการบ่ม (28 วัน)</th>
+                <th className="px-3 py-3 text-center w-[44%] min-w-[280px] print-curing-col">สถานะการบ่ม (28 วัน)</th>
                 {user && (user.role === 'admin' || user.role === 'editor') && (
                   <th className="px-3 py-3 w-20 text-center print:hidden">จัดการ</th>
                 )}
@@ -273,7 +283,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                         {new Date(pour.pour_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
                       </div>
                     </td>
-                    <td className="px-4 py-3 max-w-[180px] print:max-w-[130px] break-words">
+                    <td className="px-4 py-3 max-w-[180px] print:max-w-[130px] break-words print-structure-col">
                       <div className="font-bold text-slate-900 dark:text-white print:text-black">{pour.structure_element || '-'}</div>
                       <div className="text-xs mt-0.5 text-slate-500">
                         {pour.concrete_grade || 'ไม่ระบุกำลังอัด'}
@@ -300,7 +310,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                         </div>
                       ) : '-'}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 print-curing-col">
                       <div className="flex flex-col gap-1.5 min-w-[240px]">
                         {/* 7 Days Curing */}
                         <div className="flex items-center justify-between text-xs gap-2">

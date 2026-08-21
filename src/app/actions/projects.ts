@@ -4,6 +4,32 @@ import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { ActionState } from '@/lib/types'
 
+const DEFAULT_WBS_TASKS = [
+  { wbs_no: '1', name: 'งานเตรียมพื้นที่และวางผังอาคาร', duration: 5, predecessors: null },
+  { wbs_no: '2', name: 'งานตอกเสาเข็ม / เจาะเสาเข็ม', duration: 7, predecessors: '1' },
+  { wbs_no: '3', name: 'งานขุดดินเปิดหน้าดิน และตัดหัวเสาเข็ม', duration: 5, predecessors: '2' },
+  { wbs_no: '4', name: 'งานเทลีน เข้าแบบ ผูกเหล็ก และเทคอนกรีตฐานราก (Footing)', duration: 7, predecessors: '3' },
+  { wbs_no: '5', name: 'งานเข้าแบบ ผูกเหล็ก และเทคอนกรีตเสาตอม่อ', duration: 5, predecessors: '4' },
+  { wbs_no: '6', name: 'งานเข้าแบบ ผูกเหล็ก และเทคอนกรีตคานคอดิน (คานชั้น 1)', duration: 8, predecessors: '5' },
+  { wbs_no: '7', name: 'งานวางระบบท่อสุขาภิบาลใต้พื้น และเทคอนกรีตพื้นชั้น 1', duration: 7, predecessors: '6' },
+  { wbs_no: '8', name: 'งานเข้าแบบ ผูกเหล็ก และเทคอนกรีตเสาชั้น 1', duration: 6, predecessors: '7' },
+  { wbs_no: '9', name: 'งานค้ำยัน เข้าแบบ ผูกเหล็ก และเทคอนกรีตคานชั้น 2', duration: 8, predecessors: '8' },
+  { wbs_no: '10', name: 'งานวางแผ่นพื้นสำเร็จรูป / หล่อพื้น คสล. ชั้น 2', duration: 7, predecessors: '9' },
+  { wbs_no: '11', name: 'งานเข้าแบบ ผูกเหล็ก และเทคอนกรีตเสาชั้น 2', duration: 6, predecessors: '10' },
+  { wbs_no: '12', name: 'งานเข้าแบบ ผูกเหล็ก และเทคอนกรีตคานรับหลังคา (คานรัดหัวเสา)', duration: 7, predecessors: '11' },
+  { wbs_no: '13', name: 'งานติดตั้งโครงสร้างหลังคาเหล็ก มุงแผ่นหลังคา และเชิงชาย', duration: 10, predecessors: '12' },
+  { wbs_no: '14', name: 'งานติดตั้งวงกบ และก่ออิฐผนังทั้งหมด (ชั้น 1 และ ชั้น 2)', duration: 12, predecessors: '13' },
+  { wbs_no: '15', name: 'งานกรีดผนังฝังท่อร้อยสายไฟ ท่อน้ำดี ท่อน้ำทิ้ง และท่อน้ำยาแอร์', duration: 9, predecessors: '14' },
+  { wbs_no: '16', name: 'งานจับเซี้ยม และฉาบปูนผนังทั้งหมด (ภายในและภายนอกอาคาร)', duration: 14, predecessors: '15' },
+  { wbs_no: '17', name: 'งานติดตั้งโครงคร่าวและแผ่นฝ้าเพดาน (ภายในและภายนอก)', duration: 9, predecessors: '16' },
+  { wbs_no: '18', name: 'งานระบบกันซึม และงานปูกระเบื้องทั้งหมด (พื้นห้องโถง ผนัง/พื้นห้องน้ำ ระเบียง)', duration: 12, predecessors: '17' },
+  { wbs_no: '19', name: 'งานติดตั้งบานประตู หน้าต่าง กระจก ราวบันได และอุปกรณ์สุขภัณฑ์', duration: 10, predecessors: '18' },
+  { wbs_no: '20', name: 'งานทาสีรองพื้นและทาสีจริงทั้งหมด (ภายในและภายนอกอาคาร)', duration: 10, predecessors: '19' },
+  { wbs_no: '21', name: 'งานดึงสายไฟ ติดตั้งดวงโคม สวิตช์ ปลั๊ก ตู้ไฟ MDB และติดตั้งแอร์', duration: 9, predecessors: '20' },
+  { wbs_no: '22', name: 'งานปรับภูมิทัศน์ วางท่อระบายน้ำรอบบ้าน และเทพื้นลานคอนกรีต', duration: 8, predecessors: '21' },
+  { wbs_no: '23', name: 'งานเก็บความเรียบร้อย (Defect Touch-up), ทำความสะอาด และส่งมอบ', duration: 7, predecessors: '22' }
+]
+
 /* ── Create project ── */
 export async function createProject(
   prevState: ActionState,
@@ -57,10 +83,35 @@ export async function createProject(
     insertPayload.line_token = line_token
   }
 
-  const { error } = await supabase.from('projects').insert(insertPayload)
+  const { data: newProj, error } = await supabase
+    .from('projects')
+    .insert(insertPayload)
+    .select('id, start_date')
+    .single()
 
-  if (error) {
-    return { error: `บันทึกไม่สำเร็จ: ${error.message}` }
+  if (error || !newProj) {
+    return { error: `บันทึกไม่สำเร็จ: ${error?.message || 'ไม่สามารถรับข้อมูลโครงการที่สร้างใหม่'}` }
+  }
+
+  // Pre-populate default WBS tasks
+  const defaultTasksPayload = DEFAULT_WBS_TASKS.map(t => ({
+    project_id: newProj.id,
+    wbs_no: t.wbs_no,
+    name: t.name,
+    cost: 0,
+    start_date: t.predecessors ? null : (newProj.start_date || new Date().toISOString().split('T')[0]),
+    duration: t.duration,
+    predecessors: t.predecessors,
+    actual_progress: 0,
+    is_milestone: false,
+  }))
+
+  const { error: tasksError } = await supabase
+    .from('tasks')
+    .insert(defaultTasksPayload)
+
+  if (tasksError) {
+    console.error('Error pre-populating WBS tasks:', tasksError)
   }
 
   revalidatePath('/projects')

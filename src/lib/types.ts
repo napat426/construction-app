@@ -157,6 +157,7 @@ export interface ConcretePour {
   concrete_grade?: string
   slump_spec?: number
   slump_actual?: number
+  slump_tolerance?: number
   volume?: number
   supplier?: string
   ticket_no?: string

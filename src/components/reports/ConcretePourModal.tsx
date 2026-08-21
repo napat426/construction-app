@@ -43,7 +43,8 @@ export function ConcretePourModal({ project_id, tasks, initialData, existingPour
   
   // States for numbers to avoid leading zeros and allow empty
   const [volume, setVolume] = useState(initialData?.volume?.toString() || '')
-  const [slumpSpec, setSlumpSpec] = useState(initialData?.slump_spec?.toString() || '')
+  const [slumpSpec, setSlumpSpec] = useState(initialData ? (initialData.slump_spec?.toString() ?? '') : '7.5')
+  const [slumpTolerance, setSlumpTolerance] = useState(initialData ? (initialData.slump_tolerance?.toString() ?? '2.5') : '2.5')
   const [slumpActual, setSlumpActual] = useState(initialData?.slump_actual?.toString() || '')
   const [cubeSamples, setCubeSamples] = useState(initialData?.cube_samples?.toString() || '')
 
@@ -137,7 +138,7 @@ export function ConcretePourModal({ project_id, tasks, initialData, existingPour
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
               <div>
                 <label className={labelCls}>ปริมาณ (ลบ.ม.)</label>
                 <input name="volume" type="number" step="0.01" value={volume} onChange={e => setVolume(parseInputNumber(e.target.value))} className={inputCls} />
@@ -145,6 +146,10 @@ export function ConcretePourModal({ project_id, tasks, initialData, existingPour
               <div>
                 <label className={labelCls}>สลัมป์สเปก (ซม.)</label>
                 <input name="slump_spec" type="number" step="0.1" value={slumpSpec} onChange={e => setSlumpSpec(parseInputNumber(e.target.value))} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>ค่าบวก-ลบ (ซม.)</label>
+                <input name="slump_tolerance" type="number" step="0.1" value={slumpTolerance} onChange={e => setSlumpTolerance(parseInputNumber(e.target.value))} className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>สลัมป์จริง (ซม.)</label>

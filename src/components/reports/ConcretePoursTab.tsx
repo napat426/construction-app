@@ -234,7 +234,8 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                 // Slump Warning Logic
                 let slumpWarning = false
                 if (pour.slump_actual != null && pour.slump_spec != null) {
-                  if (Math.abs(pour.slump_actual - pour.slump_spec) > 2.5) {
+                  const tolerance = pour.slump_tolerance ?? 2.5
+                  if (Math.abs(pour.slump_actual - pour.slump_spec) > tolerance) {
                     slumpWarning = true
                   }
                 }
@@ -306,6 +307,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                           {slumpWarning ? <AlertTriangle size={12} /> : null}
                           <span className="font-mono font-bold text-xs">
                             {pour.slump_actual ?? '-'} / {pour.slump_spec ?? '-'}
+                            {pour.slump_spec != null && ` (±${pour.slump_tolerance ?? 2.5})`}
                           </span>
                         </div>
                       ) : '-'}

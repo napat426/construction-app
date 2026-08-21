@@ -99,7 +99,7 @@ export async function createProject(
     wbs_no: t.wbs_no,
     name: t.name,
     cost: 0,
-    start_date: t.predecessors ? null : (newProj.start_date || new Date().toISOString().split('T')[0]),
+    start_date: newProj.start_date || new Date().toISOString().split('T')[0],
     duration: t.duration,
     predecessors: t.predecessors,
     actual_progress: 0,

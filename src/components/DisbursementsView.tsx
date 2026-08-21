@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { ChevronDown, ChevronUp, Download, CheckCircle } from 'lucide-react'
 import type { Project, ProjectMilestone, WBSTask } from '@/lib/types'
+import { PaymentForecastChart } from './portfolio/PaymentForecastChart'
 
 interface DisbursementsViewProps {
   projects: Project[]
@@ -464,6 +465,15 @@ export function DisbursementsView({
             </tr>
           </tbody>
         </table>
+      </div>
+
+      {/* Monthly Payout Forecast */}
+      <div className="mt-6">
+        <PaymentForecastChart
+          milestones={milestones}
+          projects={projects}
+          exVatEnabled={exVatEnabled}
+        />
       </div>
     </div>
   )

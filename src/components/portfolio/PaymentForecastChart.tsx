@@ -8,6 +8,7 @@ import { Calendar, Filter, EyeOff } from 'lucide-react'
 interface PaymentForecastChartProps {
   milestones: ProjectMilestone[]
   projects: Project[]
+  exVatEnabled?: boolean
 }
 
 // Clean and reusable dropdown component for metadata filtering
@@ -102,9 +103,11 @@ function FilterDropdown({
   )
 }
 
-export function PaymentForecastChart({ milestones, projects }: PaymentForecastChartProps) {
+export function PaymentForecastChart({ milestones, projects, exVatEnabled = false }: PaymentForecastChartProps) {
   // 1. Basic Filtering (get unpaid milestones only)
-  const forecastMilestones = useMemo(() => milestones.filter(m => !m.is_paid), [milestones])
+  const forecastMilestones = useMemo(() => {
+    return milestones.filter(m => (m.status || (m.is_paid ? 'Paid' : 'Pending')) !== 'Paid')
+  }, [milestones])
 
   // Extract unique metadata options from all projects
   const allSupervisors = useMemo(() => {
@@ -185,6 +188,11 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
     const grouped: Record<string, { dateObj: Date, total: number, unassigned: number, [key: string]: any }> = {}
     let unassigned = 0
 
+    const adjustVal = (num: number) => {
+      const adjusted = exVatEnabled ? num / 1.07 : num
+      return Math.round(adjusted)
+    }
+
     forecastMilestones.forEach(m => {
       const p = projects.find(proj => proj.id === m.project_id)
       const pName = p ? p.name : 'Unknown Project'
@@ -195,7 +203,7 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
 
       if (!m.expected_payment_date) {
         if (selectedProjects.includes(pName)) {
-           unassigned += Number(m.amount) || 0
+           unassigned += adjustVal(Number(m.amount) || 0)
         }
         return
       }
@@ -219,14 +227,14 @@ export function PaymentForecastChart({ milestones, projects }: PaymentForecastCh
         grouped[sortKey][pName] = 0
       }
       
-      grouped[sortKey][pName] += Number(m.amount) || 0
+      grouped[sortKey][pName] += adjustVal(Number(m.amount) || 0)
     })
 
     return {
       grouped,
       totalUnassigned: unassigned
     }
-  }, [forecastMilestones, projects, selectedProjects, filteredProjectsByMetaData])
+  }, [forecastMilestones, projects, selectedProjects, filteredProjectsByMetaData, exVatEnabled])
 
   const allMonthsSorted = useMemo(() => {
     return Object.values(rawGroupedData.grouped).sort((a, b) => a.sortKey.localeCompare(b.sortKey))

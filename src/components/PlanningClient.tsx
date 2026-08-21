@@ -657,10 +657,11 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                             {formatDate(t.computedEndDate)}
                           </td>
                           <td className="py-2 px-2">
-                            <div className="flex items-center gap-1 min-w-[160px]">
+                            <div className="flex items-center gap-1 min-w-[170px]">
                               <input
                                 type="text"
-                                className="input-base w-12 px-1 py-0.5 text-xs text-center font-mono"
+                                className="input-base w-12 px-1 py-0.5 text-xs text-center font-mono flex-shrink-0"
+                                style={{ padding: '2px 4px' }}
                                 value={inputPredWbs}
                                 onChange={(e) => {
                                   const val = e.target.value
@@ -670,7 +671,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                                 placeholder="เลขงาน"
                               />
                               <select
-                                className="input-base w-14 px-1 py-0.5 text-xs"
+                                className="input-base w-16 px-1 py-0.5 text-xs flex-shrink-0"
+                                style={{ padding: '2px 4px' }}
                                 value={inputPredType}
                                 onChange={(e) => {
                                   const val = e.target.value as any
@@ -685,7 +687,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               </select>
                               <input
                                 type="number"
-                                className="input-base w-12 px-1 py-0.5 text-xs text-center"
+                                className="input-base w-12 px-1 py-0.5 text-xs text-center flex-shrink-0"
+                                style={{ padding: '2px 4px' }}
                                 value={inputPredLag}
                                 onChange={(e) => {
                                   const val = e.target.value
@@ -901,10 +904,11 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                     </td>
                     <td className="py-2 px-2 font-mono text-slate-400 text-xs">—</td>{/* end date placeholder */}
                      <td className="py-2 px-2">
-                       <div className="flex items-center gap-1 min-w-[160px]">
+                       <div className="flex items-center gap-1 min-w-[170px]">
                          <input
                            type="text"
-                           className="input-base w-12 px-1 py-0.5 text-xs text-center font-mono"
+                           className="input-base w-12 px-1 py-0.5 text-xs text-center font-mono flex-shrink-0"
+                           style={{ padding: '2px 4px' }}
                            value={inputPredWbs}
                            onChange={(e) => {
                              const val = e.target.value
@@ -914,7 +918,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                            placeholder="เลขงาน"
                          />
                          <select
-                           className="input-base w-14 px-1 py-0.5 text-xs"
+                           className="input-base w-16 px-1 py-0.5 text-xs flex-shrink-0"
+                           style={{ padding: '2px 4px' }}
                            value={inputPredType}
                            onChange={(e) => {
                              const val = e.target.value as any
@@ -929,7 +934,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                          </select>
                          <input
                            type="number"
-                           className="input-base w-12 px-1 py-0.5 text-xs text-center"
+                           className="input-base w-12 px-1 py-0.5 text-xs text-center flex-shrink-0"
+                           style={{ padding: '2px 4px' }}
                            value={inputPredLag}
                            onChange={(e) => {
                              const val = e.target.value

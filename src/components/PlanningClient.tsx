@@ -783,7 +783,6 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               </button>
                             </div>
                           </td>
-                          <td className="py-2 px-2" />
                         </tr>
                       )
                     }

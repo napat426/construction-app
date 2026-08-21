@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import Link from 'next/link'
-import { MapPin, User, Calendar, DollarSign, Trash2, AlertTriangle } from 'lucide-react'
+import { MapPin, User, Calendar, DollarSign, Trash2, AlertTriangle, ClipboardCheck } from 'lucide-react'
 import { deleteProject } from '@/app/actions/projects'
 import type { Project, WBSTask, ContractAmendment } from '@/lib/types'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
@@ -282,6 +282,17 @@ export function ProjectCard({ project, tasks = [], amendments = [], user }: Proj
               style={{ width: `${progressClamped}%` }}
             />
           </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-4">
+          <Link
+            href={`/projects/${project.id}/reports`}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-500/10 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 transition-all border border-primary-100 dark:border-primary-500/20"
+          >
+            <ClipboardCheck size={14} />
+            จัดการการตรวจสอบคุณภาพ
+          </Link>
         </div>
 
         {/* Delete button */}

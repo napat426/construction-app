@@ -201,11 +201,11 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                 {user && (user.role === 'admin' || user.role === 'editor') && (
                   <th className="px-4 py-3 w-10 text-center print:hidden"></th>
                 )}
-                <th className="px-3 py-3 text-center whitespace-nowrap">เลขที่ / วันที่เท</th>
-                <th className="px-3 py-3 text-center">ส่วนโครงสร้าง / กำลังอัด</th>
-                <th className="px-3 py-3 text-center whitespace-nowrap">ปริมาณ (m³)</th>
-                <th className="px-3 py-3 text-center whitespace-nowrap">สลัมป์ (จริง/สเปก)</th>
-                <th className="px-3 py-3 text-center whitespace-nowrap min-w-[250px]">สถานะการบ่ม (28 วัน)</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap w-[14%] min-w-[110px]">เลขที่ / วันที่เท</th>
+                <th className="px-3 py-3 text-center w-[20%] min-w-[140px] max-w-[180px] print:w-[130px]">ส่วนโครงสร้าง / กำลังอัด</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap w-[10%] min-w-[80px]">ปริมาณ (m³)</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap w-[12%] min-w-[100px]">สลัมป์ (จริง/สเปก)</th>
+                <th className="px-3 py-3 text-center w-[44%] min-w-[280px]">สถานะการบ่ม (28 วัน)</th>
                 {user && (user.role === 'admin' || user.role === 'editor') && (
                   <th className="px-3 py-3 w-20 text-center print:hidden">จัดการ</th>
                 )}
@@ -273,7 +273,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
                         {new Date(pour.pour_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 max-w-[180px] print:max-w-[130px] break-words">
                       <div className="font-bold text-slate-900 dark:text-white print:text-black">{pour.structure_element || '-'}</div>
                       <div className="text-xs mt-0.5 text-slate-500">
                         {pour.concrete_grade || 'ไม่ระบุกำลังอัด'}

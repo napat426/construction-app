@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
+import { useState, useMemo, useTransition, useRef } from 'react'
 import {
   Plus,
   Edit2,
@@ -72,6 +72,9 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
 
   // Inline edit state
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+
+  // Ref to preserve scroll position of the WBS table when entering edit mode
+  const tableScrollRef = useRef<HTMLDivElement>(null)
   
   // Local states for inputs in editing mode
   const [inputWbsNo, setInputWbsNo] = useState('')
@@ -397,6 +400,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
 
   // Inline CRUD handlers
   const handleEditInline = (task: WBSTask) => {
+    // Preserve scroll position so the table does not jump left when inputs render
+    const scrollLeft = tableScrollRef.current?.scrollLeft ?? 0
     setEditingTaskId(task.id)
     setInputWbsNo(task.wbs_no)
     setInputName(task.name)
@@ -410,6 +415,12 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     setInputCost(task.cost)
     setInputProgress(task.actual_progress)
     setInputIsMilestone(task.is_milestone)
+    // Restore scroll position after React re-renders
+    requestAnimationFrame(() => {
+      if (tableScrollRef.current) {
+        tableScrollRef.current.scrollLeft = scrollLeft
+      }
+    })
   }
 
   const handleNewInline = () => {
@@ -572,20 +583,20 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       {/* ── 1. WBS TABLE TAB ── */}
       {activeTab === 'wbs' && (
         <div className="card rounded-2xl overflow-hidden animate-fade-in border border-slate-200 dark:border-[#1c1c34]">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', minWidth: '1100px' }}>
+          <div className="overflow-x-auto" ref={tableScrollRef}>
+            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1280px' }}>
               <colgroup>
-                <col style={{ width: '70px' }} />{/* WBS No */}
-                <col style={{ minWidth: '180px' }} />{/* Task Name */}
-                <col style={{ width: '90px' }} />{/* Status */}
-                <col style={{ width: '90px' }} />{/* Duration */}
-                <col style={{ width: '115px' }} />{/* Start Date */}
-                <col style={{ width: '105px' }} />{/* End Date */}
-                <col style={{ width: '185px' }} />{/* Predecessors */}
-                <col style={{ width: '110px' }} />{/* Cost */}
-                <col style={{ width: '75px' }} />{/* Weight */}
-                <col style={{ width: '110px' }} />{/* Progress */}
-                <col style={{ width: '80px' }} />{/* Weighted */}
+                <col style={{ width: '72px' }} />{/* WBS No */}
+                <col style={{ width: '210px' }} />{/* Task Name */}
+                <col style={{ width: '88px' }} />{/* Status */}
+                <col style={{ width: '85px' }} />{/* Duration */}
+                <col style={{ width: '112px' }} />{/* Start Date */}
+                <col style={{ width: '102px' }} />{/* End Date */}
+                <col style={{ width: '178px' }} />{/* Predecessors */}
+                <col style={{ width: '108px' }} />{/* Cost */}
+                <col style={{ width: '72px' }} />{/* Weight */}
+                <col style={{ width: '108px' }} />{/* Progress */}
+                <col style={{ width: '78px' }} />{/* Weighted */}
                 <col style={{ width: '100px' }} />{/* Actions */}
               </colgroup>
               <thead>

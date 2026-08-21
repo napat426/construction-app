@@ -96,15 +96,27 @@ export function DisbursementsView({
       // Remaining PR = Opening PR - Committed PO
       const remainingPr = Math.max(0, openingPr - totalPoCommitted)
 
-      // Plan = Sum of all unpaid milestones (status is not Paid)
-      const unpaidMilestones = pMilestones.filter(m => (m.status || (m.is_paid ? 'Paid' : 'Pending')) !== 'Paid')
-      const planAmount = unpaidMilestones.reduce((sum, m) => sum + val(m.amount), 0)
+      // Cumulative planned payout up to the current month (August 2026 / today's month)
+      const now = new Date()
+      const currentYear = now.getFullYear()
+      const currentMonth = now.getMonth()
 
-      // Next target month = closest upcoming unpaid expected payment date
-      const nextUnpaid = [...unpaidMilestones]
-        .filter(m => m.expected_payment_date)
-        .sort((a, b) => new Date(a.expected_payment_date!).getTime() - new Date(b.expected_payment_date!).getTime())[0]
-      const planMonth = nextUnpaid ? formatThaiMonth(nextUnpaid.expected_payment_date || null) : '—'
+      const plannedUpToNowMilestones = pMilestones.filter(m => {
+        const dateStr = m.expected_payment_date || m.payment_date
+        if (!dateStr) return false
+        const d = new Date(dateStr)
+        if (isNaN(d.getTime())) return false
+        
+        const dYear = d.getFullYear()
+        const dMonth = d.getMonth()
+        
+        if (dYear < currentYear) return true
+        if (dYear === currentYear && dMonth <= currentMonth) return true
+        return false
+      })
+
+      const planAmount = plannedUpToNowMilestones.reduce((sum, m) => sum + val(m.amount), 0)
+      const planPercent = budget > 0 ? (planAmount / budget) * 100 : 0
 
       // Paid percent of total budget
       const paidPercent = budget > 0 ? (paidTotal / budget) * 100 : 0
@@ -116,7 +128,7 @@ export function DisbursementsView({
         openingPr,
         remainingPr,
         planAmount,
-        planMonth,
+        planPercent,
         paidTotal,
         paidPercent,
         prTotal,
@@ -160,6 +172,7 @@ export function DisbursementsView({
       openingPr,
       remainingPr,
       planAmount,
+      planPercent: budget > 0 ? (planAmount / budget) * 100 : 0,
       paidTotal,
       paidPercent: budget > 0 ? (paidTotal / budget) * 100 : 0,
       prTotal,
@@ -180,7 +193,7 @@ export function DisbursementsView({
       'ยอดเปิด PR',
       'PR คงเหลือ',
       'แผนเบิกจ่าย (วงเงิน)',
-      'แผนเบิกจ่าย (เดือน)',
+      'แผนเบิกจ่าย (%)',
       'เบิกจ่ายจริง (วงเงิน)',
       'เบิกจ่ายจริง (%)',
       'อยู่ระหว่างดำเนินการ (PR)',
@@ -211,7 +224,7 @@ export function DisbursementsView({
         opPrMil,
         remPrMil,
         planMil,
-        `"${r.planMonth}"`,
+        r.planPercent.toFixed(2),
         paidMil,
         r.paidPercent.toFixed(2),
         prMil,
@@ -232,7 +245,7 @@ export function DisbursementsView({
       (totals.openingPr / 1000000).toFixed(3),
       (totals.remainingPr / 1000000).toFixed(3),
       (totals.planAmount / 1000000).toFixed(3),
-      '""',
+      totals.planPercent.toFixed(2),
       (totals.paidTotal / 1000000).toFixed(3),
       totals.paidPercent.toFixed(2),
       (totals.prTotal / 1000000).toFixed(3),
@@ -320,7 +333,7 @@ export function DisbursementsView({
               <th></th>
               <th></th>
               <th className="p-2 w-20 text-center bg-blue-500/5 border-l border-slate-200 dark:border-[#1e1e38]">วงเงิน</th>
-              <th className="p-2 w-24 text-center bg-blue-500/5">เดือน</th>
+              <th className="p-2 w-14 text-center bg-blue-500/5">%</th>
               <th className="p-2 w-20 text-center bg-emerald-500/5 border-l border-slate-200 dark:border-[#1e1e38]">วงเงิน</th>
               <th className="p-2 w-14 text-center bg-emerald-500/5">%</th>
               <th className="p-2 w-16 text-center bg-amber-500/5 border-l border-slate-200 dark:border-[#1e1e38]">PR</th>
@@ -354,7 +367,7 @@ export function DisbursementsView({
                     
                     {/* Plan */}
                     <td className="p-3 font-mono bg-blue-500/5 border-l border-slate-100 dark:border-[#1e1e38]">{formatMoney(r.planAmount)}</td>
-                    <td className="p-3 text-center bg-blue-500/5 text-[10px] font-bold">{r.planMonth}</td>
+                    <td className="p-3 text-center bg-blue-500/5 font-mono font-bold text-blue-600 dark:text-blue-400">{r.planPercent.toFixed(1)}%</td>
                     
                     {/* Paid */}
                     <td className="p-3 font-mono bg-emerald-500/5 border-l border-slate-100 dark:border-[#1e1e38] text-emerald-600 dark:text-emerald-400">{formatMoney(r.paidTotal)}</td>
@@ -453,7 +466,7 @@ export function DisbursementsView({
               <td className="p-3 font-mono">{formatMoney(totals.openingPr)}</td>
               <td className="p-3 font-mono text-indigo-600 dark:text-indigo-400">{formatMoney(totals.remainingPr)}</td>
               <td className="p-3 font-mono bg-blue-500/5 border-l border-slate-200 dark:border-[#252548]">{formatMoney(totals.planAmount)}</td>
-              <td className="p-3 bg-blue-500/5"></td>
+              <td className="p-3 text-center bg-blue-500/5 font-mono text-blue-600 dark:text-blue-400">{totals.planPercent.toFixed(1)}%</td>
               <td className="p-3 font-mono bg-emerald-500/5 border-l border-slate-200 dark:border-[#252548] text-emerald-600 dark:text-emerald-400">{formatMoney(totals.paidTotal)}</td>
               <td className="p-3 text-center bg-emerald-500/5 font-mono text-emerald-600 dark:text-emerald-400">{totals.paidPercent.toFixed(1)}%</td>
               <td className="p-3 font-mono bg-amber-500/5 border-l border-slate-200 dark:border-[#252548]">{formatMoney(totals.prTotal)}</td>

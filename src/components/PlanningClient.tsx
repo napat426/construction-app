@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useTransition, useRef, useLayoutEffect } from 'react'
+import { useState, useMemo, useTransition, useRef } from 'react'
 import {
   Plus,
   Edit2,
@@ -76,14 +76,6 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
   // Ref to preserve scroll position of the WBS table when entering edit mode
   const tableScrollRef = useRef<HTMLDivElement>(null)
   const savedScrollLeft = useRef(0)
-
-  // Restore scroll position synchronously after edit mode renders
-  // useLayoutEffect fires BEFORE browser paint, so it beats browser's scroll-to-focus
-  useLayoutEffect(() => {
-    if (editingTaskId !== null && tableScrollRef.current) {
-      tableScrollRef.current.scrollLeft = savedScrollLeft.current
-    }
-  }, [editingTaskId])
   
   // Local states for inputs in editing mode
   const [inputWbsNo, setInputWbsNo] = useState('')
@@ -409,8 +401,20 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
 
   // Inline CRUD handlers
   const handleEditInline = (task: WBSTask) => {
-    // Save current scroll before state update triggers re-render
-    savedScrollLeft.current = tableScrollRef.current?.scrollLeft ?? 0
+    const container = tableScrollRef.current
+    const targetScrollLeft = container?.scrollLeft ?? 0
+    savedScrollLeft.current = targetScrollLeft
+
+    // Lock scroll: any browser-triggered scroll (e.g. scroll-to-focused-input)
+    // that fires within the next 400ms will be immediately reversed.
+    if (container) {
+      const lockScroll = () => {
+        container.scrollLeft = targetScrollLeft
+      }
+      container.addEventListener('scroll', lockScroll)
+      setTimeout(() => container.removeEventListener('scroll', lockScroll), 400)
+    }
+
     setEditingTaskId(task.id)
     setInputWbsNo(task.wbs_no)
     setInputName(task.name)
@@ -587,7 +591,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       {activeTab === 'wbs' && (
         <div className="card rounded-2xl overflow-hidden animate-fade-in border border-slate-200 dark:border-[#1c1c34]">
           <div className="overflow-x-auto" ref={tableScrollRef}>
-            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1350px' }}>
+            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '1354px' }}>
               <colgroup>
                 <col style={{ width: '72px' }} />{/* WBS No */}
                 <col style={{ width: '280px' }} />{/* Task Name — widened */}

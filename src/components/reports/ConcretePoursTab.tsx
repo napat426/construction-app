@@ -137,8 +137,8 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
           word-wrap: break-word !important;
         }
         th.print-curing-col, td.print-curing-col {
-          width: 320px !important;
-          min-width: 320px !important;
+          width: 260px !important;
+          min-width: 260px !important;
         }
       `}</style>
       

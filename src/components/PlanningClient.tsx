@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useTransition, useRef } from 'react'
+import { useState, useMemo, useTransition, useRef, useLayoutEffect } from 'react'
 import {
   Plus,
   Edit2,
@@ -75,6 +75,15 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
 
   // Ref to preserve scroll position of the WBS table when entering edit mode
   const tableScrollRef = useRef<HTMLDivElement>(null)
+  const savedScrollLeft = useRef(0)
+
+  // Restore scroll position synchronously after edit mode renders
+  // useLayoutEffect fires BEFORE browser paint, so it beats browser's scroll-to-focus
+  useLayoutEffect(() => {
+    if (editingTaskId !== null && tableScrollRef.current) {
+      tableScrollRef.current.scrollLeft = savedScrollLeft.current
+    }
+  }, [editingTaskId])
   
   // Local states for inputs in editing mode
   const [inputWbsNo, setInputWbsNo] = useState('')
@@ -400,8 +409,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
 
   // Inline CRUD handlers
   const handleEditInline = (task: WBSTask) => {
-    // Preserve scroll position so the table does not jump left when inputs render
-    const scrollLeft = tableScrollRef.current?.scrollLeft ?? 0
+    // Save current scroll before state update triggers re-render
+    savedScrollLeft.current = tableScrollRef.current?.scrollLeft ?? 0
     setEditingTaskId(task.id)
     setInputWbsNo(task.wbs_no)
     setInputName(task.name)
@@ -415,12 +424,6 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     setInputCost(task.cost)
     setInputProgress(task.actual_progress)
     setInputIsMilestone(task.is_milestone)
-    // Restore scroll position after React re-renders
-    requestAnimationFrame(() => {
-      if (tableScrollRef.current) {
-        tableScrollRef.current.scrollLeft = scrollLeft
-      }
-    })
   }
 
   const handleNewInline = () => {
@@ -584,20 +587,20 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       {activeTab === 'wbs' && (
         <div className="card rounded-2xl overflow-hidden animate-fade-in border border-slate-200 dark:border-[#1c1c34]">
           <div className="overflow-x-auto" ref={tableScrollRef}>
-            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1280px' }}>
+            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1350px' }}>
               <colgroup>
                 <col style={{ width: '72px' }} />{/* WBS No */}
-                <col style={{ width: '210px' }} />{/* Task Name */}
+                <col style={{ width: '280px' }} />{/* Task Name — widened */}
                 <col style={{ width: '88px' }} />{/* Status */}
-                <col style={{ width: '85px' }} />{/* Duration */}
-                <col style={{ width: '112px' }} />{/* Start Date */}
-                <col style={{ width: '102px' }} />{/* End Date */}
-                <col style={{ width: '178px' }} />{/* Predecessors */}
+                <col style={{ width: '80px' }} />{/* Duration */}
+                <col style={{ width: '108px' }} />{/* Start Date */}
+                <col style={{ width: '100px' }} />{/* End Date */}
+                <col style={{ width: '175px' }} />{/* Predecessors */}
                 <col style={{ width: '108px' }} />{/* Cost */}
-                <col style={{ width: '72px' }} />{/* Weight */}
-                <col style={{ width: '108px' }} />{/* Progress */}
-                <col style={{ width: '78px' }} />{/* Weighted */}
-                <col style={{ width: '100px' }} />{/* Actions */}
+                <col style={{ width: '68px' }} />{/* Weight */}
+                <col style={{ width: '105px' }} />{/* Progress */}
+                <col style={{ width: '75px' }} />{/* Weighted */}
+                <col style={{ width: '95px' }} />{/* Actions */}
               </colgroup>
               <thead>
                 <tr className="bg-slate-50 dark:bg-[#14142a] text-slate-400 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-[#1c1c34]">
@@ -631,7 +634,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           <td className="py-2 px-2">
                             <input
                               type="text"
-                              className="input-base font-mono w-full text-xs"
+                              className="input-base input-xs font-mono w-full"
                               style={{ padding: '4px 6px' }}
                               value={inputWbsNo}
                               onChange={(e) => setInputWbsNo(e.target.value)}
@@ -648,7 +651,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               />
                               <input
                                 type="text"
-                                className="input-base w-full text-xs"
+                                className="input-base input-xs w-full"
                                 style={{ padding: '4px 6px' }}
                                 value={inputName}
                                 onChange={(e) => setInputName(e.target.value)}
@@ -659,7 +662,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           <td className="py-2 px-2">
                             <input
                               type="number"
-                              className="input-base w-full text-xs text-center"
+                              className="input-base input-xs w-full text-center"
                               style={{ padding: '4px 6px' }}
                               value={inputDuration || ''}
                               onChange={(e) => setInputDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
@@ -675,7 +678,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                             ) : (
                               <input
                                 type="date"
-                                className="input-base w-full text-xs"
+                                className="input-base input-xs w-full"
                                 style={{ padding: '4px 4px' }}
                                 value={inputStartDate}
                                 onChange={(e) => setInputStartDate(e.target.value)}
@@ -689,7 +692,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                             <div className="flex items-center gap-1">
                               <input
                                 type="text"
-                                className="input-base flex-1 min-w-0 text-xs text-center font-mono"
+                                className="input-base input-xs flex-1 min-w-0 text-center font-mono"
                                 style={{ padding: '4px 4px', minWidth: '36px', maxWidth: '48px' }}
                                 value={inputPredWbs}
                                 onChange={(e) => {
@@ -700,7 +703,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                                 placeholder="#"
                               />
                               <select
-                                className="input-base flex-shrink-0 text-xs"
+                                className="input-base input-xs flex-shrink-0"
                                 style={{ padding: '4px 2px', width: '48px' }}
                                 value={inputPredType}
                                 onChange={(e) => {
@@ -716,7 +719,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               </select>
                               <input
                                 type="number"
-                                className="input-base flex-1 min-w-0 text-xs text-center"
+                                className="input-base input-xs flex-1 min-w-0 text-center"
                                 style={{ padding: '4px 4px', minWidth: '30px', maxWidth: '40px' }}
                                 value={inputPredLag}
                                 onChange={(e) => {
@@ -732,7 +735,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           <td className="py-2 px-2">
                             <input
                               type="number"
-                              className="input-base w-full text-xs text-right"
+                              className="input-base input-xs w-full text-right"
                               style={{ padding: '4px 6px' }}
                               value={inputCost || ''}
                               onChange={(e) => setInputCost(e.target.value.replace(/^0+(?=\d)/, ''))}
@@ -747,7 +750,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               type="number"
                               min="0"
                               max="100"
-                              className="input-base w-full text-xs text-center"
+                              className="input-base input-xs w-full text-center"
                               style={{ padding: '4px 6px' }}
                               value={inputProgress || ''}
                               onChange={(e) => setInputProgress(e.target.value.replace(/^0+(?=\d)/, ''))}
@@ -886,7 +889,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       <input
                         type="text"
                         placeholder="เช่น 1.1"
-                        className="input-base font-mono w-full text-xs"
+                        className="input-base input-xs font-mono w-full"
                         style={{ padding: '4px 6px' }}
                         value={inputWbsNo}
                         onChange={(e) => setInputWbsNo(e.target.value)}
@@ -904,7 +907,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                         <input
                           type="text"
                           placeholder="ชื่อกิจกรรม"
-                          className="input-base w-full text-xs"
+                          className="input-base input-xs w-full"
                           style={{ padding: '4px 6px' }}
                           value={inputName}
                           onChange={(e) => setInputName(e.target.value)}
@@ -916,7 +919,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       <input
                         type="number"
                         placeholder="0"
-                        className="input-base w-full text-xs text-center"
+                        className="input-base input-xs w-full text-center"
                         style={{ padding: '4px 6px' }}
                         value={inputDuration || ''}
                         onChange={(e) => setInputDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
@@ -930,7 +933,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       ) : (
                         <input
                           type="date"
-                          className="input-base w-full text-xs"
+                          className="input-base input-xs w-full"
                           style={{ padding: '4px 4px' }}
                           value={inputStartDate}
                           onChange={(e) => setInputStartDate(e.target.value)}
@@ -942,7 +945,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       <div className="flex items-center gap-1">
                         <input
                           type="text"
-                          className="input-base flex-1 min-w-0 text-xs text-center font-mono"
+                          className="input-base input-xs flex-1 min-w-0 text-center font-mono"
                           style={{ padding: '4px 4px', minWidth: '36px', maxWidth: '48px' }}
                           value={inputPredWbs}
                           onChange={(e) => {
@@ -953,7 +956,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           placeholder="#"
                         />
                         <select
-                          className="input-base flex-shrink-0 text-xs"
+                          className="input-base input-xs flex-shrink-0"
                           style={{ padding: '4px 2px', width: '48px' }}
                           value={inputPredType}
                           onChange={(e) => {
@@ -969,7 +972,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                         </select>
                         <input
                           type="number"
-                          className="input-base flex-1 min-w-0 text-xs text-center"
+                          className="input-base input-xs flex-1 min-w-0 text-center"
                           style={{ padding: '4px 4px', minWidth: '30px', maxWidth: '40px' }}
                           value={inputPredLag}
                           onChange={(e) => {
@@ -986,7 +989,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       <input
                         type="number"
                         placeholder="0"
-                        className="input-base w-full text-xs text-right"
+                        className="input-base input-xs w-full text-right"
                         style={{ padding: '4px 6px' }}
                         value={inputCost || ''}
                         onChange={(e) => setInputCost(e.target.value.replace(/^0+(?=\d)/, ''))}
@@ -999,7 +1002,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                         min="0"
                         max="100"
                         placeholder="0"
-                        className={`input-base w-full text-xs text-center ${isCurrentlySuspended ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-[#14142a]' : ''}`}
+                        className={`input-base input-xs w-full text-center ${isCurrentlySuspended ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-[#14142a]' : ''}`}
                         style={{ padding: '4px 6px' }}
                         value={inputProgress || ''}
                         disabled={isCurrentlySuspended}

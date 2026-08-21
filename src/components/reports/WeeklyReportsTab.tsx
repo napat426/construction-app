@@ -139,6 +139,7 @@ export function WeeklyReportsTab({
   const [selectedId, setSelectedId] = useState<string | null>(
     data.length > 0 ? data[0].id : null,
   );
+  const [selectedIds, setSelectedIds] = useState<string[]>(data.map(d => d.id));
   const [isPending, startTransition] = useTransition();
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(
     null,
@@ -148,6 +149,7 @@ export function WeeklyReportsTab({
   if (JSON.stringify(data) !== JSON.stringify(items) && !isPending) {
     setItems(data);
     if (!selectedId && data.length > 0) setSelectedId(data[0].id);
+    setSelectedIds(data.map(d => d.id));
   }
 
   const selectedItem = items.find((i) => i.id === selectedId) || null;
@@ -185,14 +187,24 @@ export function WeeklyReportsTab({
     setSelectedId(null);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (singleItem?: WeeklyReport) => {
+    const originalSelected = [...selectedIds];
+    if (singleItem) {
+      setSelectedIds([singleItem.id]);
+    }
+    setTimeout(() => {
+      window.print();
+      if (singleItem) {
+        setSelectedIds(originalSelected);
+      }
+    }, 100);
   };
 
   return (
-    <div className="flex h-[calc(100vh-180px)] gap-4 print:h-auto print:block">
+    <>
+      <div className="flex h-[calc(100vh-180px)] gap-4 print:hidden">
       {/* ── Left Sidebar (List) ── */}
-      <div className="w-1/3 min-w-[300px] flex flex-col gap-3 print:hidden">
+      <div className="w-1/3 min-w-[300px] flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-slate-900 dark:text-white">
             รายงานประจำสัปดาห์
@@ -206,6 +218,35 @@ export function WeeklyReportsTab({
             </button>
           )}
         </div>
+
+        {items.length > 0 && (
+          <div className="flex items-center justify-between py-1 px-2.5 bg-slate-50 dark:bg-[#1e1e38]/50 rounded-xl border border-slate-200 dark:border-[#252548] shadow-sm">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === items.length && items.length > 0}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedIds(items.map(i => i.id));
+                  } else {
+                    setSelectedIds([]);
+                  }
+                }}
+                className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+              />
+              <span className="text-[10px] font-bold text-slate-500">เลือกทั้งหมด ({selectedIds.length} รายการ)</span>
+            </div>
+
+            <button
+              onClick={() => handlePrint()}
+              disabled={selectedIds.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-lg hover:bg-slate-50 dark:hover:bg-[#1e1e38] disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <Printer size={12} />
+              <span>พิมพ์รายงาน</span>
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-2">
           {items.length === 0 && !isCreating ? (
@@ -227,19 +268,35 @@ export function WeeklyReportsTab({
                   </p>
                 </div>
               )}
-              {items.map((item, idx) => (
-                <div
-                  key={item.id}
-                  onClick={() => {
-                    setSelectedId(item.id);
-                    setIsCreating(false);
-                  }}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${
-                    selectedId === item.id
-                      ? "border-primary-500 bg-white dark:bg-[#1e1e38] shadow-sm ring-1 ring-primary-500/20"
-                      : "border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] hover:border-slate-300"
-                  }`}
-                >
+              {items.map((item, idx) => {
+                const isChecked = selectedIds.includes(item.id);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedId(item.id);
+                      setIsCreating(false);
+                    }}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${
+                      selectedId === item.id
+                        ? "border-primary-500 bg-white dark:bg-[#1e1e38] shadow-sm ring-1 ring-primary-500/20"
+                        : "border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] hover:border-slate-300"
+                    }`}
+                  >
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds([...selectedIds, item.id]);
+                          } else {
+                            setSelectedIds(selectedIds.filter(id => id !== item.id));
+                          }
+                        }}
+                        className="w-4.5 h-4.5 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                      />
+                    </div>
                   {userRole && (userRole === 'admin' || userRole === 'editor') && (
                     <div className="flex flex-col items-center gap-0.5">
                       <button
@@ -273,14 +330,15 @@ export function WeeklyReportsTab({
                     </p>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </>
           )}
         </div>
       </div>
 
       {/* ── Right Content (Form & Print Layout) ── */}
-      <div className="flex-1 bg-white dark:bg-[#14142a] rounded-2xl border border-slate-200 dark:border-[#252548] overflow-hidden flex flex-col print:border-none print:bg-transparent weekly-report-container">
+      <div className="flex-1 bg-white dark:bg-[#14142a] rounded-2xl border border-slate-200 dark:border-[#252548] overflow-hidden flex flex-col weekly-report-container">
         {selectedItem || isCreating ? (
           <WeeklyReportForm
             key={isCreating ? "new" : selectedItem?.id}
@@ -294,13 +352,63 @@ export function WeeklyReportsTab({
             userRole={userRole}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 print:hidden">
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
             <CalendarDays size={48} className="mb-4 opacity-20" />
             <p className="font-bold">เลือกรายงานเพื่อดูหรือแก้ไขข้อมูล</p>
           </div>
         )}
       </div>
     </div>
+
+    {/* ── Batch Print Layout (Only visible during printing) ── */}
+    <div className="hidden print:block space-y-6">
+      <style type="text/css" media="print">{`
+        @page {
+          size: A4 portrait;
+          margin: 8mm 6mm !important;
+        }
+        html, body {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
+          font-size: 10px !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        header, nav, aside, footer, .print-hidden, .no-print {
+          display: none !important;
+        }
+        .print-page {
+          page-break-after: always !important;
+          break-after: page !important;
+          display: block !important;
+        }
+        .print-page:last-child {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+      `}</style>
+      
+      {items
+        .filter((item) => selectedIds.includes(item.id))
+        .map((item) => (
+          <div key={item.id} className="print-page pb-6">
+            <WeeklyReportForm
+              project={project}
+              item={item}
+              tasks={tasks}
+              milestones={milestones}
+              onClose={() => {}}
+              onDelete={() => {}}
+              onPrint={() => {}}
+              userRole={null}
+              isPrintOnly={true}
+            />
+          </div>
+        ))}
+    </div>
+    </>
   );
 }
 
@@ -314,6 +422,7 @@ function WeeklyReportForm({
   onDelete,
   onPrint,
   userRole,
+  isPrintOnly = false,
 }: {
   project: Project;
   item: WeeklyReport | null;
@@ -322,8 +431,9 @@ function WeeklyReportForm({
   amendments?: ContractAmendment[];
   onClose: () => void;
   onDelete: (id: string) => void;
-  onPrint: () => void;
+  onPrint: (item: WeeklyReport) => void;
   userRole?: string | null;
+  isPrintOnly?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState('');
@@ -963,44 +1073,46 @@ function WeeklyReportForm({
         className="flex flex-col h-full print:block"
       >
         {/* Header Toolbar (Hidden in Print) */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-[#1e1e38] print:hidden">
-          <h3 className="text-base font-black text-slate-900 dark:text-white">
-            {item ? "แก้ไขรายงานประจำสัปดาห์" : "สร้างรายงานประจำสัปดาห์"}
-          </h3>
-          <div className="flex items-center gap-2">
-            {item && userRole && (
-              <button
-                type="button"
-                onClick={onPrint}
-                className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
-              >
-                <Printer size={14} /> พิมพ์รายงาน (รวมกราฟ)
-              </button>
-            )}
-            {item && userRole && (userRole === 'admin' || userRole === 'editor') && (
-              <button
-                type="button"
-                onClick={() => onDelete(item.id)}
-                disabled={isPending}
-                className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-red-500 hover:bg-red-50 border-slate-200 cursor-pointer"
-              >
-                <Trash2 size={14} /> ลบ
-              </button>
-            )}
-            {userRole && (userRole === 'admin' || userRole === 'editor') && (
-              <button
-                type="submit"
-                disabled={isPending}
-                className="btn-primary px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-              >
-                <CheckCircle2 size={14} /> บันทึก
-              </button>
-            )}
+        {!isPrintOnly && (
+          <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-[#1e1e38] print:hidden">
+            <h3 className="text-base font-black text-slate-900 dark:text-white">
+              {item ? "แก้ไขรายงานประจำสัปดาห์" : "สร้างรายงานประจำสัปดาห์"}
+            </h3>
+            <div className="flex items-center gap-2">
+              {item && userRole && (
+                <button
+                  type="button"
+                  onClick={() => onPrint(item)}
+                  className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
+                >
+                  <Printer size={14} /> พิมพ์รายงาน (รวมกราฟ)
+                </button>
+              )}
+              {item && userRole && (userRole === 'admin' || userRole === 'editor') && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(item.id)}
+                  disabled={isPending}
+                  className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 text-red-500 hover:bg-red-50 border-slate-200 cursor-pointer"
+                >
+                  <Trash2 size={14} /> ลบ
+                </button>
+              )}
+              {userRole && (userRole === 'admin' || userRole === 'editor') && (
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="btn-primary px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 size={14} /> บันทึก
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <fieldset
-          disabled={!(userRole && (userRole === 'admin' || userRole === 'editor'))}
+          disabled={isPrintOnly || !(userRole && (userRole === 'admin' || userRole === 'editor'))}
           className="flex-1 overflow-y-auto p-6 space-y-6 print:overflow-visible print:p-0 print:space-y-2 print:block print:w-full print:h-auto"
         >
           {errorMsg && (

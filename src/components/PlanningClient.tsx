@@ -573,21 +573,35 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       {activeTab === 'wbs' && (
         <div className="card rounded-2xl overflow-hidden animate-fade-in border border-slate-200 dark:border-[#1c1c34]">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', minWidth: '1100px' }}>
+              <colgroup>
+                <col style={{ width: '70px' }} />{/* WBS No */}
+                <col style={{ minWidth: '180px' }} />{/* Task Name */}
+                <col style={{ width: '90px' }} />{/* Status */}
+                <col style={{ width: '90px' }} />{/* Duration */}
+                <col style={{ width: '115px' }} />{/* Start Date */}
+                <col style={{ width: '105px' }} />{/* End Date */}
+                <col style={{ width: '185px' }} />{/* Predecessors */}
+                <col style={{ width: '110px' }} />{/* Cost */}
+                <col style={{ width: '75px' }} />{/* Weight */}
+                <col style={{ width: '110px' }} />{/* Progress */}
+                <col style={{ width: '80px' }} />{/* Weighted */}
+                <col style={{ width: '100px' }} />{/* Actions */}
+              </colgroup>
               <thead>
                 <tr className="bg-slate-50 dark:bg-[#14142a] text-slate-400 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-[#1c1c34]">
-                  <th className="py-3 px-4 w-20">WBS No.</th>
-                  <th className="py-3 px-4 min-w-44">รายการกิจกรรม</th>
-                  <th className="py-3 px-4 w-28">สถานะ</th>
-                  <th className="py-3 px-4 w-28">ระยะเวลา (วัน)</th>
-                  <th className="py-3 px-4 w-28">วันเริ่มงาน</th>
-                  <th className="py-3 px-4 w-28">วันสิ้นสุดงาน</th>
-                  <th className="py-3 px-4 w-24">งานก่อนหน้า</th>
-                  <th className="py-3 px-4 w-32 text-right">มูลค่างาน</th>
-                  <th className="py-3 px-4 w-20 text-right">สัดส่วน (Weight)</th>
-                  <th className="py-3 px-4 w-32">ความคืบหน้างานย่อย</th>
-                  <th className="py-3 px-4 w-20 text-right">ความคืบหน้าถ่วงน้ำหนัก</th>
-                  <th className="py-3 px-4 w-28 text-center">จัดการ</th>
+                  <th className="py-3 px-2">WBS No.</th>
+                  <th className="py-3 px-2">รายการกิจกรรม</th>
+                  <th className="py-3 px-2">สถานะ</th>
+                  <th className="py-3 px-2">ระยะเวลา (วัน)</th>
+                  <th className="py-3 px-2">วันเริ่มงาน</th>
+                  <th className="py-3 px-2">วันสิ้นสุด</th>
+                  <th className="py-3 px-2">งานก่อนหน้า</th>
+                  <th className="py-3 px-2 text-right">มูลค่างาน</th>
+                  <th className="py-3 px-2 text-right">สัดส่วน</th>
+                  <th className="py-3 px-2">ความคืบหน้า</th>
+                  <th className="py-3 px-2 text-right">ถ่วงน้ำหนัก</th>
+                  <th className="py-3 px-2 text-center">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1e1e38] font-medium text-slate-600 dark:text-slate-300">
@@ -606,23 +620,25 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           <td className="py-2 px-2">
                             <input
                               type="text"
-                              className="input-base font-mono w-full px-1.5 py-1 text-xs"
+                              className="input-base font-mono w-full text-xs"
+                              style={{ padding: '4px 6px' }}
                               value={inputWbsNo}
                               onChange={(e) => setInputWbsNo(e.target.value)}
                             />
                           </td>
                           <td className="py-2 px-2">
-                            <div className="flex items-center gap-1.5 w-full">
+                            <div className="flex items-center gap-1 w-full">
                               <input
                                 type="checkbox"
                                 checked={inputIsMilestone}
                                 onChange={(e) => setInputIsMilestone(e.target.checked)}
                                 title="Milestone"
-                                className="w-3.5 h-3.5"
+                                className="w-3.5 h-3.5 flex-shrink-0"
                               />
                               <input
                                 type="text"
-                                className="input-base w-full px-1.5 py-1 text-xs"
+                                className="input-base w-full text-xs"
+                                style={{ padding: '4px 6px' }}
                                 value={inputName}
                                 onChange={(e) => setInputName(e.target.value)}
                               />
@@ -632,7 +648,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           <td className="py-2 px-2">
                             <input
                               type="number"
-                              className="input-base w-full px-1.5 py-1 text-xs"
+                              className="input-base w-full text-xs text-center"
+                              style={{ padding: '4px 6px' }}
                               value={inputDuration || ''}
                               onChange={(e) => setInputDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
                               placeholder="0"
@@ -647,32 +664,33 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                             ) : (
                               <input
                                 type="date"
-                                className="input-base w-full px-1 py-1 text-xs"
+                                className="input-base w-full text-xs"
+                                style={{ padding: '4px 4px' }}
                                 value={inputStartDate}
                                 onChange={(e) => setInputStartDate(e.target.value)}
                               />
                             )}
                           </td>
-                          <td className="py-2 px-2 font-mono text-slate-400">
+                          <td className="py-2 px-2 font-mono text-slate-400 text-xs">
                             {formatDate(t.computedEndDate)}
                           </td>
                           <td className="py-2 px-2">
-                            <div className="flex items-center gap-1 min-w-[170px]">
+                            <div className="flex items-center gap-1">
                               <input
                                 type="text"
-                                className="input-base w-12 px-1 py-0.5 text-xs text-center font-mono flex-shrink-0"
-                                style={{ padding: '2px 4px' }}
+                                className="input-base flex-1 min-w-0 text-xs text-center font-mono"
+                                style={{ padding: '4px 4px', minWidth: '36px', maxWidth: '48px' }}
                                 value={inputPredWbs}
                                 onChange={(e) => {
                                   const val = e.target.value
                                   setInputPredWbs(val)
                                   updatePredecessorString(val, inputPredType, inputPredLag)
                                 }}
-                                placeholder="เลขงาน"
+                                placeholder="#"
                               />
                               <select
-                                className="input-base w-16 px-1 py-0.5 text-xs flex-shrink-0"
-                                style={{ padding: '2px 4px' }}
+                                className="input-base flex-shrink-0 text-xs"
+                                style={{ padding: '4px 2px', width: '48px' }}
                                 value={inputPredType}
                                 onChange={(e) => {
                                   const val = e.target.value as any
@@ -687,8 +705,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               </select>
                               <input
                                 type="number"
-                                className="input-base w-12 px-1 py-0.5 text-xs text-center flex-shrink-0"
-                                style={{ padding: '2px 4px' }}
+                                className="input-base flex-1 min-w-0 text-xs text-center"
+                                style={{ padding: '4px 4px', minWidth: '30px', maxWidth: '40px' }}
                                 value={inputPredLag}
                                 onChange={(e) => {
                                   const val = e.target.value
@@ -703,7 +721,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           <td className="py-2 px-2">
                             <input
                               type="number"
-                              className="input-base w-full px-1.5 py-1 text-xs text-right"
+                              className="input-base w-full text-xs text-right"
+                              style={{ padding: '4px 6px' }}
                               value={inputCost || ''}
                               onChange={(e) => setInputCost(e.target.value.replace(/^0+(?=\d)/, ''))}
                               placeholder="0"
@@ -717,7 +736,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               type="number"
                               min="0"
                               max="100"
-                              className="input-base w-full px-1.5 py-1 text-xs"
+                              className="input-base w-full text-xs text-center"
+                              style={{ padding: '4px 6px' }}
                               value={inputProgress || ''}
                               onChange={(e) => setInputProgress(e.target.value.replace(/^0+(?=\d)/, ''))}
                               placeholder="0"
@@ -855,24 +875,26 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       <input
                         type="text"
                         placeholder="เช่น 1.1"
-                        className="input-base font-mono w-full px-1.5 py-1 text-xs"
+                        className="input-base font-mono w-full text-xs"
+                        style={{ padding: '4px 6px' }}
                         value={inputWbsNo}
                         onChange={(e) => setInputWbsNo(e.target.value)}
                       />
                     </td>
                     <td className="py-2 px-2">
-                      <div className="flex items-center gap-1.5 w-full">
+                      <div className="flex items-center gap-1 w-full">
                         <input
                           type="checkbox"
                           checked={inputIsMilestone}
                           onChange={(e) => setInputIsMilestone(e.target.checked)}
                           title="Milestone"
-                          className="w-3.5 h-3.5"
+                          className="w-3.5 h-3.5 flex-shrink-0"
                         />
                         <input
                           type="text"
                           placeholder="ชื่อกิจกรรม"
-                          className="input-base w-full px-1.5 py-1 text-xs"
+                          className="input-base w-full text-xs"
+                          style={{ padding: '4px 6px' }}
                           value={inputName}
                           onChange={(e) => setInputName(e.target.value)}
                         />
@@ -883,7 +905,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       <input
                         type="number"
                         placeholder="0"
-                        className="input-base w-full px-1.5 py-1 text-xs"
+                        className="input-base w-full text-xs text-center"
+                        style={{ padding: '4px 6px' }}
                         value={inputDuration || ''}
                         onChange={(e) => setInputDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
                       />
@@ -896,62 +919,64 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                       ) : (
                         <input
                           type="date"
-                          className="input-base w-full px-1 py-1 text-xs"
+                          className="input-base w-full text-xs"
+                          style={{ padding: '4px 4px' }}
                           value={inputStartDate}
                           onChange={(e) => setInputStartDate(e.target.value)}
                         />
                       )}
                     </td>
                     <td className="py-2 px-2 font-mono text-slate-400 text-xs">—</td>{/* end date placeholder */}
-                     <td className="py-2 px-2">
-                       <div className="flex items-center gap-1 min-w-[170px]">
-                         <input
-                           type="text"
-                           className="input-base w-12 px-1 py-0.5 text-xs text-center font-mono flex-shrink-0"
-                           style={{ padding: '2px 4px' }}
-                           value={inputPredWbs}
-                           onChange={(e) => {
-                             const val = e.target.value
-                             setInputPredWbs(val)
-                             updatePredecessorString(val, inputPredType, inputPredLag)
-                           }}
-                           placeholder="เลขงาน"
-                         />
-                         <select
-                           className="input-base w-16 px-1 py-0.5 text-xs flex-shrink-0"
-                           style={{ padding: '2px 4px' }}
-                           value={inputPredType}
-                           onChange={(e) => {
-                             const val = e.target.value as any
-                             setInputPredType(val)
-                             updatePredecessorString(inputPredWbs, val, inputPredLag)
-                           }}
-                         >
-                           <option value="FS">FS</option>
-                           <option value="SS">SS</option>
-                           <option value="FF">FF</option>
-                           <option value="SF">SF</option>
-                         </select>
-                         <input
-                           type="number"
-                           className="input-base w-12 px-1 py-0.5 text-xs text-center flex-shrink-0"
-                           style={{ padding: '2px 4px' }}
-                           value={inputPredLag}
-                           onChange={(e) => {
-                             const val = e.target.value
-                             const num = val === '' ? '' : Number(val)
-                             setInputPredLag(num)
-                             updatePredecessorString(inputPredWbs, inputPredType, num)
-                           }}
-                           placeholder="0"
-                         />
-                       </div>
-                     </td>
+                    <td className="py-2 px-2">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          className="input-base flex-1 min-w-0 text-xs text-center font-mono"
+                          style={{ padding: '4px 4px', minWidth: '36px', maxWidth: '48px' }}
+                          value={inputPredWbs}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setInputPredWbs(val)
+                            updatePredecessorString(val, inputPredType, inputPredLag)
+                          }}
+                          placeholder="#"
+                        />
+                        <select
+                          className="input-base flex-shrink-0 text-xs"
+                          style={{ padding: '4px 2px', width: '48px' }}
+                          value={inputPredType}
+                          onChange={(e) => {
+                            const val = e.target.value as any
+                            setInputPredType(val)
+                            updatePredecessorString(inputPredWbs, val, inputPredLag)
+                          }}
+                        >
+                          <option value="FS">FS</option>
+                          <option value="SS">SS</option>
+                          <option value="FF">FF</option>
+                          <option value="SF">SF</option>
+                        </select>
+                        <input
+                          type="number"
+                          className="input-base flex-1 min-w-0 text-xs text-center"
+                          style={{ padding: '4px 4px', minWidth: '30px', maxWidth: '40px' }}
+                          value={inputPredLag}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            const num = val === '' ? '' : Number(val)
+                            setInputPredLag(num)
+                            updatePredecessorString(inputPredWbs, inputPredType, num)
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
+                    </td>
                     <td className="py-2 px-2">
                       <input
                         type="number"
                         placeholder="0"
-                        className="input-base w-full px-1.5 py-1 text-xs text-right"
+                        className="input-base w-full text-xs text-right"
+                        style={{ padding: '4px 6px' }}
                         value={inputCost || ''}
                         onChange={(e) => setInputCost(e.target.value.replace(/^0+(?=\d)/, ''))}
                       />
@@ -963,7 +988,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                         min="0"
                         max="100"
                         placeholder="0"
-                        className={`input-base w-full px-1.5 py-1 text-xs ${isCurrentlySuspended ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-[#14142a]' : ''}`}
+                        className={`input-base w-full text-xs text-center ${isCurrentlySuspended ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-[#14142a]' : ''}`}
+                        style={{ padding: '4px 6px' }}
                         value={inputProgress || ''}
                         disabled={isCurrentlySuspended}
                         onChange={(e) => setInputProgress(e.target.value.replace(/^0+(?=\d)/, ''))}

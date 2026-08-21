@@ -62,6 +62,7 @@ function StatusIcon({ status }: { status: InspectionStatus }) {
 export function InspectionsTab({ project, data, user }: Props) {
   const [items, setItems] = useState<Inspection[]>(data)
   const [selectedId, setSelectedId] = useState<string | null>(data.length > 0 ? data[0].id : null)
+  const [selectedIds, setSelectedIds] = useState<string[]>(data.map(d => d.id))
   const [isPending, startTransition] = useTransition()
   const [isCreating, setIsCreating] = useState(false)
 
@@ -69,6 +70,7 @@ export function InspectionsTab({ project, data, user }: Props) {
   if (JSON.stringify(data) !== JSON.stringify(items) && !isPending) {
     setItems(data)
     if (!selectedId && data.length > 0) setSelectedId(data[0].id)
+    setSelectedIds(data.map(d => d.id))
   }
 
   const selectedItem = items.find((i) => i.id === selectedId) || null
@@ -105,14 +107,24 @@ export function InspectionsTab({ project, data, user }: Props) {
     setSelectedId(null)
   }
 
-  const handlePrint = () => {
-    window.print()
+  const handlePrint = (singleItem?: Inspection) => {
+    const originalSelected = [...selectedIds]
+    if (singleItem) {
+      setSelectedIds([singleItem.id])
+    }
+    setTimeout(() => {
+      window.print()
+      if (singleItem) {
+        setSelectedIds(originalSelected)
+      }
+    }, 100)
   }
 
   return (
-    <div className="flex h-[calc(100vh-180px)] gap-4 print:h-auto print:block">
+    <>
+      <div className="flex h-[calc(100vh-180px)] gap-4 print:hidden">
       {/* ── Left Sidebar (List of Inspections) ── */}
-      <div className="w-1/3 min-w-[300px] flex flex-col gap-3 print:hidden">
+      <div className="w-1/3 min-w-[300px] flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-slate-900 dark:text-white">ใบขอตรวจสอบคุณภาพ</h2>
           {user && (user.role === 'admin' || user.role === 'editor') && (
@@ -124,6 +136,35 @@ export function InspectionsTab({ project, data, user }: Props) {
             </button>
           )}
         </div>
+
+        {items.length > 0 && (
+          <div className="flex items-center justify-between py-1 px-2.5 bg-slate-50 dark:bg-[#1e1e38]/50 rounded-xl border border-slate-200 dark:border-[#252548] shadow-sm">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === items.length && items.length > 0}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedIds(items.map(i => i.id))
+                  } else {
+                    setSelectedIds([])
+                  }
+                }}
+                className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+              />
+              <span className="text-[10px] font-bold text-slate-500">เลือกทั้งหมด ({selectedIds.length} รายการ)</span>
+            </div>
+
+            <button
+              onClick={() => handlePrint()}
+              disabled={selectedIds.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-lg hover:bg-slate-50 dark:hover:bg-[#1e1e38] disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <Printer size={12} />
+              <span>พิมพ์รายงาน</span>
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-2">
           {items.length === 0 && !isCreating ? (
@@ -140,6 +181,7 @@ export function InspectionsTab({ project, data, user }: Props) {
               )}
               {items.map((item, idx) => {
                 const meta = STATUS_META[item.status]
+                const isChecked = selectedIds.includes(item.id)
                 return (
                   <div
                     key={item.id}
@@ -153,6 +195,20 @@ export function InspectionsTab({ project, data, user }: Props) {
                         : 'border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] hover:border-slate-300'
                     }`}
                   >
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds([...selectedIds, item.id])
+                          } else {
+                            setSelectedIds(selectedIds.filter(id => id !== item.id))
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                      />
+                    </div>
                     <div className="flex flex-col items-center gap-0.5">
                       <button
                         onClick={(e) => {
@@ -200,7 +256,7 @@ export function InspectionsTab({ project, data, user }: Props) {
       </div>
 
       {/* ── Right Content Panel (Form & Print Layout) ── */}
-      <div className="flex-1 bg-white dark:bg-[#14142a] rounded-2xl border border-slate-200 dark:border-[#252548] overflow-hidden flex flex-col print:border-none print:bg-transparent">
+      <div className="flex-1 bg-white dark:bg-[#14142a] rounded-2xl border border-slate-200 dark:border-[#252548] overflow-hidden flex flex-col">
         {selectedItem || isCreating ? (
           <InspectionForm
             key={isCreating ? 'new' : selectedItem?.id}
@@ -212,13 +268,136 @@ export function InspectionsTab({ project, data, user }: Props) {
             user={user}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 print:hidden">
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
             <ClipboardCheck size={48} className="mb-4 opacity-20" />
             <p className="font-bold">เลือกรายการตรวจสอบเพื่อดูหรือแก้ไขข้อมูล</p>
           </div>
         )}
       </div>
     </div>
+
+    {/* ── Batch Print Layout (Only visible during printing) ── */}
+    <div className="hidden print:block space-y-6">
+      <style type="text/css" media="print">{`
+        @page {
+          size: A4 portrait;
+          margin: 8mm 6mm !important;
+        }
+        html, body {
+          background-color: white !important;
+          background: white !important;
+          color: #0f172a !important;
+          font-size: 10px !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        header, nav, aside, footer, .print-hidden, .no-print {
+          display: none !important;
+        }
+        .print-page {
+          page-break-after: always !important;
+          break-after: page !important;
+          display: block !important;
+        }
+        .print-page:last-child {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          font-size: 11px !important;
+        }
+        th, td {
+          padding: 8px 6px !important;
+          border: 1px solid black !important;
+          color: black !important;
+        }
+      `}</style>
+      
+      {items
+        .filter((item) => selectedIds.includes(item.id))
+        .map((item) => (
+          <div key={item.id} className="print-page pb-6">
+            {/* --- PRINT HEADER --- */}
+            <div className="text-center border-b-2 border-black pb-3 mb-4">
+              <h1 className="text-lg font-black mb-1">ใบขอส่งตรวจสอบคุณภาพงาน (Inspection Report)</h1>
+              <h2 className="text-xs font-bold text-slate-600">โครงการ: {project.name}</h2>
+              <div className="flex justify-between mt-3 text-[10px] font-semibold text-slate-800">
+                <span>เลขที่ใบตรวจ: {item.inspection_no}</span>
+                <span>วันที่ขอตรวจ: {item.request_date ? new Date(item.request_date).toLocaleDateString('th-TH', { dateStyle: 'long' }) : '-'}</span>
+              </div>
+            </div>
+
+            {/* --- PRINT TABLE --- */}
+            <div className="mb-4">
+              <table className="w-full text-left text-[11px] border-collapse border border-black">
+                <tbody>
+                  <tr>
+                    <td className="border border-black p-2 font-bold w-1/4 bg-slate-100">เลขที่ใบขอตรวจ</td>
+                    <td className="border border-black p-2 font-mono font-bold">{item.inspection_no}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black p-2 font-bold bg-slate-100">ประเภทงาน / หมวดงาน</td>
+                    <td className="border border-black p-2">{item.work_type}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black p-2 font-bold bg-slate-100">หัวข้อที่ขอตรวจ</td>
+                    <td className="border border-black p-2 font-semibold">{item.title}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black p-2 font-bold bg-slate-100">ผู้ตรวจสอบ / ผู้ควบคุม</td>
+                    <td className="border border-black p-2">{item.inspector || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black p-2 font-bold bg-slate-100">สถานะการตรวจสอบ</td>
+                    <td className="border border-black p-2 font-bold">
+                      {STATUS_META[item.status].label}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black p-2 font-bold bg-slate-100">หมายเหตุ / ผลการตรวจ</td>
+                    <td className="border border-black p-2 min-h-24 whitespace-pre-wrap leading-relaxed">{item.note || '-'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* --- PHOTOS GRID --- */}
+            {item.photo_urls && item.photo_urls.length > 0 && (
+              <div className="mt-4 print:mt-2 print:page-break-inside-avoid">
+                <h4 className="text-xs font-bold text-slate-700 mb-2 text-[10px] text-black">
+                  รูปภาพประกอบการขอตรวจ (Photos)
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {item.photo_urls.map((pStr, idx) => {
+                    const parts = pStr.split('|||')
+                    const url = parts[0]
+                    const caption = parts[1] || ''
+                    return (
+                      <div
+                        key={idx}
+                        className="border border-black rounded-none flex flex-col aspect-[4/3] bg-transparent"
+                      >
+                        <div className="relative flex-1">
+                          <img src={url} alt={`Inspection Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                        {caption && (
+                          <div className="p-2 bg-transparent border-t border-black">
+                            <p className="w-full text-[10px] text-black font-medium">{caption}</p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+    </div>
+    </>
   )
 }
 
@@ -235,7 +414,7 @@ function InspectionForm({
   item: Inspection | null
   onClose: () => void
   onDelete: (id: string) => void
-  onPrint: () => void
+  onPrint: (item: Inspection) => void
   user?: UserSession | null
 }) {
   const [isPending, startTransition] = useTransition()
@@ -340,10 +519,10 @@ function InspectionForm({
             {item ? 'แก้ไขใบตรวจสอบคุณภาพ' : 'สร้างใบตรวจสอบคุณภาพใหม่'}
           </h3>
           <div className="flex items-center gap-2">
-            {item && user && (
+            {item && (
               <button
                 type="button"
-                onClick={onPrint}
+                onClick={() => onPrint(item)}
                 className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
               >
                 <Printer size={14} /> พิมพ์ใบตรวจสอบ

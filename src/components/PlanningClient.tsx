@@ -591,7 +591,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       {activeTab === 'wbs' && (
         <div className="card rounded-2xl overflow-hidden animate-fade-in border border-slate-200 dark:border-[#1c1c34]">
           <div className="overflow-x-auto" ref={tableScrollRef}>
-            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '1354px' }}>
+            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1354px' }}>
               <colgroup>
                 <col style={{ width: '72px' }} />{/* WBS No */}
                 <col style={{ width: '280px' }} />{/* Task Name — widened */}

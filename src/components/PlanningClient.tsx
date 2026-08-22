@@ -621,6 +621,21 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                   <th className="py-3 px-2 text-right">ถ่วงน้ำหนัก</th>
                   <th className="py-3 px-2 text-center">จัดการ</th>
                 </tr>
+                {/* Summary Row */}
+                {scheduledTasks.length > 0 && (
+                  <tr className="bg-primary-50/50 dark:bg-primary-900/10 text-primary-700 dark:text-primary-300 font-bold border-b border-primary-100 dark:border-primary-900/20 text-xs">
+                    <th className="py-2 px-4 text-right" colSpan={3}>รวมทั้งหมด :</th>
+                    <th className="py-2 px-4">{scheduledTasks.reduce((sum, t) => sum + (Number(t.duration) || 0), 0)} วัน</th>
+                    <th className="py-2 px-4 font-mono">{formatDate(dateRange.start.toISOString())}</th>
+                    <th className="py-2 px-4 font-mono">{formatDate(dateRange.end.toISOString())}</th>
+                    <th className="py-2 px-4"></th>
+                    <th className="py-2 px-4 text-right font-mono">{formatCurrency(summary.totalCost)}</th>
+                    <th className="py-2 px-4 text-right font-mono">100.0%</th>
+                    <th className="py-2 px-4"></th>
+                    <th className="py-2 px-4 text-right font-mono">{summary.actualProgressRaw.toFixed(1)}%</th>
+                    <th className="py-2 px-4"></th>
+                  </tr>
+                )}
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1e1e38] font-medium text-slate-600 dark:text-slate-300">
                 {scheduledTasks.length > 0 ? (

@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS public.projects (
   contractor TEXT,
   contract_no TEXT,
   work_group TEXT,
+  wbs_no TEXT,
+  opening_pr NUMERIC DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -87,11 +87,9 @@ export function addWorkingDays(startDate: Date, daysToAdd: number, amendments: C
   } else {
     let remainingDays = Math.abs(daysToAdd)
     while (remainingDays > 0) {
+      currentDate.setDate(currentDate.getDate() - 1)
       if (!isDateSuspended(currentDate, amendments)) {
         remainingDays--
-      }
-      if (remainingDays > 0) {
-        currentDate.setDate(currentDate.getDate() - 1)
       }
     }
   }
@@ -279,7 +277,7 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
   const today = stripTime(new Date())
 
   // totalDaysAtBaseline = จำนวนวันสัญญาตาม baseline เดิม (บวก 1 เพื่อให้นับรวมหัวท้าย)
-  const totalDaysAtBaseline = Math.max(0, Math.ceil((origEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+  const totalDaysAtBaseline = Math.max(0, Math.round((origEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
 
   let totalSuspendedDaysForEndDate = 0
   let suspendedDaysUntilToday = 0
@@ -302,7 +300,7 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
     if (s.resume_date) {
       rDate = stripTime(new Date(s.resume_date))
       // For end date calculation: only count suspensions that have a resume_date
-      totalSuspendedDaysForEndDate += Math.max(0, Math.ceil((rDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
+      totalSuspendedDaysForEndDate += Math.max(0, Math.round((rDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
     }
 
     // Check if currently suspended
@@ -324,7 +322,7 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
       const endBoundary = rDate && rDate <= today ? rDate : tomorrow
-      suspendedDaysUntilToday += Math.max(0, Math.ceil((endBoundary.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
+      suspendedDaysUntilToday += Math.max(0, Math.round((endBoundary.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
     }
   }
 
@@ -334,7 +332,7 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
   }
 
   // 1. Raw elapsed days = today - start_date (บวก 1 ให้นับรวมหัวท้าย)
-  const rawElapsed = Math.max(0, Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+  const rawElapsed = Math.max(0, Math.round((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
   
   // 2. Elapsed days (actual working days used) = raw elapsed - suspended days in the past
   const elapsedDays = Math.max(0, rawElapsed - suspendedDaysUntilToday)

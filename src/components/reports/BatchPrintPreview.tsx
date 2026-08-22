@@ -195,12 +195,14 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
                   </div>
                 </div>
 
-                {/* Photos Page 1 (Max 6) - 3 Column Grid (Larger) */}
-                {photoPages.length > 0 && (
-                  <div className="mt-4 border-t border-slate-200 pt-4">
-                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-3">รูปภาพและภาพถ่ายหน้างาน (Photos)</span>
+                {/* Photos Pages (Max 6 per page) - 3 Column Grid (Larger) */}
+                {photoPages.length > 0 && photoPages.map((pagePhotos, pageIndex) => (
+                  <div key={pageIndex} className={`mt-4 border-t border-slate-200 pt-4 ${pageIndex > 0 ? 'print-new-page' : ''}`}>
+                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-3">
+                      รูปภาพและภาพถ่ายหน้างาน (Photos) {photoPages.length > 1 ? `(หน้าที่ ${pageIndex + 1}/${photoPages.length})` : ''}
+                    </span>
                     <div className="grid grid-cols-3 gap-3">
-                      {photoPages[0].map((photo: any, idx: number) => (
+                      {pagePhotos.map((photo: any, idx: number) => (
                         <div key={idx} className="flex flex-col gap-1">
                           <div className="aspect-[4/3] w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative">
                             <img src={photo.url} alt={photo.caption || `Site image ${idx + 1}`} className="object-cover w-full h-full" />
@@ -214,7 +216,7 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
                       ))}
                     </div>
                   </div>
-                )}
+                ))}
               </div>
 
               {/* Signature Block (Rendered at the bottom of page 1) */}
@@ -263,6 +265,10 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
           }
           
           /* Compact print overrides */
+          .print-day-container .print-new-page {
+            page-break-before: always !important;
+            margin-top: 16px !important;
+          }
           .print-day-container .mb-4 {
             margin-bottom: 6px !important;
           }

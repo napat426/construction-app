@@ -5,21 +5,21 @@ import { revalidatePath } from 'next/cache'
 import type { ActionState } from '@/lib/types'
 
 const DEFAULT_WBS_TASKS = [
-  { wbs_no: '1', name: 'งานเตรียมพื้นที่ วางผังอาคาร และตอกเสาเข็ม (เตรียมการ/โครงสร้าง)', duration: 10, predecessors: null },
-  { wbs_no: '2', name: 'ตัดหัวเสาเข็ม ฐานราก เสาตอม่อ (โครงสร้าง)', duration: 10, predecessors: '1' },
-  { wbs_no: '3', name: 'งานคานชั้น 1 พื้นชั้น 1 (โครงสร้าง)', duration: 14, predecessors: '2' },
-  { wbs_no: '4', name: 'งานเสาชั้น 1 (โครงสร้าง)', duration: 7, predecessors: '3' },
-  { wbs_no: '5', name: 'งานคานชั้น 2 พื้นชั้น 2 (โครงสร้าง)', duration: 14, predecessors: '4' },
-  { wbs_no: '6', name: 'งานเสาชั้น 2 (โครงสร้าง)', duration: 7, predecessors: '5' },
+  { wbs_no: '1', name: 'งานเตรียมพื้นที่ วางผังอาคาร และตอกเสาเข็ม', duration: 10, predecessors: null },
+  { wbs_no: '2', name: 'ตัดหัวเสาเข็ม ฐานราก เสาตอม่อ', duration: 10, predecessors: '1' },
+  { wbs_no: '3', name: 'งานคานชั้น 1 พื้นชั้น 1', duration: 14, predecessors: '2' },
+  { wbs_no: '4', name: 'งานเสาชั้น 1', duration: 7, predecessors: '3' },
+  { wbs_no: '5', name: 'งานคานชั้น 2 พื้นชั้น 2', duration: 14, predecessors: '4' },
+  { wbs_no: '6', name: 'งานเสาชั้น 2', duration: 7, predecessors: '5' },
   { wbs_no: '7', name: 'งานคานหลังคา', duration: 7, predecessors: '6' },
-  { wbs_no: '8', name: 'งานโครงสร้างหลังคาเหล็ก มุงแผ่นหลังคา (โครงสร้าง/สถาปัตย์)', duration: 14, predecessors: '7' },
-  { wbs_no: '9', name: 'งานติดตั้งวงกบ และก่ออิฐผนัง (สถาปัตยกรรม)', duration: 14, predecessors: '8' },
-  { wbs_no: '10', name: 'งานกรีดผนังฝังท่อร้อยสายไฟ ท่อน้ำดี ท่อน้ำทิ้ง และท่อแอร์ (งานระบบ)', duration: 10, predecessors: '9' },
-  { wbs_no: '11', name: 'งานจับเซี้ยมและฉาบปูนผนัง (สถาปัตยกรรม)', duration: 14, predecessors: '10' },
-  { wbs_no: '12', name: 'งานติดตั้งโครงคร่าวและแผ่นฝ้าเพดาน (สถาปัตยกรรม)', duration: 14, predecessors: '11' },
-  { wbs_no: '13', name: 'งานปูกระเบื้อง งานระบบกันซึม (สถาปัตยกรรม)', duration: 14, predecessors: '12' },
-  { wbs_no: '14', name: 'งานติดตั้งบานประตู หน้าต่าง สุขภัณฑ์ ราวบันได และอุปกรณ์ฟิตติ้ง (สถาปัตย์/สุขาภิบาล)', duration: 7, predecessors: '13' },
-  { wbs_no: '15', name: 'งานทาสี และติดตั้งดวงโคม สวิตช์ ปลั๊ก ตู้ไฟ MDB (สถาปัตย์/งานระบบ)', duration: 10, predecessors: '14' },
+  { wbs_no: '8', name: 'งานโครงสร้างหลังคาเหล็ก มุงแผ่นหลังคา', duration: 14, predecessors: '7' },
+  { wbs_no: '9', name: 'งานติดตั้งวงกบ และก่ออิฐผนัง', duration: 14, predecessors: '8' },
+  { wbs_no: '10', name: 'งานกรีดผนังฝังท่อร้อยสายไฟ ท่อน้ำดี ท่อน้ำทิ้ง และท่อแอร์', duration: 10, predecessors: '9' },
+  { wbs_no: '11', name: 'งานจับเซี้ยมและฉาบปูนผนัง', duration: 14, predecessors: '10' },
+  { wbs_no: '12', name: 'งานติดตั้งโครงคร่าวและแผ่นฝ้าเพดาน', duration: 14, predecessors: '11' },
+  { wbs_no: '13', name: 'งานปูกระเบื้อง งานระบบกันซึม', duration: 14, predecessors: '12' },
+  { wbs_no: '14', name: 'งานติดตั้งบานประตู หน้าต่าง สุขภัณฑ์ ราวบันได และอุปกรณ์ฟิตติ้ง', duration: 7, predecessors: '13' },
+  { wbs_no: '15', name: 'งานทาสี และติดตั้งดวงโคม สวิตช์ ปลั๊ก ตู้ไฟ MDB', duration: 10, predecessors: '14' },
   { wbs_no: '16', name: 'งานระบบอื่นๆ เก็บความเรียบร้อย Defect และส่งมอบงาน', duration: 14, predecessors: '15' }
 ]
 

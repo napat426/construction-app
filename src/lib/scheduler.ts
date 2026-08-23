@@ -215,10 +215,10 @@ export function computeTaskDates(tasks: WBSTask[], projectStartDate: string | nu
         startDate = addWorkingDays(predStart, lag, amendments)
       } else if (parsed.type === 'FF') {
         const endDate = addWorkingDays(predEnd, lag, amendments)
-        startDate = addWorkingDays(endDate, -durationDays, amendments)
+        startDate = addWorkingDays(endDate, -(durationDays - 1), amendments)
       } else if (parsed.type === 'SF') {
         const endDate = addWorkingDays(predStart, lag, amendments)
-        startDate = addWorkingDays(endDate, -durationDays, amendments)
+        startDate = addWorkingDays(endDate, -(durationDays - 1), amendments)
       } else {
         // FS (Default)
         startDate = addWorkingDays(predEnd, lag, amendments)

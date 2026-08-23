@@ -188,10 +188,10 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     }
 
     // Add extra padding days (e.g. 5 days) at the end for visual comfort
-    maxDate = new Date(maxDate.getTime() + 5 * 24 * 60 * 60 * 1000)
+    const paddedMaxDate = new Date(maxDate.getTime() + 5 * 24 * 60 * 60 * 1000)
 
-    const durationDays = Math.max(1, Math.ceil((maxDate.getTime() - minDate.getTime()) / (24 * 60 * 60 * 1000)))
-    return { start: minDate, end: maxDate, durationDays }
+    const durationDays = Math.max(1, Math.ceil((paddedMaxDate.getTime() - minDate.getTime()) / (24 * 60 * 60 * 1000)))
+    return { start: minDate, end: paddedMaxDate, actualEnd: maxDate, durationDays }
   }, [scheduledTasks, project, amendments])
 
   // Today marker left position for Gantt chart
@@ -627,7 +627,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                     <th className="py-2 px-4 text-right" colSpan={3}>รวมทั้งหมด :</th>
                     <th className="py-2 px-4">{scheduledTasks.reduce((sum, t) => sum + (Number(t.duration) || 0), 0)} วัน</th>
                     <th className="py-2 px-4 font-mono">{formatDate(dateRange.start.toISOString())}</th>
-                    <th className="py-2 px-4 font-mono">{formatDate(dateRange.end.toISOString())}</th>
+                    <th className="py-2 px-4 font-mono">{formatDate(dateRange.actualEnd.toISOString())}</th>
                     <th className="py-2 px-4"></th>
                     <th className="py-2 px-4 text-right font-mono">{formatCurrency(summary.totalCost)}</th>
                     <th className="py-2 px-4 text-right font-mono">100.0%</th>

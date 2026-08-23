@@ -174,7 +174,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     if (scheduledTasks.length === 0) {
       const pStart = project.start_date ? new Date(project.start_date) : new Date()
       const pEnd = ext.newEndDate ? new Date(ext.newEndDate) : new Date(pStart.getTime() + 30 * 24 * 60 * 60 * 1000)
-      return { start: pStart, end: pEnd, durationDays: Math.ceil((pEnd.getTime() - pStart.getTime()) / (24 * 60 * 60 * 1000)) }
+      return { start: pStart, end: pEnd, actualEnd: pEnd, durationDays: Math.ceil((pEnd.getTime() - pStart.getTime()) / (24 * 60 * 60 * 1000)) }
     }
 
     let minDate = new Date(scheduledTasks[0].computedStartDate)

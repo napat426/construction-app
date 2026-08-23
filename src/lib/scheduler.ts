@@ -57,8 +57,8 @@ export function isDateSuspended(date: Date, amendments: ContractAmendment[]): bo
       rTime = stripTime(new Date(s.resume_date)).getTime()
     } else {
       // To prevent infinite loops in scheduling when resume_date is null,
-      // we cap the suspension at 'today' for future projection purposes.
-      rTime = Math.max(sTime, todayTime)
+      // we cap the suspension at 'tomorrow' for future projection purposes.
+      rTime = Math.max(sTime, todayTime + 24 * 60 * 60 * 1000)
     }
 
     if (dTime >= sTime && dTime < rTime) {
@@ -286,24 +286,12 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
 
   const suspensions = amendments.filter(a => a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open')
 
-  // Sort suspensions by date just in case
-  const sortedSuspensions = [...suspensions].sort((a, b) => {
-    if (!a.suspend_date || !b.suspend_date) return 0
-    return new Date(a.suspend_date).getTime() - new Date(b.suspend_date).getTime()
-  })
-
-  for (const s of sortedSuspensions) {
+  // Check current suspension status
+  for (const s of suspensions) {
     if (!s.suspend_date) continue
     const sDate = stripTime(new Date(s.suspend_date))
-    let rDate: Date | null = null
+    let rDate: Date | null = s.resume_date ? stripTime(new Date(s.resume_date)) : null
     
-    if (s.resume_date) {
-      rDate = stripTime(new Date(s.resume_date))
-      // For end date calculation: only count suspensions that have a resume_date
-      totalSuspendedDaysForEndDate += Math.max(0, Math.round((rDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
-    }
-
-    // Check if currently suspended
     if (rDate) {
       if (today >= sDate && today < rDate) {
         isCurrentlySuspended = true
@@ -315,16 +303,51 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
         currentSuspension = s
       }
     }
-
-    // For elapsed days calculation: count any suspended days that overlap with the past
-    if (sDate <= today) {
-      // Use an exclusive boundary for calculation
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const endBoundary = rDate && rDate <= today ? rDate : tomorrow
-      suspendedDaysUntilToday += Math.max(0, Math.round((endBoundary.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24)))
-    }
   }
+
+  // Helper to merge intervals and count days
+  function countMergedDays(intervals: {start: number, end: number}[]): number {
+    if (intervals.length === 0) return 0
+    intervals.sort((a, b) => a.start - b.start)
+    const merged: {start: number, end: number}[] = []
+    for (const interval of intervals) {
+      if (merged.length === 0) {
+        merged.push(interval)
+      } else {
+        const last = merged[merged.length - 1]
+        if (interval.start <= last.end) {
+          last.end = Math.max(last.end, interval.end)
+        } else {
+          merged.push(interval)
+        }
+      }
+    }
+    return merged.reduce((sum, inv) => sum + Math.max(0, Math.round((inv.end - inv.start) / (1000 * 60 * 60 * 24))), 0)
+  }
+
+  // 1. Calculate totalSuspendedDaysForEndDate (only suspensions with resume_date)
+  const endDateIntervals = suspensions
+    .filter(s => s.suspend_date && s.resume_date)
+    .map(s => ({
+      start: stripTime(new Date(s.suspend_date)).getTime(),
+      end: stripTime(new Date(s.resume_date!)).getTime()
+    }))
+  totalSuspendedDaysForEndDate = countMergedDays(endDateIntervals)
+
+  // 2. Calculate suspendedDaysUntilToday
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const untilTodayIntervals = suspensions
+    .filter(s => s.suspend_date)
+    .map(s => {
+      const start = stripTime(new Date(s.suspend_date)).getTime()
+      const endBoundary = s.resume_date 
+        ? Math.min(stripTime(new Date(s.resume_date)).getTime(), tomorrow.getTime())
+        : tomorrow.getTime()
+      return { start, end: endBoundary }
+    })
+    .filter(inv => inv.start < tomorrow.getTime())
+  suspendedDaysUntilToday = countMergedDays(untilTodayIntervals)
 
   let totalAmendmentDays = 0
   for (const a of amendments) {

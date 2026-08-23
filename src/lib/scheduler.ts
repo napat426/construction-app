@@ -329,7 +329,7 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
   const endDateIntervals = suspensions
     .filter(s => s.suspend_date && s.resume_date)
     .map(s => ({
-      start: stripTime(new Date(s.suspend_date)).getTime(),
+      start: stripTime(new Date(s.suspend_date!)).getTime(),
       end: stripTime(new Date(s.resume_date!)).getTime()
     }))
   totalSuspendedDaysForEndDate = countMergedDays(endDateIntervals)
@@ -340,7 +340,7 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
   const untilTodayIntervals = suspensions
     .filter(s => s.suspend_date)
     .map(s => {
-      const start = stripTime(new Date(s.suspend_date)).getTime()
+      const start = stripTime(new Date(s.suspend_date!)).getTime()
       const endBoundary = s.resume_date 
         ? Math.min(stripTime(new Date(s.resume_date)).getTime(), tomorrow.getTime())
         : tomorrow.getTime()

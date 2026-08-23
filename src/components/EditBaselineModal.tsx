@@ -407,7 +407,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelCls} htmlFor="budget">งบประมาณทั้งหมด (บาท)</label>
+              <label className={labelCls} htmlFor="budget">วงเงินจ้างก่อสร้าง (บาท)</label>
               <input
                 id="budget"
                 name="budget"

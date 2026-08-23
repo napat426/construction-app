@@ -513,16 +513,16 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
                 <div className="text-right flex flex-col items-end justify-center min-w-0">
                   {metrics.cv > 0.005 ? (
                     <>
-                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">✅ ต่ำกว่างบประมาณ</span>
+                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">✅ ต่ำกว่าวงเงินจ้าง</span>
                       <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap">ประหยัดได้ {formatCurrency((metrics.cv / 100) * (project.budget || 0))}</span>
                     </>
                   ) : metrics.cv < -0.005 ? (
                     <>
-                      <span className="text-[11px] font-bold text-red-500">🔴 เกินงบประมาณ</span>
+                      <span className="text-[11px] font-bold text-red-500">🔴 เกินวงเงินจ้าง</span>
                       <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap font-mono">เกินงบ {formatCurrency(Math.abs((metrics.cv / 100) * (project.budget || 0)))}</span>
                     </>
                   ) : (
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">🎯 ตรงงบประมาณ</span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">🎯 ตรงวงเงินจ้าง</span>
                   )}
                 </div>
               </div>
@@ -610,12 +610,12 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
         {/* ══ ROW 3: การเงิน (2 col) + ตัวนับสถานะงาน (1 col) ══ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-          {/* งบประมาณ & การเบิกจ่าย — 1 col */}
+          {/* วงเงินจ้าง & การเบิกจ่าย — 1 col */}
           <div className="card rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <DollarSign size={16} className="text-primary-600 dark:text-primary-400" />
-                งบประมาณ & เบิกจ่าย
+                วงเงินจ้าง & เบิกจ่าย
               </h3>
             </div>
             <div className="space-y-3">

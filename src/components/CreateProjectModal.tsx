@@ -166,7 +166,7 @@ export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalPr
               </select>
             </div>
             <div>
-              <label className={labelCls} htmlFor="budget">งบประมาณ (บาท)</label>
+              <label className={labelCls} htmlFor="budget">วงเงินจ้างก่อสร้าง (บาท)</label>
               <input
                 id="budget"
                 name="budget"

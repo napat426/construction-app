@@ -35,9 +35,7 @@ export function ProjectsClient({
   const [showDisbursements, setShowDisbursements] = useState(false)
   const [exVatEnabled, setExVatEnabled] = useState(true)
   const [expandedProjects, setExpandedProjects] = useState<string[]>([])
-  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>(() =>
-    [...new Set(initialProjects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort()
-  )
+  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>([])
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     'ออกแบบ สำรวจ ประมาณการ',
     'จัดซื้อจัดจ้าง',
@@ -48,9 +46,7 @@ export function ProjectsClient({
   const [supervisorOpen, setSupervisorOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>(() =>
-    [...new Set(initialProjects.map((p) => p.work_group || ''))].sort()
-  )
+  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>([])
   const [workGroupOpen, setWorkGroupOpen] = useState(false)
 
   /* ── Derived data ── */

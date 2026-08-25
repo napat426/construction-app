@@ -474,18 +474,23 @@ function InspectionForm({
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
-    const rawFile = e.target.files[0]
+    const rawFiles = Array.from(e.target.files)
     setUploading(true)
     setError('')
     try {
       const { compressImage } = await import('@/lib/image')
-      const file = await compressImage(rawFile)
-      const res = await uploadReportPhoto(file)
-      if (res.error) {
-        setError(res.error)
-      } else if (res.url) {
-        setPhotos((prev) => [...prev, { url: res.url!, caption: '' }])
-      }
+      const results = await Promise.all(
+        rawFiles.map(async (rawFile) => {
+          const file = await compressImage(rawFile)
+          return uploadReportPhoto(file)
+        })
+      )
+      const newPhotos = results
+        .filter((res) => !res.error && res.url)
+        .map((res) => ({ url: res.url!, caption: '' }))
+      if (newPhotos.length > 0) setPhotos((prev) => [...prev, ...newPhotos])
+      const errors = results.filter((res) => res.error).map((res) => res.error)
+      if (errors.length > 0) setError(`อัปโหลดไม่สำเร็จ ${errors.length} รูป`)
     } catch (err: any) {
       setError(err.message || 'Upload failed')
     } finally {
@@ -738,7 +743,7 @@ function InspectionForm({
                       <span className="text-[9px] font-bold">+ เพิ่มรูปภาพประกอบ (ไม่จำกัดจำนวน)</span>
                     </>
                   )}
-                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
                 </label>
               </div>
             )}

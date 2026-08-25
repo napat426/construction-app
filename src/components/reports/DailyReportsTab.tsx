@@ -438,15 +438,20 @@ function DailyReportForm({
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
-    const rawFile = e.target.files[0]
+    const rawFiles = Array.from(e.target.files)
     setUploading(true)
     try {
       const { compressImage } = await import('@/lib/image')
-      const file = await compressImage(rawFile)
-      const res = await uploadReportPhoto(file)
-      if (res.url) {
-        setPhotos(prev => [...prev, { url: res.url!, caption: '' }])
-      }
+      const results = await Promise.all(
+        rawFiles.map(async (rawFile) => {
+          const file = await compressImage(rawFile)
+          return uploadReportPhoto(file)
+        })
+      )
+      const newPhotos = results
+        .filter((res) => res.url)
+        .map((res) => ({ url: res.url!, caption: '' }))
+      if (newPhotos.length > 0) setPhotos(prev => [...prev, ...newPhotos])
     } finally {
       setUploading(false)
       e.target.value = ''
@@ -764,7 +769,7 @@ function DailyReportForm({
                     <span className="text-[10px] text-slate-400 font-black">+ เพิ่มรูปถ่าย</span>
                   </>
                 )}
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+                <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
               </label>
             )}
           </div>

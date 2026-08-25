@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useTransition, useRef } from 'react'
+import { Fragment, useState, useMemo, useTransition, useRef } from 'react'
 import {
   Plus,
   Edit2,
@@ -14,6 +14,7 @@ import {
   Info,
   TrendingUp,
   AlertTriangle,
+  ArrowDownToLine,
 } from 'lucide-react'
 import { deleteTask } from '@/app/actions/tasks'
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
@@ -449,6 +450,35 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     setEditingTaskId(null)
   }
 
+  const handleInsertInline = (task: WBSTask) => {
+    const targetWbsParts = task.wbs_no.split('.')
+    const prefix = targetWbsParts.slice(0, -1).join('.')
+    const targetSuffix = Number(targetWbsParts[targetWbsParts.length - 1])
+    const newWbsNo = (prefix ? prefix + '.' : '') + (targetSuffix + 1)
+    
+    const container = tableScrollRef.current
+    const targetScrollLeft = container?.scrollLeft ?? 0
+    savedScrollLeft.current = targetScrollLeft
+    if (container) {
+      const lockScroll = () => { container.scrollLeft = targetScrollLeft }
+      container.addEventListener('scroll', lockScroll)
+      setTimeout(() => container.removeEventListener('scroll', lockScroll), 400)
+    }
+
+    setEditingTaskId(`insert_after_${task.id}`)
+    setInputWbsNo(newWbsNo)
+    setInputName('')
+    setInputDuration('')
+    setInputStartDate('')
+    setInputPredecessors(`${task.wbs_no}`)
+    setInputPredWbs(task.wbs_no)
+    setInputPredType('FS')
+    setInputPredLag('')
+    setInputCost('')
+    setInputProgress('')
+    setInputIsMilestone(false)
+  }
+
   const handleSaveInline = async () => {
     if (!inputWbsNo.trim() || !inputName.trim()) {
       alert('กรุณากรอกรหัส WBS และชื่อกิจกรรม')
@@ -470,6 +500,10 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       if (editingTaskId === 'new') {
         const { createTask } = await import('@/app/actions/tasks')
         result = await createTask(project.id, null, formData)
+      } else if (editingTaskId?.startsWith('insert_after_')) {
+        const { insertTaskAfter } = await import('@/app/actions/tasks')
+        const targetId = editingTaskId.replace('insert_after_', '')
+        result = await insertTaskAfter(project.id, targetId, null, formData)
       } else if (editingTaskId) {
         const { updateTask } = await import('@/app/actions/tasks')
         result = await updateTask(project.id, editingTaskId, null, formData)
@@ -803,10 +837,160 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                     }
 
                     const status = getTaskStatus(t)
+                    
+                    const isInsertRow = editingTaskId === `insert_after_${t.id}`
+                    const inlineEditForm = isInsertRow ? (
+                        <tr className="bg-primary-50/15 dark:bg-[#1e1e38]/40 border-b border-primary-100">
+                          <td className="py-2 px-2">
+                            <input
+                              type="text"
+                              className="input-base input-xs font-mono w-full text-primary-600 dark:text-primary-400 font-bold"
+                              style={{ padding: '4px 6px' }}
+                              value={inputWbsNo}
+                              onChange={(e) => setInputWbsNo(e.target.value)}
+                            />
+                          </td>
+                          <td className="py-2 px-2">
+                            <div className="flex items-center gap-1 w-full">
+                              <input
+                                type="checkbox"
+                                checked={inputIsMilestone}
+                                onChange={(e) => setInputIsMilestone(e.target.checked)}
+                                title="Milestone"
+                                className="w-3.5 h-3.5 flex-shrink-0"
+                              />
+                              <input
+                                type="text"
+                                className="input-base input-xs w-full"
+                                style={{ padding: '4px 6px' }}
+                                value={inputName}
+                                placeholder="แทรกกิจกรรมใหม่..."
+                                onChange={(e) => setInputName(e.target.value)}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-2 px-2" />{/* status placeholder */}
+                          <td className="py-2 px-2">
+                            <input
+                              type="number"
+                              className="input-base input-xs w-full text-center"
+                              style={{ padding: '4px 6px' }}
+                              value={inputDuration || ''}
+                              onChange={(e) => setInputDuration(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              placeholder="0"
+                            />
+                          </td>
+                          <td className="py-2 px-2">
+                            {inputPredecessors ? (
+                              <div className="px-1.5 py-1 text-xs font-mono text-slate-400 bg-slate-100 dark:bg-[#14142a] rounded border border-slate-200 dark:border-[#252548]">
+                                <span className="block text-[9px] text-primary-500 font-bold mt-0.5">(คำนวณจากงานก่อนหน้า)</span>
+                              </div>
+                            ) : (
+                              <input
+                                type="date"
+                                className="input-base input-xs w-full"
+                                style={{ padding: '4px 4px' }}
+                                value={inputStartDate}
+                                onChange={(e) => setInputStartDate(e.target.value)}
+                              />
+                            )}
+                          </td>
+                          <td className="py-2 px-2" />
+                          <td className="py-2 px-2">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="text"
+                                className="input-base input-xs flex-1 min-w-0 text-center font-mono"
+                                style={{ padding: '4px 4px', minWidth: '36px', maxWidth: '48px' }}
+                                value={inputPredWbs}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  setInputPredWbs(val)
+                                  updatePredecessorString(val, inputPredType, inputPredLag)
+                                }}
+                                placeholder="#"
+                              />
+                              <select
+                                className="input-base input-xs flex-shrink-0"
+                                style={{ padding: '4px 2px', width: '48px' }}
+                                value={inputPredType}
+                                onChange={(e) => {
+                                  const val = e.target.value as any
+                                  setInputPredType(val)
+                                  updatePredecessorString(inputPredWbs, val, inputPredLag)
+                                }}
+                              >
+                                <option value="FS">FS</option>
+                                <option value="SS">SS</option>
+                                <option value="FF">FF</option>
+                                <option value="SF">SF</option>
+                              </select>
+                              <input
+                                type="number"
+                                className="input-base input-xs flex-1 min-w-0 text-center"
+                                style={{ padding: '4px 4px', minWidth: '30px', maxWidth: '40px' }}
+                                value={inputPredLag}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  const num = val === '' ? '' : Number(val)
+                                  setInputPredLag(num)
+                                  updatePredecessorString(inputPredWbs, inputPredType, num)
+                                }}
+                                placeholder="0"
+                              />
+                            </div>
+                          </td>
+                          <td className="py-2 px-2">
+                            <input
+                              type="number"
+                              className="input-base input-xs w-full text-right"
+                              style={{ padding: '4px 6px' }}
+                              value={inputCost || ''}
+                              onChange={(e) => setInputCost(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              placeholder="0"
+                            />
+                          </td>
+                          <td className="py-2 px-2 text-right font-mono text-slate-400"></td>
+                          <td className="py-2 px-2">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="input-base input-xs w-full text-center"
+                              style={{ padding: '4px 6px' }}
+                              value={inputProgress || ''}
+                              onChange={(e) => setInputProgress(e.target.value.replace(/^0+(?=\d)/, ''))}
+                              placeholder="0"
+                            />
+                          </td>
+                          <td className="py-2 px-2"></td>
+                          <td className="py-2 px-2">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={handleSaveInline}
+                                disabled={isPending}
+                                className="px-2 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded text-[10px] font-bold shadow"
+                              >
+                                เพิ่มงาน
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelInline}
+                                className="px-2 py-1 bg-slate-500 hover:bg-slate-600 text-white rounded text-[10px] font-bold shadow"
+                              >
+                                ยกเลิก
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                    ) : null
+
                     return (
-                      <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-[#14142a]/30 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-400">
-                          {t.wbs_no}
+                      <Fragment key={t.id}>
+                        <tr className="hover:bg-slate-50/50 dark:hover:bg-[#14142a]/30 transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-400">
+                            {t.wbs_no}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5">
@@ -864,10 +1048,18 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           {user && (user.role === 'admin' || user.role === 'editor') ? (
                             <div className="flex items-center justify-center gap-1.5">
                               <button
+                                id={`insert-after-${t.id}`}
+                                onClick={() => handleInsertInline(t)}
+                                title="แทรกกิจกรรมด้านล่าง"
+                                className="w-7 h-7 rounded border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+                              >
+                                <ArrowDownToLine size={11} />
+                              </button>
+                              <button
                                 id={`edit-task-${t.id}`}
                                 onClick={() => handleEditInline(t)}
                                 title="แก้ไขงานย่อย"
-                                className="w-7 h-7 rounded border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+                                className="w-7 h-7 rounded border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-amber-600 dark:hover:text-amber-500 transition-colors cursor-pointer"
                               >
                                 <Edit2 size={11} />
                               </button>
@@ -886,7 +1078,9 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           )}
                         </td>
                       </tr>
-                    )
+                      {inlineEditForm}
+                    </Fragment>
+                  )
                   })
                 ) : (
                   <tr>

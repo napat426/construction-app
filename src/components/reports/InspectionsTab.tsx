@@ -120,6 +120,30 @@ export function InspectionsTab({ project, data, user }: Props) {
     }, 100)
   }
 
+  const getNextInspectionNo = () => {
+    if (items.length === 0) return 'INSP-001'
+    let maxNum = 0
+    let prefix = 'INSP-'
+    let padding = 3
+
+    for (const item of items) {
+      if (item.inspection_no) {
+        const match = item.inspection_no.match(/^(.*?)(\d+)$/)
+        if (match) {
+          const num = parseInt(match[2], 10)
+          if (num > maxNum) {
+            maxNum = num
+            prefix = match[1]
+            padding = Math.max(3, match[2].length)
+          }
+        }
+      }
+    }
+    
+    if (maxNum === 0) return 'INSP-001'
+    return `${prefix}${String(maxNum + 1).padStart(padding, '0')}`
+  }
+
   return (
     <>
       <div className="flex h-[calc(100vh-180px)] gap-4 print:hidden">
@@ -152,16 +176,17 @@ export function InspectionsTab({ project, data, user }: Props) {
                 }}
                 className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
               />
-              <span className="text-[10px] font-bold text-slate-500">เลือกทั้งหมด ({selectedIds.length} รายการ)</span>
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                เลือกทั้งหมด ({items.length} รายการ)
+              </span>
             </div>
 
             <button
               onClick={() => handlePrint()}
               disabled={selectedIds.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-lg hover:bg-slate-50 dark:hover:bg-[#1e1e38] disabled:opacity-40 transition-colors cursor-pointer"
+              className="text-[10px] font-bold text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <Printer size={12} />
-              <span>พิมพ์รายงาน</span>
+              <Printer size={12} /> พิมพ์รายงาน
             </button>
           </div>
         )}
@@ -266,6 +291,7 @@ export function InspectionsTab({ project, data, user }: Props) {
             onDelete={handleDelete}
             onPrint={handlePrint}
             user={user}
+            nextInspectionNo={getNextInspectionNo()}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
@@ -409,6 +435,7 @@ function InspectionForm({
   onDelete,
   onPrint,
   user,
+  nextInspectionNo,
 }: {
   project: Project
   item: Inspection | null
@@ -416,6 +443,7 @@ function InspectionForm({
   onDelete: (id: string) => void
   onPrint: (item: Inspection) => void
   user?: UserSession | null
+  nextInspectionNo: string
 }) {
   const [isPending, startTransition] = useTransition()
   const [status, setStatus] = useState<InspectionStatus>(item?.status || 'submitted')
@@ -604,7 +632,7 @@ function InspectionForm({
                 <input
                   name="inspection_no"
                   type="text"
-                  defaultValue={item?.inspection_no || ''}
+                  defaultValue={item?.inspection_no || nextInspectionNo}
                   className={inputCls}
                   required
                   placeholder="เช่น INSP-001"

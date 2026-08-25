@@ -683,7 +683,7 @@ function InspectionForm({
                 <input
                   name="inspector"
                   type="text"
-                  defaultValue={item?.inspector || ''}
+                  defaultValue={item?.inspector || project.supervisor || ''}
                   className={inputCls}
                   placeholder="ระบุชื่อวิศวกรหรือผู้ตรวจ"
                 />

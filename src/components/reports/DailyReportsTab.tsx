@@ -27,6 +27,7 @@ import {
   deleteDailyReport, 
   confirmDailyReport, 
   backfillDailyReport, 
+  createQuickDailyReport,
   getDailyDefaults,
   uploadReportPhoto
 } from '@/app/actions/reports'
@@ -121,15 +122,14 @@ export function DailyReportsTab({ project, data, user }: Props) {
       setSelectedId(existingReport.id)
     } else {
       if (!user || (user.role !== 'admin' && user.role !== 'editor')) return
-      if (confirm(`ยังไม่มีรายงานของวันที่ ${formatThaiDateString(dateStr)} ต้องการสร้างรายงานอัตโนมัติย้อนหลังสำหรับวันนี้หรือไม่?`)) {
+      if (confirm(`ยังไม่มีรายงานของวันที่ ${formatThaiDateString(dateStr)} ต้องการสร้างรายงานสำหรับวันนี้หรือไม่?`)) {
         startTransition(async () => {
-          const res = await backfillDailyReport(project.id, dateStr)
+          const res = await createQuickDailyReport(project.id, dateStr)
           if (res.error) {
             alert(res.error)
-          } else {
-            // After successful creation, database revalidation will update props,
-            // we will select the newly created report.
-            // Search items for the new report or wait for props update.
+          } else if (res.id) {
+            // Auto-select the new report immediately
+            setSelectedId(res.id)
           }
         })
       }

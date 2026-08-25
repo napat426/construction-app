@@ -290,6 +290,53 @@ export async function backfillDailyReport(projectId: string, dateStr: string) {
   }
 }
 
+// Fast-create a blank daily report (no weather API call) — used when user clicks a date
+export async function createQuickDailyReport(projectId: string, dateStr: string) {
+  try {
+    // Check duplicate
+    const { data: existing } = await supabase
+      .from('daily_reports')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('report_date', dateStr)
+      .single()
+    if (existing) return { error: 'รายงานของวันนี้มีอยู่แล้วในระบบ' }
+
+    // Fetch defaults only (fast)
+    const { data: defaults } = await supabase
+      .from('project_daily_defaults')
+      .select('manpower_defaults, machinery_defaults')
+      .eq('project_id', projectId)
+      .single()
+
+    const { data: inserted, error: insErr } = await supabase
+      .from('daily_reports')
+      .insert({
+        project_id: projectId,
+        report_date: dateStr,
+        weather: 'แดดจัด',
+        temperature: 25,
+        precipitation: 0,
+        weather_code: 0,
+        manpower: defaults?.manpower_defaults || [],
+        machinery: defaults?.machinery_defaults || [],
+        work_done: '',
+        issues: '',
+        photos: [],
+        is_auto_generated: false,
+        is_confirmed: false,
+      })
+      .select('id')
+      .single()
+
+    if (insErr) return { error: insErr.message }
+    revalidatePath(`/projects/${projectId}/reports`)
+    return { success: true, id: inserted?.id }
+  } catch (err: any) {
+    return { error: err.message }
+  }
+}
+
 export async function createDailyReport(projectId: string, payload: any) {
   const { error } = await supabase.from('daily_reports').insert({
     project_id: projectId,

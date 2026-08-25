@@ -340,12 +340,24 @@ export function InspectionsTab({ project, data, user }: Props) {
           border: 1px solid black !important;
           color: black !important;
         }
+        .print-photo-card {
+          height: 185px !important;
+          overflow: hidden !important;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        .print-photo-card img {
+          flex: 1 !important;
+          min-height: 0 !important;
+          width: 100% !important;
+          object-fit: cover !important;
+        }
       `}</style>
       
       {items
         .filter((item) => selectedIds.includes(item.id))
         .map((item) => (
-          <div key={item.id} className="print-page pb-6">
+          <div key={item.id} className="insp-print-page pb-4">
             {/* --- PRINT HEADER --- */}
             <div className="text-center border-b-2 border-black pb-3 mb-4">
               <h1 className="text-lg font-black mb-1">ใบขอส่งตรวจสอบคุณภาพงาน (Inspection Report)</h1>
@@ -392,11 +404,11 @@ export function InspectionsTab({ project, data, user }: Props) {
 
             {/* --- PHOTOS GRID --- */}
             {item.photo_urls && item.photo_urls.length > 0 && (
-              <div className="mt-4 print:mt-2 print:page-break-inside-avoid">
-                <h4 className="text-xs font-bold text-slate-700 mb-2 text-[10px] text-black">
+              <div className="insp-photo-section mt-2">
+                <h4 className="text-[10px] font-bold text-black mb-1 flex-shrink-0">
                   รูปภาพประกอบการขอตรวจ (Photos)
                 </h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="insp-photo-grid">
                   {item.photo_urls.map((pStr, idx) => {
                     const parts = pStr.split('|||')
                     const url = parts[0]
@@ -404,14 +416,12 @@ export function InspectionsTab({ project, data, user }: Props) {
                     return (
                       <div
                         key={idx}
-                        className="border border-black rounded-none flex flex-col aspect-[4/3] bg-transparent"
+                        className="insp-photo-card"
                       >
-                        <div className="relative flex-1">
-                          <img src={url} alt={`Inspection Photo ${idx + 1}`} className="w-full h-full object-cover" />
-                        </div>
+                        <img src={url} alt={`Inspection Photo ${idx + 1}`} />
                         {caption && (
-                          <div className="p-2 bg-transparent border-t border-black">
-                            <p className="w-full text-[10px] text-black font-medium">{caption}</p>
+                          <div className="insp-photo-caption">
+                            {caption}
                           </div>
                         )}
                       </div>
@@ -740,13 +750,13 @@ function InspectionForm({
               <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-3 print:mb-2 print:text-[10px] print:text-black">
                 รูปภาพประกอบการขอตรวจ (Photos)
               </h4>
-              <div className="grid grid-cols-2 gap-4 print:gap-3">
+              <div className="grid grid-cols-2 gap-4 print:gap-2">
                 {photos.map((photo, idx) => (
                   <div
                     key={idx}
-                    className="border border-slate-200 dark:border-[#252548] rounded-xl overflow-hidden print:border-black print:rounded-none flex flex-col aspect-video print:aspect-[4/3] bg-slate-50 dark:bg-[#1a1a32]"
+                    className="border border-slate-200 dark:border-[#252548] rounded-xl overflow-hidden print:border-black print:rounded-none flex flex-col aspect-video print:aspect-auto print:h-[185px] bg-slate-50 dark:bg-[#1a1a32]"
                   >
-                    <div className="relative flex-1">
+                    <div className="relative flex-1 min-h-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photo.url} alt={`Inspection Photo ${idx + 1}`} className="w-full h-full object-cover" />
                       {user && (user.role === 'admin' || user.role === 'editor') && (
@@ -759,7 +769,7 @@ function InspectionForm({
                         </button>
                       )}
                     </div>
-                    <div className="p-2 bg-white dark:bg-[#1e1e38] print:bg-transparent border-t border-slate-200 dark:border-[#252548] print:border-black">
+                    <div className="p-1 bg-white dark:bg-[#1e1e38] print:bg-transparent border-t border-slate-200 dark:border-[#252548] print:border-black print:p-0.5">
                       <input
                         value={photo.caption}
                         disabled={!(user && (user.role === 'admin' || user.role === 'editor'))}
@@ -769,7 +779,7 @@ function InspectionForm({
                           setPhotos(newPhotos)
                         }}
                         placeholder="คำบรรยายภาพ..."
-                        className="w-full text-xs outline-none bg-transparent dark:text-slate-200 placeholder:text-slate-400 print:text-black print:placeholder-transparent font-medium"
+                        className="w-full text-xs outline-none bg-transparent dark:text-slate-200 placeholder:text-slate-400 print:text-[8px] print:text-black print:placeholder-transparent font-medium"
                       />
                     </div>
                   </div>

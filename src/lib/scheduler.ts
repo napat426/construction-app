@@ -68,29 +68,51 @@ export function isDateSuspended(date: Date, amendments: ContractAmendment[]): bo
   return false
 }
 
-// Add working days to a start date, skipping suspended days
-// Add working days to a start date, skipping suspended days (supports positive and negative lag)
-export function addWorkingDays(startDate: Date, daysToAdd: number, amendments: ContractAmendment[]): Date {
+// Compute the end date of a task given its start date and duration (inclusive days).
+// Skipping suspended days. A 1-day duration ends on the same day it starts (if not suspended).
+export function computeEndDate(startDate: Date, durationDays: number, amendments: ContractAmendment[]): Date {
+  let currentDate = stripTime(startDate)
+  let remaining = durationDays - 1
+  if (remaining < 0) remaining = 0
+  
+  while (isDateSuspended(currentDate, amendments)) {
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+
+  while (remaining > 0) {
+    currentDate.setDate(currentDate.getDate() + 1)
+    if (!isDateSuspended(currentDate, amendments)) {
+      remaining--
+    }
+  }
+  return currentDate
+}
+
+// Shift a date forward or backward by N working days.
+// e.g., shiftWorkingDays(date, 1) returns the next working day.
+export function shiftWorkingDays(startDate: Date, shiftDays: number, amendments: ContractAmendment[]): Date {
   let currentDate = stripTime(startDate)
   
-  if (daysToAdd >= 0) {
-    let remainingDays = daysToAdd
-    while (remainingDays > 0) {
-      // If the day is suspended, it doesn't count towards the duration
+  if (shiftDays > 0) {
+    let remaining = shiftDays
+    while (remaining > 0) {
+      currentDate.setDate(currentDate.getDate() + 1)
       if (!isDateSuspended(currentDate, amendments)) {
-        remainingDays--
+        remaining--
       }
-      if (remainingDays > 0) {
-        currentDate.setDate(currentDate.getDate() + 1)
+    }
+  } else if (shiftDays < 0) {
+    let remaining = Math.abs(shiftDays)
+    while (remaining > 0) {
+      currentDate.setDate(currentDate.getDate() - 1)
+      if (!isDateSuspended(currentDate, amendments)) {
+        remaining--
       }
     }
   } else {
-    let remainingDays = Math.abs(daysToAdd)
-    while (remainingDays > 0) {
-      currentDate.setDate(currentDate.getDate() - 1)
-      if (!isDateSuspended(currentDate, amendments)) {
-        remainingDays--
-      }
+    // shiftDays === 0: Ensure it's a valid working day
+    while (isDateSuspended(currentDate, amendments)) {
+      currentDate.setDate(currentDate.getDate() + 1)
     }
   }
   return currentDate
@@ -191,12 +213,12 @@ export function computeTaskDates(tasks: WBSTask[], projectStartDate: string | nu
 
     const task = taskMap.get(wbsNo)
     if (!task) {
-      return { start: fallbackProjectStart, end: addWorkingDays(fallbackProjectStart, 1, amendments) }
+      return { start: fallbackProjectStart, end: computeEndDate(fallbackProjectStart, 1, amendments) }
     }
 
     if (visiting.has(wbsNo)) {
       const baseStart = task.start_date ? new Date(task.start_date) : fallbackProjectStart
-      return { start: baseStart, end: addWorkingDays(baseStart, task.duration || 1, amendments) }
+      return { start: baseStart, end: computeEndDate(baseStart, task.duration || 1, amendments) }
     }
 
     visiting.add(wbsNo)
@@ -212,22 +234,22 @@ export function computeTaskDates(tasks: WBSTask[], projectStartDate: string | nu
       const lag = parsed.lagDays
 
       if (parsed.type === 'SS') {
-        startDate = addWorkingDays(predStart, lag, amendments)
+        startDate = shiftWorkingDays(predStart, lag, amendments)
       } else if (parsed.type === 'FF') {
-        const endDate = addWorkingDays(predEnd, lag, amendments)
-        startDate = addWorkingDays(endDate, -(durationDays - 1), amendments)
+        const endDate = shiftWorkingDays(predEnd, lag, amendments)
+        startDate = shiftWorkingDays(endDate, -(durationDays - 1), amendments)
       } else if (parsed.type === 'SF') {
-        const endDate = addWorkingDays(predStart, lag, amendments)
-        startDate = addWorkingDays(endDate, -(durationDays - 1), amendments)
+        const endDate = shiftWorkingDays(predStart, lag, amendments)
+        startDate = shiftWorkingDays(endDate, -(durationDays - 1), amendments)
       } else {
-        // FS (Default)
-        startDate = addWorkingDays(predEnd, lag, amendments)
+        // FS (Default) - start on the next working day (+1) plus any lag
+        startDate = shiftWorkingDays(predEnd, lag + 1, amendments)
       }
     } else {
       startDate = task.start_date ? new Date(task.start_date) : fallbackProjectStart
     }
 
-    const endDate = addWorkingDays(startDate, durationDays, amendments)
+    const endDate = computeEndDate(startDate, durationDays, amendments)
 
     visiting.delete(wbsNo)
 

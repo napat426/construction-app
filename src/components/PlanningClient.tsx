@@ -425,7 +425,6 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     const todayPct = durationDays > 0 ? ((today.getTime() - start.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100 : -1
 
     // Build suspension overlays
-    const amendments = project?.contract_amendments || []
     const suspHtml = amendments
       .filter(a => (a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open') && !!a.suspend_date)
       .map(s => {

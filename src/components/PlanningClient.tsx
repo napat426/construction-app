@@ -453,13 +453,38 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     for (let page = 0; page < totalPages; page++) {
       const pageTasks = scheduledTasks.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
       const rowsHtml = pageTasks.map(t => {
-        const tStart = new Date(t.computedStartDate)
-        const tEnd = new Date(t.computedEndDate)
-        const barLeft = durationDays > 0 ? Math.max(0, ((tStart.getTime() - start.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100) : 0
-        const barWidth = durationDays > 0 ? Math.min(100 - barLeft, (t.duration / durationDays) * 100) : 0
-        const fillWidth = barWidth * ((t.actual_progress || 0) / 100)
         const isMilestone = t.is_milestone
         const barColor = t.actual_progress === 100 ? '#10b981' : isMilestone ? '#a855f7' : '#6366f1'
+
+        const workedDaysTotal = ((t.actual_progress || 0) / 100) * (t.duration || 1)
+        let remainingWorkedDays = workedDaysTotal
+        const segments = (t as any).segments || []
+
+        const segmentsHtml = segments.map((seg: any, sIdx: number) => {
+          const segStart = new Date(seg.start)
+          const segEnd = new Date(seg.end)
+          
+          if (segEnd < start || segStart > new Date(start.getTime() + durationDays * 24 * 60 * 60 * 1000)) return ''
+          
+          const visibleStart = new Date(Math.max(segStart.getTime(), start.getTime()))
+          const visibleEnd = new Date(Math.min(segEnd.getTime(), start.getTime() + durationDays * 24 * 60 * 60 * 1000))
+
+          const segLeft = durationDays > 0 ? ((visibleStart.getTime() - start.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100 : 0
+          const segWidth = durationDays > 0 ? ((visibleEnd.getTime() - visibleStart.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100 : 0
+            
+          const segCapDays = seg.durationDays
+          const fillDays = Math.min(segCapDays, Math.max(0, remainingWorkedDays))
+          const fillPct = segCapDays > 0 ? (fillDays / segCapDays) * 100 : (t.actual_progress === 100 ? 100 : 0)
+          
+          remainingWorkedDays -= fillDays
+
+          return `
+            <div class="bar-bg" style="left:${segLeft}%;width:${segWidth}%;background:${barColor}26">
+              <div class="bar-fill" style="width:${fillPct}%;background:${barColor}"></div>
+              ${sIdx === 0 ? `<span class="bar-label">${t.actual_progress || 0}%</span>` : ''}
+            </div>`
+        }).join('')
+
         return `
           <tr class="gantt-row">
             <td class="wbs-col">${t.wbs_no}</td>
@@ -470,10 +495,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                 ${suspHtml}
                 ${tlLabels.map(l => `<div class="grid-line" style="left:${l.pct}%"></div>`).join('')}
                 ${todayPct >= 0 && todayPct <= 100 ? `<div class="today-line" style="left:${todayPct}%"></div>` : ''}
-                <div class="bar-bg" style="left:${barLeft}%;width:${barWidth}%;background:${barColor}26">
-                  <div class="bar-fill" style="width:${fillWidth > 0 ? (fillWidth / barWidth * 100) : 0}%;background:${barColor}"></div>
-                  <span class="bar-label">${t.actual_progress || 0}%</span>
-                </div>
+                ${segmentsHtml}
               </div>
             </td>
           </tr>`

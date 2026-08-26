@@ -15,6 +15,7 @@ import {
   TrendingUp,
   AlertTriangle,
   ArrowDownToLine,
+  Printer,
 } from 'lucide-react'
 import { deleteTask } from '@/app/actions/tasks'
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
@@ -399,6 +400,251 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     }
     return list
   }, [dateRange])
+
+  // ── PRINT HELPERS ──
+  // Number of date labels for print timeline (avoid text overlap)
+  const printTimelineCols = dateRange.durationDays <= 180 ? 8 : dateRange.durationDays <= 365 ? 10 : 12
+
+  // Print Gantt Chart
+  const handlePrintGantt = () => {
+    const { start, durationDays } = dateRange
+    const ROWS_PER_PAGE = 22
+    const totalPages = Math.ceil(scheduledTasks.length / ROWS_PER_PAGE) || 1
+    const printDate = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
+
+    // Build timeline header labels
+    const tlLabels: { label: string; pct: number }[] = []
+    for (let i = 0; i <= printTimelineCols; i++) {
+      const d = new Date(start.getTime() + (i / printTimelineCols) * durationDays * 24 * 60 * 60 * 1000)
+      tlLabels.push({ label: d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }), pct: (i / printTimelineCols) * 100 })
+    }
+
+    // Today marker
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayPct = durationDays > 0 ? ((today.getTime() - start.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100 : -1
+
+    // Build pages HTML
+    let pagesHtml = ''
+    for (let page = 0; page < totalPages; page++) {
+      const pageTasks = scheduledTasks.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
+      const rowsHtml = pageTasks.map(t => {
+        const tStart = new Date(t.computedStartDate)
+        const tEnd = new Date(t.computedEndDate)
+        const barLeft = durationDays > 0 ? Math.max(0, ((tStart.getTime() - start.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100) : 0
+        const barWidth = durationDays > 0 ? Math.min(100 - barLeft, (t.duration / durationDays) * 100) : 0
+        const fillWidth = barWidth * ((t.actual_progress || 0) / 100)
+        const isMilestone = t.is_milestone
+        const barColor = t.actual_progress === 100 ? '#10b981' : isMilestone ? '#a855f7' : '#6366f1'
+        return `
+          <tr class="gantt-row">
+            <td class="wbs-col">${t.wbs_no}</td>
+            <td class="name-col">${t.name}${isMilestone ? ' <span class="ms-badge">MS</span>' : ''}</td>
+            <td class="dur-col">${t.duration}วัน</td>
+            <td class="bar-col">
+              <div class="bar-track">
+                ${tlLabels.map(l => `<div class="grid-line" style="left:${l.pct}%"></div>`).join('')}
+                ${todayPct >= 0 && todayPct <= 100 ? `<div class="today-line" style="left:${todayPct}%"></div>` : ''}
+                <div class="bar-bg" style="left:${barLeft}%;width:${barWidth}%;background:${barColor}26">
+                  <div class="bar-fill" style="width:${fillWidth > 0 ? (fillWidth / barWidth * 100) : 0}%;background:${barColor}"></div>
+                  <span class="bar-label">${t.actual_progress || 0}%</span>
+                </div>
+              </div>
+            </td>
+          </tr>`
+      }).join('')
+
+      const isLastPage = page === totalPages - 1
+      pagesHtml += `
+        <div class="page${isLastPage ? '' : ' page-break'}">
+          <div class="page-header">
+            <div>
+              <div class="proj-name">${project.name || 'โครงการ'}</div>
+              <div class="proj-sub">Gantt Chart แผนงาน</div>
+            </div>
+            <div class="page-num">Gantt Chart</div>
+          </div>
+          <table class="gantt-table">
+            <colgroup>
+              <col style="width:42px"/>
+              <col style="width:130px"/>
+              <col style="width:38px"/>
+              <col style="width:auto"/>
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="th-wbs">WBS</th>
+                <th class="th-name">กิจกรรม</th>
+                <th class="th-dur">ระยะเวลา</th>
+                <th class="th-bar">
+                  <div class="tl-header">
+                    ${tlLabels.map(l => `<span class="tl-label" style="left:${l.pct}%">${l.label}</span>`).join('')}
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+          <div class="legend">
+            <span class="leg-item"><span class="leg-swatch" style="background:#6366f1"></span>แผน</span>
+            <span class="leg-item"><span class="leg-swatch" style="background:#10b981"></span>เสร็จ 100%</span>
+            <span class="leg-item"><span class="leg-swatch" style="background:#a855f7"></span>Milestone</span>
+            <span class="leg-item"><span class="leg-today"></span>วันนี้</span>
+            <span class="leg-item">ช่วงเวลา: ${tlLabels[0]?.label} – ${tlLabels[tlLabels.length - 1]?.label}</span>
+          </div>
+        </div>`
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Gantt Chart - ${project.name}</title>
+<style>
+  @page { size: A4 landscape; margin: 8mm 8mm 6mm; }
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', sans-serif; font-size: 9px; color: #1e293b; background: white; min-width: 250mm; }
+  .page { width: 265mm; padding: 0; min-height: 170mm; page-break-inside: avoid; }
+  .page-break { page-break-after: always; }
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px solid #6366f1; }
+  .proj-name { font-size: 13px; font-weight: 700; color: #1e293b; }
+  .proj-sub { font-size: 9px; color: #64748b; margin-top: 2px; }
+  .page-num { font-size: 10px; font-weight: 700; color: #6366f1; white-space: nowrap; }
+  .gantt-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .gantt-table th { font-size: 8px; font-weight: 700; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 3px 3px; }
+  .th-wbs { text-align: center; }
+  .th-name { text-align: left; }
+  .th-dur { text-align: center; }
+  .th-bar { position: relative; }
+  .tl-header { position: relative; height: 14px; }
+  .tl-label { position: absolute; font-size: 7px; font-weight: 700; color: #94a3b8; transform: translateX(-50%); white-space: nowrap; }
+  .gantt-row td { border-bottom: 1px solid #f1f5f9; padding: 2px 3px; }
+  .wbs-col { font-family: monospace; font-size: 8px; font-weight: 700; color: #475569; text-align: center; }
+  .name-col { font-size: 8px; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dur-col { font-size: 8px; color: #64748b; text-align: center; }
+  .ms-badge { font-size: 7px; background: #f3e8ff; color: #9333ea; border-radius: 2px; padding: 0 2px; font-weight: 700; }
+  .bar-col { padding: 2px 3px; }
+  .bar-track { position: relative; height: 14px; background: #f8fafc; border-radius: 2px; overflow: visible; }
+  .grid-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #e2e8f0; pointer-events: none; }
+  .today-line { position: absolute; top: -2px; bottom: -2px; width: 0; border-left: 2px dashed #ef4444; z-index: 10; pointer-events: none; }
+  .bar-bg { position: absolute; top: 1px; height: 12px; border-radius: 2px; overflow: hidden; display: flex; align-items: center; min-width: 2px; }
+  .bar-fill { height: 100%; border-radius: 2px 0 0 2px; transition: none; }
+  .bar-label { position: absolute; left: 2px; font-size: 7px; font-weight: 700; color: white; white-space: nowrap; text-shadow: 0 0 3px rgba(0,0,0,0.5); z-index: 5; }
+  .legend { display: flex; gap: 12px; align-items: center; margin-top: 5px; padding-top: 4px; border-top: 1px solid #e2e8f0; font-size: 8px; color: #64748b; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 3px; }
+  .leg-swatch { display: inline-block; width: 10px; height: 8px; border-radius: 1px; }
+  .leg-today { display: inline-block; width: 0; height: 10px; border-left: 2px dashed #ef4444; }
+  @media print {
+    @page { size: A4 landscape; margin: 8mm 8mm 6mm; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page-break { page-break-after: always; }
+  }
+</style>
+</head>
+<body>${pagesHtml}</body>
+</html>`
+
+    const win = window.open('', '_blank', 'width=1200,height=800')
+    if (!win) { alert('กรุณาอนุญาต Popup เพื่อใช้งานฟีเจอร์พิมพ์'); return }
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print() }, 600)
+  }
+
+  // Print S-Curve
+  const handlePrintSCurve = () => {
+    const printDate = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
+    const W = 700, H = 280, padL = 45, padR = 15, padT = 15, padB = 35
+    const gW = W - padL - padR
+    const gH = H - padT - padB
+
+    const toX = (i: number) => padL + (i / Math.max(1, sCurveData.length - 1)) * gW
+    const toY = (v: number) => padT + (1 - v / 100) * gH
+
+    // PV path
+    const pvPath = sCurveData.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(d.planned).toFixed(1)}`).join(' ')
+    // EV path
+    const evPoints = sCurveData.map((d, i) => d.actual !== null ? { x: toX(i), y: toY(d.actual) } : null).filter((p): p is {x:number;y:number} => p !== null)
+    const evPath = evPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+    // AC path
+    const acPoints = sCurveData.map((d, i) => d.actualCost !== null ? { x: toX(i), y: toY(d.actualCost) } : null).filter((p): p is {x:number;y:number} => p !== null)
+    const acPath = acPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+
+    // X-axis labels (show at most 12)
+    const labelStep = Math.max(1, Math.ceil(sCurveData.length / 12))
+    const xLabels = sCurveData.map((d, i) => {
+      if (i % labelStep !== 0 && i !== sCurveData.length - 1) return ''
+      const x = toX(i)
+      return `<text x="${x.toFixed(1)}" y="${(padT + gH + 16).toFixed(1)}" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Sarabun,sans-serif">${d.label}</text>`
+    }).join('')
+
+    // Y-axis labels & grid
+    const yGrids = [0, 25, 50, 75, 100].map(v => {
+      const y = toY(v)
+      return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(padL + gW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>
+<text x="${(padL - 5).toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="8" fill="#94a3b8" font-family="Sarabun,sans-serif" font-weight="700">${v}%</text>`
+    }).join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>S-Curve - ${project.name}</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', sans-serif; background: white; min-width: 250mm; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #6366f1; }
+  .proj-name { font-size: 14px; font-weight: 700; color: #1e293b; }
+  .proj-sub { font-size: 9px; color: #64748b; margin-top: 2px; }
+  .chart-wrap { width: 100%; }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .legend { display: flex; gap: 16px; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #64748b; flex-wrap: wrap; }
+  .leg { display: flex; align-items: center; gap: 4px; }
+  .note { margin-top: 8px; font-size: 8px; color: #94a3b8; line-height: 1.6; background: #f8fafc; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0; }
+  @media print {
+    @page { size: A4 landscape; margin: 10mm; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="proj-name">${project.name || 'โครงการ'}</div>
+      <div class="proj-sub">S-Curve แสดงมูลค่าความก้าวหน้าสะสม</div>
+    </div>
+    <div style="font-size:10px;font-weight:700;color:#6366f1">Earned Value Management</div>
+  </div>
+  <div class="chart-wrap">
+    <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+      ${yGrids}
+      ${pvPath ? `<path d="${pvPath}" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/>` : ''}
+      ${evPath ? `<path d="${evPath}" fill="none" stroke="#6366f1" stroke-width="2"/>` : ''}
+      ${acPath ? `<path d="${acPath}" fill="none" stroke="#f59e0b" stroke-width="2"/>` : ''}
+      ${xLabels}
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + gH}" stroke="#cbd5e1" stroke-width="1"/>
+      <line x1="${padL}" y1="${padT + gH}" x2="${padL + gW}" y2="${padT + gH}" stroke="#cbd5e1" stroke-width="1"/>
+    </svg>
+  </div>
+  <div class="legend">
+    <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/></svg>PV แผนสะสม (Planned Value)</span>
+    <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#6366f1" stroke-width="2"/></svg>EV ผลงานสะสม (Earned Value)</span>
+    <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#f59e0b" stroke-width="2"/></svg>AC รายจ่ายจริงสะสม (Actual Cost)</span>
+  </div>
+  <div class="note">เส้น S-Curve ประกอบด้วย 3 ส่วนตามระบบ Earned Value Management: PV (แผนสะสม), EV (ผลงานที่ได้จริง), และ AC (รายจ่ายจริงสะสม) เพื่อประเมินความคุ้มค่าและความล่าช้าของโครงการ</div>
+</body></html>`
+
+    const win = window.open('', '_blank', 'width=1200,height=700')
+    if (!win) { alert('กรุณาอนุญาต Popup เพื่อใช้งานฟีเจอร์พิมพ์'); return }
+    win.document.write(html)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print() }, 600)
+  }
 
   // Inline CRUD handlers
   const handleEditInline = (task: WBSTask) => {
@@ -1253,6 +1499,16 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       {activeTab === 'gantt' && (
         <div className="card rounded-2xl p-6 overflow-x-auto animate-fade-in border border-slate-200 dark:border-[#1c1c34]">
           <div className="min-w-[700px] space-y-4">
+            {/* Print button */}
+            <div className="flex justify-end">
+              <button
+                onClick={handlePrintGantt}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm"
+              >
+                <Printer size={13} />
+                พิมพ์ Gantt Chart
+              </button>
+            </div>
             
             {/* Timeline date header */}
             <div className="flex items-center pb-2 border-b border-slate-100 dark:border-[#1e1e38]">
@@ -1433,7 +1689,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       {activeTab === 'scurve' && (
         <div className="card rounded-2xl p-6 animate-fade-in border border-slate-200 dark:border-[#1c1c34]">
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-3 flex-wrap">
               <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                 <TrendingUp size={15} className="text-primary-600 dark:text-primary-400" />
                 กราฟแสดงมูลค่าความก้าวหน้าสะสม (S-Curve)
@@ -1452,6 +1708,13 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                   AC รายจ่ายจริงสะสม (Actual Cost)
                 </span>
               </div>
+              <button
+                onClick={handlePrintSCurve}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm flex-shrink-0"
+              >
+                <Printer size={13} />
+                พิมพ์ S-Curve
+              </button>
             </div>
 
             {sCurveData.length > 1 ? (

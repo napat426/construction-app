@@ -525,7 +525,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                 <th class="th-dur">ระยะเวลา</th>
                 <th class="th-bar">
                   <div class="tl-header">
-                    ${tlLabels.map(l => `<span class="tl-label" style="left:${l.pct}%">${l.label}</span>`).join('')}
+                    ${tlLabels.map((l, i) => `<span class="tl-label" style="left:${l.pct}%;${i === 0 ? 'transform:translateX(0);' : i === tlLabels.length - 1 ? 'transform:translateX(-100%);' : ''}">${l.label}</span>`).join('')}
                   </div>
                 </th>
               </tr>

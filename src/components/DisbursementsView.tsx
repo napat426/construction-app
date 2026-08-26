@@ -93,8 +93,8 @@ export function DisbursementsView({
         }
       })
 
-      // Remaining PR = Opening PR - Committed PO
-      const remainingPr = Math.max(0, openingPr - totalPoCommitted)
+      // Remaining PR (PR คงเหลือ) = Budget - Opening PR
+      const remainingPr = Math.max(0, budget - openingPr)
 
       // Cumulative planned payout up to the current month (August 2026 / today's month)
       const now = new Date()

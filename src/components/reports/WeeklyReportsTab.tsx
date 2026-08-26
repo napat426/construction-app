@@ -570,6 +570,8 @@ function WeeklyReportForm({
       for (const t of scheduledTasks) {
         const tStart = new Date(t.computedStartDate);
         const tEnd = new Date(t.computedEndDate);
+        tStart.setHours(0, 0, 0, 0);
+        tEnd.setHours(0, 0, 0, 0);
         const tCost = Number(t.cost) || 0;
         const weight = tCost / totalWbsCost;
 
@@ -596,6 +598,8 @@ function WeeklyReportForm({
       for (const t of scheduledTasks) {
         const tStart = new Date(t.computedStartDate);
         const tEnd = new Date(t.computedEndDate);
+        tStart.setHours(0, 0, 0, 0);
+        tEnd.setHours(0, 0, 0, 0);
         
         let plannedProgress = 0;
         if (todayDateOnly >= tEnd) {
@@ -797,6 +801,8 @@ function WeeklyReportForm({
       for (const t of scheduledTasks) {
         const tStart = new Date(t.computedStartDate);
         const tEnd = new Date(t.computedEndDate);
+        tStart.setHours(0, 0, 0, 0);
+        tEnd.setHours(0, 0, 0, 0);
         const taskWeightValue = summary.totalCost > 0 ? Number(t.cost) || 0 : 1;
 
         if (currDate >= tEnd) {
@@ -816,6 +822,8 @@ function WeeklyReportForm({
         for (const t of scheduledTasks) {
           const tStart = new Date(t.computedStartDate);
           const tEnd = new Date(t.computedEndDate);
+          tStart.setHours(0, 0, 0, 0);
+          tEnd.setHours(0, 0, 0, 0);
           const taskWeightValue =
             summary.totalCost > 0 ? Number(t.cost) || 0 : 1;
 

@@ -274,6 +274,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       for (const t of scheduledTasks) {
         const tStart = new Date(t.computedStartDate)
         const tEnd = new Date(t.computedEndDate)
+        tStart.setHours(0, 0, 0, 0)
+        tEnd.setHours(0, 0, 0, 0)
         const taskWeightValue = summary.totalCost > 0 ? (Number(t.cost) || 0) : 1
         
         if (currDate >= tEnd) {
@@ -293,6 +295,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
         for (const t of scheduledTasks) {
           const tStart = new Date(t.computedStartDate)
           const tEnd = new Date(t.computedEndDate)
+          tStart.setHours(0, 0, 0, 0)
+          tEnd.setHours(0, 0, 0, 0)
           const taskWeightValue = summary.totalCost > 0 ? (Number(t.cost) || 0) : 1
 
           // Boundaries for actual progress calculation

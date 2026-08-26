@@ -136,7 +136,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
       .reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
     const acPercent = (paidAmountSum / (project.opening_pr || 1)) * 100
 
-    const totalWbsDenominator = totalWbsCost > 0 ? totalWbsCost : (project.opening_pr || 1)
+    const totalWbsDenominator = project.opening_pr || 1
     const pvCurrency = totalWbsDenominator * (pvCumulative / 100)
     const evCurrency = totalWbsDenominator * (evCumulative / 100)
     const acCurrency = paidAmountSum

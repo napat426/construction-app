@@ -621,7 +621,7 @@ function WeeklyReportForm({
       .reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
     const acPercent = (paidAmountSum / (project.opening_pr || 1)) * 100;
 
-    const totalWbsDenominator = totalWbsCost > 0 ? totalWbsCost : (project.opening_pr || 1);
+    const totalWbsDenominator = project.opening_pr || 1;
     const PV = totalWbsDenominator * (pvCumulative / 100);
     const EV = totalWbsDenominator * (evCumulative / 100);
     const AC = paidAmountSum;
@@ -915,9 +915,9 @@ function WeeklyReportForm({
 
   const displayEvm = useMemo(() => {
     if (item?.snapshot) {
-      const budget = item.snapshot.budget || 0;
-      const PV = (item.snapshot.pv / 100) * budget;
-      const EV = (item.snapshot.ev / 100) * budget;
+      const baseValue = project.opening_pr || item.snapshot.budget || 0;
+      const PV = (item.snapshot.pv / 100) * baseValue;
+      const EV = (item.snapshot.ev / 100) * baseValue;
       const AC = item.snapshot.paid_amount;
       const SV = EV - PV;
       const CV = EV - AC;

@@ -346,6 +346,7 @@ export function WeeklyReportsTab({
             item={isCreating ? null : selectedItem}
             tasks={tasks}
             milestones={milestones}
+            amendments={amendments}
             onClose={() => setIsCreating(false)}
             onDelete={handleDelete}
             onPrint={handlePrint}
@@ -399,6 +400,7 @@ export function WeeklyReportsTab({
               item={item}
               tasks={tasks}
               milestones={milestones}
+              amendments={amendments}
               onClose={() => {}}
               onDelete={() => {}}
               onPrint={() => {}}

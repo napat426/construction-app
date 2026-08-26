@@ -837,7 +837,6 @@ export function PunchListClient({ project, initialPunchLists, initialPunchItems,
                 </div>
                 <div className="text-right text-xs font-mono">
                   <p className="font-bold">เลขที่เอกสาร: {headerPlNumber} (หน้า {chunkIdx + 1} / {itemChunks.length})</p>
-                  <p className="text-slate-500">วันที่: {selectedList.created_at ? new Date(selectedList.created_at).toLocaleDateString('th-TH') : '-'}</p>
                 </div>
               </div>
 

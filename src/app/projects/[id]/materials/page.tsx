@@ -27,7 +27,7 @@ export default async function ProjectMaterialsPage({ params }: MaterialsPageProp
 
   const [projectRes, materialsRes] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
-    supabase.from('materials').select('*').eq('project_id', id).order('status', { ascending: true }).order('created_at', { ascending: false }),
+    supabase.from('materials').select('*').eq('project_id', id).order('created_at', { ascending: true }),
   ])
 
   const projectData = projectRes.data
@@ -37,11 +37,7 @@ export default async function ProjectMaterialsPage({ params }: MaterialsPageProp
   const materialsData = materialsRes.data
 
   const project = projectData as Project
-  // Sort: pending first, then approved, then rejected
-  const statusOrder: Record<string, number> = { pending: 0, approved: 1, rejected: 2 }
-  const materials = ((materialsData as ProjectMaterial[]) || []).sort(
-    (a, b) => statusOrder[a.status] - statusOrder[b.status]
-  )
+  const materials = (materialsData as ProjectMaterial[]) || []
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">

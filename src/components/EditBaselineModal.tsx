@@ -419,7 +419,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
               />
             </div>
             <div>
-              <label className={labelCls} htmlFor="opening_pr">ยอดเปิด PR (บาท)</label>
+              <label className={labelCls} htmlFor="opening_pr">วงเงินจ้างก่อสร้าง (บาท)</label>
               <input
                 id="opening_pr"
                 name="opening_pr"

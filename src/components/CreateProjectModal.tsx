@@ -152,7 +152,7 @@ export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalPr
             </div>
           </div>
 
-          {/* สถานะ + งบประมาณ + ยอดเปิด PR */}
+          {/* สถานะ + งบประมาณ + วงเงินจ้างก่อสร้าง */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className={labelCls} htmlFor="status">สถานะโครงการ</label>
@@ -178,7 +178,7 @@ export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalPr
               />
             </div>
             <div>
-              <label className={labelCls} htmlFor="opening_pr">ยอดเปิด PR (บาท)</label>
+              <label className={labelCls} htmlFor="opening_pr">วงเงินจ้างก่อสร้าง (บาท)</label>
               <input
                 id="opening_pr"
                 name="opening_pr"

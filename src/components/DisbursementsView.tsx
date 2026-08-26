@@ -190,8 +190,8 @@ export function DisbursementsView({
       'หมายเลขงาน (WBS)',
       'กลุ่มงาน',
       `งบประมาณ (${exVatEnabled ? 'ไม่รวม VAT 7%' : 'รวม VAT'})`,
-      'ยอดเปิด PR',
-      'PR คงเหลือ',
+      'วงเงินจ้างก่อสร้าง',
+      'PR คงเหลือ (Cost Saving)',
       'แผนเบิกจ่าย (วงเงิน)',
       'แผนเบิกจ่าย (%)',
       'เบิกจ่ายจริง (วงเงิน)',
@@ -319,8 +319,8 @@ export function DisbursementsView({
               <th className="p-3 w-56">โครงการ / รายการ</th>
               <th className="p-3">หมายเลขงาน (WBS)</th>
               <th className="p-3">งบประมาณ</th>
-              <th className="p-3">ยอดเปิด PR</th>
-              <th className="p-3">PR คงเหลือ</th>
+              <th className="p-3">วงเงินจ้างก่อสร้าง</th>
+              <th className="p-3 text-primary-600 dark:text-primary-400">PR คงเหลือ<br/><span className="text-[9px]">(Cost Saving)</span></th>
               <th className="p-3 text-center bg-blue-500/5" colSpan={2}>แผนเบิกจ่าย</th>
               <th className="p-3 text-center bg-emerald-500/5" colSpan={2}>เบิกจ่ายจริง</th>
               <th className="p-3 text-center bg-amber-500/5" colSpan={4}>อยู่ระหว่างดำเนินการ (Pipeline)</th>

@@ -424,6 +424,31 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
     today.setHours(0, 0, 0, 0)
     const todayPct = durationDays > 0 ? ((today.getTime() - start.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100 : -1
 
+    // Build suspension overlays
+    const amendments = project?.contract_amendments || []
+    const suspHtml = amendments
+      .filter(a => (a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open') && !!a.suspend_date)
+      .map(s => {
+        const sStart = new Date(s.suspend_date!)
+        sStart.setHours(0, 0, 0, 0)
+        
+        const isOngoing = !s.resume_date
+        const todayMidnight = new Date()
+        todayMidnight.setHours(0, 0, 0, 0)
+        const sEnd = s.resume_date ? new Date(s.resume_date) : todayMidnight
+        sEnd.setHours(0, 0, 0, 0)
+
+        if (sEnd < start || sStart > new Date(start.getTime() + durationDays * 24 * 60 * 60 * 1000)) return ''
+
+        const visibleStart = new Date(Math.max(sStart.getTime(), start.getTime()))
+        const visibleEnd = new Date(Math.min(sEnd.getTime(), start.getTime() + durationDays * 24 * 60 * 60 * 1000))
+
+        const leftOffset = durationDays > 0 ? ((visibleStart.getTime() - start.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100 : 0
+        const widthPct = durationDays > 0 ? ((visibleEnd.getTime() - visibleStart.getTime()) / (durationDays * 24 * 60 * 60 * 1000)) * 100 : 0
+
+        return `<div class="susp-band" style="left:${leftOffset}%;width:${widthPct}%"></div>`
+      }).join('')
+
     // Build pages HTML
     let pagesHtml = ''
     for (let page = 0; page < totalPages; page++) {
@@ -443,6 +468,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
             <td class="dur-col">${t.duration}วัน</td>
             <td class="bar-col">
               <div class="bar-track">
+                ${suspHtml}
                 ${tlLabels.map(l => `<div class="grid-line" style="left:${l.pct}%"></div>`).join('')}
                 ${todayPct >= 0 && todayPct <= 100 ? `<div class="today-line" style="left:${todayPct}%"></div>` : ''}
                 <div class="bar-bg" style="left:${barLeft}%;width:${barWidth}%;background:${barColor}26">
@@ -489,6 +515,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
             <span class="leg-item"><span class="leg-swatch" style="background:#6366f1"></span>แผน</span>
             <span class="leg-item"><span class="leg-swatch" style="background:#10b981"></span>เสร็จ 100%</span>
             <span class="leg-item"><span class="leg-swatch" style="background:#a855f7"></span>Milestone</span>
+            ${suspHtml ? `<span class="leg-item"><span class="leg-susp"></span>หยุดงาน</span>` : ''}
             <span class="leg-item"><span class="leg-today"></span>วันนี้</span>
             <span class="leg-item">ช่วงเวลา: ${tlLabels[0]?.label} – ${tlLabels[tlLabels.length - 1]?.label}</span>
           </div>
@@ -531,9 +558,11 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
   .bar-bg { position: absolute; top: 1px; height: 12px; border-radius: 2px; overflow: hidden; display: flex; align-items: center; min-width: 2px; }
   .bar-fill { height: 100%; border-radius: 2px 0 0 2px; transition: none; }
   .bar-label { position: absolute; left: 2px; font-size: 7px; font-weight: 700; color: white; white-space: nowrap; text-shadow: 0 0 3px rgba(0,0,0,0.5); z-index: 5; }
+  .susp-band { position: absolute; top: 0; bottom: 0; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjgpIiBzdHJva2Utd2lkdGg9IjIuNSI+PC9wYXRoPjwvc3ZnPg=='); background-color: rgba(239, 68, 68, 0.15); border-left: 2px solid rgba(239, 68, 68, 0.8); border-right: 2px solid rgba(239, 68, 68, 0.8); z-index: 1; pointer-events: none; }
   .legend { display: flex; gap: 12px; align-items: center; margin-top: 5px; padding-top: 4px; border-top: 1px solid #e2e8f0; font-size: 8px; color: #64748b; flex-wrap: wrap; }
   .leg-item { display: flex; align-items: center; gap: 3px; }
   .leg-swatch { display: inline-block; width: 10px; height: 8px; border-radius: 1px; }
+  .leg-susp { display: inline-block; width: 10px; height: 8px; border-radius: 1px; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjgpIiBzdHJva2Utd2lkdGg9IjIuNSI+PC9wYXRoPjwvc3ZnPg=='); background-color: rgba(239, 68, 68, 0.15); border-left: 1px solid rgba(239, 68, 68, 0.8); border-right: 1px solid rgba(239, 68, 68, 0.8); }
   .leg-today { display: inline-block; width: 0; height: 10px; border-left: 2px dashed #ef4444; }
   @media print {
     @page { size: A4 landscape; margin: 8mm 8mm 6mm; }

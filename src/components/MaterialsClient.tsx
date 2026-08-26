@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Package,
   Plus,
@@ -17,6 +18,7 @@ import {
   Upload,
   FileSpreadsheet,
   AlertCircle,
+  Printer,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import type { Project, ProjectMaterial, MaterialStatus } from '@/lib/types'
@@ -77,16 +79,18 @@ function AddMaterialModal({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
 
+  const router = useRouter()
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
-    const fd = new FormData(e.currentTarget)
     startTransition(async () => {
-      const result = await createMaterial(projectId, fd)
+      const result = await createMaterial(projectId, new FormData(e.currentTarget))
       if (result?.error) {
         setError(result.error)
       } else {
         onClose()
+        router.refresh()
       }
     })
   }
@@ -147,6 +151,8 @@ function EditMaterialModal({
   const [error, setError] = useState('')
   const [status, setStatus] = useState<MaterialStatus>(material.status)
 
+  const router = useRouter()
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
@@ -158,6 +164,7 @@ function EditMaterialModal({
         setError(result.error)
       } else {
         onClose()
+        router.refresh()
       }
     })
   }
@@ -413,6 +420,8 @@ function ImportExcelModal({
     setParsedRows(prev => [...prev, { name: '', submission_no: '', submitted_date: '', error: 'กรุณาระบุชื่อวัสดุ' }])
   }
 
+  const router = useRouter()
+
   // 4. Save
   const handleSave = () => {
     if (parsedRows.length === 0) return
@@ -425,6 +434,7 @@ function ImportExcelModal({
         setErrorMessage(res.error)
       } else {
         onClose()
+        router.refresh()
       }
     })
   }
@@ -646,11 +656,102 @@ export function MaterialsClient({ project, materials, user }: Props) {
     return materials.filter((m) => m.status === filterStatus)
   }, [materials, filterStatus])
 
+  const router = useRouter()
+
   function handleDelete(id: string) {
     if (!confirm('ลบรายการนี้ออกจากระบบ?')) return
     startTransition(async () => {
       await deleteMaterial(id, project.id)
+      router.refresh()
     })
+  }
+
+  function handlePrintMaterials() {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const rowsHtml = filtered.map((mat, idx) => {
+      const meta = STATUS_META[mat.status]
+      
+      let statusStyle = ''
+      if (mat.status === 'pending') statusStyle = 'background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d;'
+      else if (mat.status === 'approved') statusStyle = 'background-color: #d1fae5; color: #047857; border: 1px solid #6ee7b7;'
+      else if (mat.status === 'rejected') statusStyle = 'background-color: #fee2e2; color: #dc2626; border: 1px solid #fca5a5;'
+
+      return `
+        <tr class="mat-row">
+          <td class="col-num">${idx + 1}</td>
+          <td class="col-name">${mat.name}</td>
+          <td class="col-sub">${mat.submission_no || '—'}</td>
+          <td class="col-date">${formatDate(mat.submitted_date)}</td>
+          <td class="col-date">${formatDate(mat.approved_date)}</td>
+          <td class="col-status">
+            <span class="status-badge" style="${statusStyle}">
+              ${meta.label}
+            </span>
+          </td>
+          <td class="col-note">${mat.note || '—'}</td>
+        </tr>
+      `
+    }).join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>รายการวัสดุ - ${project.name}</title>
+<style>
+  @page { size: A4 portrait; margin: 15mm; }
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', sans-serif; font-size: 12px; color: #1e293b; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  
+  .page-header { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #6366f1; }
+  .proj-name { font-size: 18px; font-weight: 700; color: #1e293b; }
+  .proj-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+  
+  .mat-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .mat-table thead { display: table-header-group; }
+  .mat-table tr { page-break-inside: avoid; }
+  .mat-table th { font-size: 12px; font-weight: 700; color: #64748b; background: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 8px 6px; text-align: left; }
+  .mat-table th:first-child, .col-num { text-align: center; }
+  
+  .mat-row td { border-bottom: 1px solid #f1f5f9; padding: 8px 6px; font-size: 12px; vertical-align: top; word-break: break-word; }
+  .col-name { font-weight: 600; color: #0f172a; }
+  .status-badge { display: inline-block; padding: 3px 8px; border-radius: 9999px; font-size: 11px; font-weight: 700; }
+  
+  @media print {
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <div class="proj-name">${project.name || 'โครงการ'}</div>
+    <div class="proj-sub">รายการจัดการวัสดุและการอนุมัติ ${filterStatus !== 'all' ? '(กรอง: ' + STATUS_META[filterStatus as MaterialStatus].label + ')' : ''}</div>
+  </div>
+  <table class="mat-table">
+    <thead>
+      <tr>
+        <th style="width: 5%;">#</th>
+        <th style="width: 30%;">ชื่อวัสดุ / สเปค</th>
+        <th style="width: 15%;">เลขที่เอกสาร</th>
+        <th style="width: 10%;">วันที่ยื่น</th>
+        <th style="width: 10%;">วันที่อนุมัติ</th>
+        <th style="width: 12%;">สถานะ</th>
+        <th style="width: 18%;">หมายเหตุ</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>
+  <script>
+    window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }
+  </script>
+</body>
+</html>`
+
+    printWindow.document.write(html)
+    printWindow.document.close()
   }
 
   return (
@@ -712,27 +813,36 @@ export function MaterialsClient({ project, materials, user }: Props) {
             ))}
           </div>
 
-          {/* Add button */}
-          {user && (user.role === 'admin' || user.role === 'editor') && (
-            <div className="flex gap-2 flex-wrap">
-              <button
-                id="import-excel-btn"
-                onClick={() => setShowImportModal(true)}
-                className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
-              >
-                <FileSpreadsheet size={15} className="text-emerald-600 dark:text-emerald-500" />
-                นำเข้าจาก Excel
-              </button>
-              <button
-                id="add-material-btn"
-                onClick={() => setShowAddModal(true)}
-                className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
-              >
-                <Plus size={15} />
-                เพิ่มรายการวัสดุ
-              </button>
-            </div>
-          )}
+          {/* Action buttons */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={handlePrintMaterials}
+              className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#252548]"
+            >
+              <Printer size={15} className="text-primary-600 dark:text-primary-500" />
+              พิมพ์รายการวัสดุ
+            </button>
+            {user && (user.role === 'admin' || user.role === 'editor') && (
+              <>
+                <button
+                  id="import-excel-btn"
+                  onClick={() => setShowImportModal(true)}
+                  className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
+                >
+                  <FileSpreadsheet size={15} className="text-emerald-600 dark:text-emerald-500" />
+                  นำเข้าจาก Excel
+                </button>
+                <button
+                  id="add-material-btn"
+                  onClick={() => setShowAddModal(true)}
+                  className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
+                >
+                  <Plus size={15} />
+                  เพิ่มรายการวัสดุ
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* ── Table ── */}

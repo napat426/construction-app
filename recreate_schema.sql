@@ -224,3 +224,25 @@ INSERT INTO public.system_settings (key, value) VALUES
   ('ai_ocr_enabled', 'true'),
   ('work_groups', '["งานงบลงทุนเร่งด่วน", "งานแผนสนับสนุน"]')
 ON CONFLICT (key) DO NOTHING;
+C R E A T E   T A B L E   I F   N O T   E X I S T S   p u b l i c . m a t e r i a l s   ( 
+     i d   U U I D   D E F A U L T   g e n _ r a n d o m _ u u i d ( )   P R I M A R Y   K E Y , 
+     p r o j e c t _ i d   U U I D   N O T   N U L L   R E F E R E N C E S   p u b l i c . p r o j e c t s ( i d )   O N   D E L E T E   C A S C A D E , 
+     n a m e   T E X T   N O T   N U L L , 
+     s u b m i s s i o n _ n o   T E X T , 
+     s u b m i t t e d _ d a t e   D A T E , 
+     a p p r o v e d _ d a t e   D A T E , 
+     s t a t u s   T E X T   N O T   N U L L   D E F A U L T   ' p e n d i n g ' , 
+     n o t e   T E X T , 
+     c r e a t e d _ a t   T I M E S T A M P   W I T H   T I M E   Z O N E   D E F A U L T   t i m e z o n e ( ' u t c ' : : t e x t ,   n o w ( ) )   N O T   N U L L 
+ ) ; 
+ 
+ A L T E R   T A B L E   p u b l i c . m a t e r i a l s   E N A B L E   R O W   L E V E L   S E C U R I T Y ; 
+ 
+ C R E A T E   P O L I C Y   " A l l o w   a l l   o n   m a t e r i a l s   f o r   a u t h e n t i c a t e d   u s e r s " 
+     O N   p u b l i c . m a t e r i a l s   F O R   A L L 
+     T O   a u t h e n t i c a t e d   U S I N G   ( t r u e )   W I T H   C H E C K   ( t r u e ) ; 
+ 
+ C R E A T E   P O L I C Y   " A l l o w   r e a d   o n   m a t e r i a l s   f o r   p u b l i c " 
+     O N   p u b l i c . m a t e r i a l s   F O R   S E L E C T 
+     T O   p u b l i c   U S I N G   ( t r u e ) ;  
+ 

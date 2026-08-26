@@ -619,9 +619,9 @@ function WeeklyReportForm({
     const paidAmountSum = milestones
       .filter((m) => m.is_paid)
       .reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
-    const acPercent = (paidAmountSum / (project.budget || 1)) * 100;
+    const acPercent = (paidAmountSum / (project.opening_pr || 1)) * 100;
 
-    const totalWbsDenominator = totalWbsCost > 0 ? totalWbsCost : (project.budget || 1);
+    const totalWbsDenominator = totalWbsCost > 0 ? totalWbsCost : (project.opening_pr || 1);
     const PV = totalWbsDenominator * (pvCumulative / 100);
     const EV = totalWbsDenominator * (evCumulative / 100);
     const AC = paidAmountSum;
@@ -855,10 +855,10 @@ function WeeklyReportForm({
           const totalPaidUpToDate = paymentPoints
             .filter(p => p.date <= currDate)
             .reduce((sum, p) => sum + p.amount, 0)
-          acVal = (totalPaidUpToDate / (project.budget || 1)) * 100
+          acVal = (totalPaidUpToDate / (project.opening_pr || 1)) * 100
         } else {
           // Fallback: draw a linear slant from 0 at start date up to totalPaidPercent at today
-          const totalPaidPercent = ((project.paid_amount || 0) / (project.budget || 1)) * 100
+          const totalPaidPercent = ((project.paid_amount || 0) / (project.opening_pr || 1)) * 100
           if (totalPaidPercent > 0) {
             const projectStart = start.getTime()
             const projectToday = todayDateOnly.getTime()
@@ -1207,9 +1207,9 @@ function WeeklyReportForm({
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:grid-cols-4 print:gap-2 text-center">
               <div className="border border-slate-200 dark:border-[#252548] print:border-black p-3 print:p-1.5 rounded-2xl print:rounded-none bg-slate-50/50 dark:bg-[#1a1a32]/20 print:bg-transparent">
-                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">งบประมาณโครงการ (Budget)</p>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">วงเงินจ้างก่อสร้าง (Contract Value)</p>
                 <p className="text-base font-black text-slate-800 dark:text-white print:text-xs print:font-black mt-1">
-                  {(project.budget || 0).toLocaleString()} ฿
+                  {(project.opening_pr || 0).toLocaleString()} ฿
                 </p>
               </div>
 

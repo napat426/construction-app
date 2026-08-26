@@ -134,9 +134,9 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
     const paidAmountSum = milestones
       .filter((m) => m.is_paid)
       .reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
-    const acPercent = (paidAmountSum / (project.budget || 1)) * 100
+    const acPercent = (paidAmountSum / (project.opening_pr || 1)) * 100
 
-    const totalWbsDenominator = totalWbsCost > 0 ? totalWbsCost : (project.budget || 1)
+    const totalWbsDenominator = totalWbsCost > 0 ? totalWbsCost : (project.opening_pr || 1)
     const pvCurrency = totalWbsDenominator * (pvCumulative / 100)
     const evCurrency = totalWbsDenominator * (evCumulative / 100)
     const acCurrency = paidAmountSum
@@ -156,7 +156,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
     const progressDaysDiff = Math.abs(svDays)
     const progressStatus = SV > 0.005 ? 'ahead' : SV < -0.005 ? 'behind' : 'ontrack'
 
-    const budget = project.budget || 0
+    const budget = project.opening_pr || 0
     const paid = paidAmountSum
     const paidPercent = budget > 0 ? (paid / budget) * 100 : 0
     const remainingBudget = Math.max(0, budget - paid)
@@ -514,12 +514,12 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
                   {metrics.cv > 0.005 ? (
                     <>
                       <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">✅ ต่ำกว่าวงเงินจ้าง</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap">ประหยัดได้ {formatCurrency((metrics.cv / 100) * (project.budget || 0))}</span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap">ประหยัดได้ {formatCurrency((metrics.cv / 100) * (project.opening_pr || 0))}</span>
                     </>
                   ) : metrics.cv < -0.005 ? (
                     <>
                       <span className="text-[11px] font-bold text-red-500">🔴 เกินวงเงินจ้าง</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap font-mono">เกินงบ {formatCurrency(Math.abs((metrics.cv / 100) * (project.budget || 0)))}</span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap font-mono">เกินงบ {formatCurrency(Math.abs((metrics.cv / 100) * (project.opening_pr || 0)))}</span>
                     </>
                   ) : (
                     <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">🎯 ตรงวงเงินจ้าง</span>
@@ -628,8 +628,8 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
               </div>
               <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
                 <div className="bg-slate-50 dark:bg-[#14142a]/50 p-2.5 rounded-lg border border-slate-100 dark:border-[#1e1e38]">
-                  <p className={labelCls}>งบรวม</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 truncate">{formatCurrency(project.budget)}</p>
+                  <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">วงเงินจ้างก่อสร้าง (Contract Value)</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 truncate">{formatCurrency(project.opening_pr || 0)}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-[#14142a]/50 p-2.5 rounded-lg border border-slate-100 dark:border-[#1e1e38]">
                   <p className={labelCls}>คงเหลือ</p>

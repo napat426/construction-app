@@ -329,10 +329,10 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
           const totalPaidUpToDate = paymentPoints
             .filter(p => p.date <= currDate)
             .reduce((sum, p) => sum + p.amount, 0)
-          acVal = (totalPaidUpToDate / (project.budget || 1)) * 100
+          acVal = (totalPaidUpToDate / (project.opening_pr || 1)) * 100
         } else {
           // Fallback: draw a linear slant from 0 at start date up to totalPaidPercent at today
-          const totalPaidPercent = ((project.paid_amount || 0) / (project.budget || 1)) * 100
+          const totalPaidPercent = ((project.paid_amount || 0) / (project.opening_pr || 1)) * 100
           if (totalPaidPercent > 0) {
             const projectStart = start.getTime()
             const projectToday = todayDateOnly.getTime()

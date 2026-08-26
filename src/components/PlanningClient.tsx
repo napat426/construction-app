@@ -362,11 +362,11 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
   }, [scheduledTasks, dateRange, summary, project, milestones])
 
   // Plan vs Actual deviation at TODAY
-  const deviationAtToday = useMemo(() => {
+  const { plannedPercentAtToday, deviationAtToday } = useMemo(() => {
     const todayDateOnly = new Date()
     todayDateOnly.setHours(0, 0, 0, 0)
     
-    if (scheduledTasks.length === 0) return 0
+    if (scheduledTasks.length === 0) return { plannedPercentAtToday: 0, deviationAtToday: 0 }
     
     const totalWeightDenominator = summary.totalCost > 0 ? summary.totalCost : scheduledTasks.length
 
@@ -386,7 +386,8 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
       }
     }
     const plannedPercentAtToday = (plannedSum / totalWeightDenominator) * 100
-    return summary.actualProgressRaw - plannedPercentAtToday
+    const deviationAtToday = summary.actualProgressRaw - plannedPercentAtToday
+    return { plannedPercentAtToday, deviationAtToday }
   }, [scheduledTasks, summary, amendments])
 
   // 4. Gantt Timeline columns (10 divisions)
@@ -826,7 +827,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
   return (
     <div className="space-y-6">
       {/* ── Summary statistics row ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* WBS cost */}
         <div className="stat-card rounded-2xl p-5 flex items-center justify-between">
           <div>
@@ -837,6 +838,19 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
           </div>
           <div className="w-10 h-10 rounded-xl bg-primary-600/10 dark:bg-primary-600/20 flex items-center justify-center text-primary-600 dark:text-primary-400">
             <Layers size={18} />
+          </div>
+        </div>
+
+        {/* Planned Percent At Today */}
+        <div className="stat-card rounded-2xl p-5 flex items-center justify-between">
+          <div>
+            <span className={labelCls}>ความก้าวหน้าตามแผนงาน</span>
+            <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
+              {plannedPercentAtToday.toFixed(1)}%
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-primary-600/10 dark:bg-primary-600/20 flex items-center justify-center text-primary-600 dark:text-primary-400">
+            <Calendar size={18} />
           </div>
         </div>
 

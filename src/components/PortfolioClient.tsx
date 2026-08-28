@@ -829,7 +829,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                   <th className="py-4 px-5 pr-5 w-20 text-center no-print">เปิด</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[#1c1c34] text-xs font-bold text-slate-700 dark:text-slate-300 print:divide-y print:divide-slate-300">
+              <tbody className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 {sortedProjects.map((p) => {
                   const svIcon = p.SV >= 0 ? <ArrowUp size={12} className="text-emerald-500 inline mr-0.5" /> : <ArrowDown size={12} className="text-red-500 inline mr-0.5" />
                   const cvColor = p.CV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'
@@ -860,7 +860,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                   if (p.trafficLight === 'yellow') trafficLightDot = 'bg-amber-500'
 
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/10 print:hover:bg-transparent">
+                    <tr key={p.id} className="border-b border-slate-100 dark:border-[#1c1c34] print:border-slate-300 hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/10 print:hover:bg-transparent [page-break-inside:avoid]">
                       {/* Traffic Light Dot Column */}
                       <td className="py-4 pl-5 pr-1 text-center">
                         <div className={`w-3 h-3 rounded-full ${trafficLightDot}`} title={

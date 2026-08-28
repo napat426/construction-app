@@ -793,7 +793,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
 
 
       {/* ── PART 3: COMPARISON TABLE (Moved to top) ── */}
-      <div className="card rounded-2xl border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] overflow-hidden print:card shadow-sm">
+      <div className="card rounded-2xl border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] overflow-hidden print:overflow-visible print:border-none print:shadow-none print:card shadow-sm">
         {filteredProjects.length === 0 ? (
           <div className="text-center py-20">
             <Folder size={40} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />

@@ -829,7 +829,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                   <th className="py-4 px-5 pr-5 w-20 text-center no-print">เปิด</th>
                 </tr>
               </thead>
-              <tbody className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <tbody className="text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-[#1c1c34] print:border-slate-300">
                 {sortedProjects.map((p) => {
                   const svIcon = p.SV >= 0 ? <ArrowUp size={12} className="text-emerald-500 inline mr-0.5" /> : <ArrowDown size={12} className="text-red-500 inline mr-0.5" />
                   const cvColor = p.CV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'

@@ -317,3 +317,17 @@
     color: black !important;
   }
 }
+
+@media print {
+  .print-safe-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+  .print-safe-table th,
+  .print-safe-table td {
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+  .print-safe-table tr {
+    page-break-inside: avoid !important;
+  }
+}

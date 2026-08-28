@@ -801,7 +801,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
           </div>
         ) : (
           <div className="overflow-x-auto w-full print:overflow-visible pb-1 print:pb-0">
-            <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0 print:min-w-0 print:text-[10px] border-b border-slate-200 dark:border-[#1c1c34] print:border-slate-300">
+            <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0 print:min-w-0 print:text-[10px] border-b border-slate-200 dark:border-[#1c1c34] print:border-slate-300 print-safe-table">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider print:bg-transparent print:text-[9px]">
                   {/* traffic light indicator empty label */}
@@ -989,6 +989,8 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                 })}
               </tbody>
             </table>
+            {/* Guarantee a bottom border for print mode to bypass browser table clipping bugs */}
+            <div className="hidden print:block border-t border-slate-300 w-full" />
           </div>
         )}
       </div>

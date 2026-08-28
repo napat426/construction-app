@@ -333,7 +333,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
         'CV (%)': Number(p.CV.toFixed(2)),
         'CPI': Number(p.CPI.toFixed(2)),
         'งบรวม (บาท)': budget,
-        'การเบิกจ่าย (บาท)': p.actual_paid || 0
+        'การเบิกจ่าย (บาท)': p.paid_amount || 0
       }
     })
 

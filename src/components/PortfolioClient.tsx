@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck, SlidersHorizontal } from 'lucide-react'
+import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck, SlidersHorizontal, FileSpreadsheet } from 'lucide-react'
 import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractAmendment } from '@/lib/types'
+import * as XLSX from 'xlsx'
 
 import { ProgressComparisonChart } from './portfolio/ProgressComparisonChart'
 import { StatusDonutChart } from './portfolio/StatusDonutChart'
@@ -304,6 +305,42 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleExportExcel = () => {
+    const dataForExcel = sortedProjects.map((p) => {
+      let statusText = 'ปกติ'
+      let statusRemark = ''
+      if (p.SV < 0 && p.SV >= -5) {
+        statusText = 'เฝ้าระวัง'
+        statusRemark = `ล่าช้า ${Math.abs(p.SV).toFixed(2)}%`
+      } else if (p.SV < -5) {
+        statusText = 'วิกฤต'
+        statusRemark = `ล่าช้า ${Math.abs(p.SV).toFixed(2)}%`
+      }
+
+      const budget = p.budget || 0
+      
+      return {
+        'ชื่อโครงการ': p.name,
+        'สถานะ': statusText,
+        'หมายเหตุ': statusRemark,
+        'วันคงเหลือ (วัน)': p.remainingDays,
+        'แผนงาน (%)': Number(p.pvCumulative.toFixed(2)),
+        'ผลงาน (%)': Number(p.evCumulative.toFixed(2)),
+        'SV (%)': Number(p.SV.toFixed(2)),
+        'SPI': Number(p.SPI.toFixed(2)),
+        'CV (%)': Number(p.CV.toFixed(2)),
+        'CPI': Number(p.CPI.toFixed(2)),
+        'งบรวม (บาท)': budget,
+        'การเบิกจ่าย (บาท)': p.actual_paid || 0
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(dataForExcel)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Projects')
+    XLSX.writeFile(workbook, `ภาพรวมโครงการ_${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
   const handleSort = (field: SortField) => {
@@ -688,14 +725,20 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <button
-            onClick={handlePrint}
-            className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
-          >
-            <Printer size={14} /> 🖨 พิมพ์ภาพรวม
-          </button>
-        </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleExportExcel}
+              className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/30"
+            >
+              <FileSpreadsheet size={14} /> 📊 ส่งออก Excel
+            </button>
+            <button
+              onClick={handlePrint}
+              className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
+            >
+              <Printer size={14} /> 🖨 พิมพ์ภาพรวม
+            </button>
+          </div>
       </div>
 
       {/* ── PART 2: SUMMARY CARDS (Consolidated KPIs) ── */}

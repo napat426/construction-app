@@ -27,7 +27,7 @@ export default async function ProjectMaterialsPage({ params }: MaterialsPageProp
 
   const [projectRes, materialsRes] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
-    supabase.from('materials').select('*').eq('project_id', id).order('created_at', { ascending: true }),
+    supabase.from('materials').select('*').eq('project_id', id).order('created_at', { ascending: true }).order('id', { ascending: true }),
   ])
 
   const projectData = projectRes.data
@@ -40,15 +40,15 @@ export default async function ProjectMaterialsPage({ params }: MaterialsPageProp
   const materials = (materialsData as ProjectMaterial[]) || []
 
   return (
-    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
-      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden">
+    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c] print:bg-white print:h-auto print:min-h-0 print:overflow-visible">
+      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden print:overflow-visible print:h-auto print:min-h-0">
         <Header
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการทั้งหมด', project.name, 'การจัดการวัสดุ']}
           title="การจัดการวัสดุและการอนุมัติ"
           subtitle="ติดตามสถานะการขออนุมัติวัสดุก่อสร้างและบันทึกผลการพิจารณา"
           user={user}
         />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 print:p-0 print:pb-16">
           <ProjectTabs projectId={project.id} />
           <MaterialsClient project={project} materials={materials} user={user} />
         </main>

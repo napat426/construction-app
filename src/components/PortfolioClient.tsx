@@ -801,9 +801,9 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
-            <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0">
+            <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0 print:min-w-0 print:text-[10px]">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider print:bg-transparent">
+                <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider print:bg-transparent print:text-[9px]">
                   {/* traffic light indicator empty label */}
                   <th className="py-4 pl-5 pr-1 w-8"></th>
                   <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('name')}>
@@ -822,10 +822,10 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                     SV {sortBy === 'sv' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
                   </th>
                   <th className="py-4 px-3 w-16">SPI</th>
-                  <th className="py-4 px-3 w-24 hidden md:table-cell">CV</th>
-                  <th className="py-4 px-3 w-16 hidden md:table-cell">CPI</th>
-                  <th className="py-4 px-3 w-28 hidden md:table-cell">งบรวม</th>
-                  <th className="py-4 px-3 w-32 hidden md:table-cell">การจ่ายเงิน (% Paid)</th>
+                  <th className="py-4 px-3 w-24 hidden md:table-cell print:table-cell">CV</th>
+                  <th className="py-4 px-3 w-16 hidden md:table-cell print:table-cell">CPI</th>
+                  <th className="py-4 px-3 w-28 hidden md:table-cell print:table-cell">งบรวม</th>
+                  <th className="py-4 px-3 w-32 hidden md:table-cell print:table-cell">การจ่ายเงิน (% Paid)</th>
                   <th className="py-4 px-5 pr-5 w-20 text-center no-print">เปิด</th>
                 </tr>
               </thead>
@@ -939,12 +939,12 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                       </td>
 
                       {/* CV */}
-                      <td className={`py-4 px-3 font-mono hidden md:table-cell ${cvColor}`}>
+                      <td className={`py-4 px-3 font-mono hidden md:table-cell print:table-cell ${cvColor}`}>
                         {p.CV >= 0 ? '+' : ''}{p.CV.toFixed(1)}%
                       </td>
 
                       {/* CPI */}
-                      <td className="py-4 px-3 font-mono hidden md:table-cell">
+                      <td className="py-4 px-3 font-mono hidden md:table-cell print:table-cell">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
                           p.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
                           p.CPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
@@ -955,12 +955,12 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                       </td>
 
                       {/* Budget */}
-                      <td className="py-4 px-3 hidden md:table-cell font-mono text-slate-600 dark:text-slate-400">
+                      <td className="py-4 px-3 hidden md:table-cell print:table-cell font-mono text-slate-600 dark:text-slate-400">
                         {formatBudget(p.budget || 0)}
                       </td>
 
                       {/* Milestones Paid Progress Bar */}
-                      <td className="py-4 px-3 hidden md:table-cell">
+                      <td className="py-4 px-3 hidden md:table-cell print:table-cell">
                         <div className="space-y-1">
                           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
                             <span>จ่ายแล้ว {p.acPercent.toFixed(0)}%</span>

@@ -44,8 +44,8 @@ export default async function ProjectsPage() {
   } catch {}
 
   return (
-    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
-      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden">
+    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c] print:bg-white print:h-auto print:min-h-0 print:overflow-visible">
+      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden print:overflow-visible print:h-auto print:min-h-0">
         <Header
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการ']}
           title="โครงการทั้งหมด"
@@ -74,7 +74,7 @@ export default async function ProjectsPage() {
           user={user}
         />
 
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 print:pb-16">
           {/* DB error banner */}
           {error && (
             <div className="mb-5 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-600 dark:text-red-400 flex items-start gap-2">

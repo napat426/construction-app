@@ -800,7 +800,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
             <p className="text-sm font-bold text-slate-500">ไม่พบโครงการตรงตามเงื่อนไขตัวกรอง</p>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full print:overflow-visible pb-1 print:pb-0">
+          <div className="overflow-x-auto w-full print:overflow-visible pb-1 print:pb-8 print:mb-8">
             <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0 print:min-w-0 print:text-[10px] print-safe-table">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider print:bg-transparent print:text-[9px]">

@@ -214,13 +214,13 @@ export function InspectionsTab({ project, data, user }: Props) {
                       setSelectedId(item.id)
                       setIsCreating(false)
                     }}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
                       selectedId === item.id
                         ? 'border-primary-500 bg-white dark:bg-[#1e1e38] shadow-sm ring-1 ring-primary-500/20'
                         : 'border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] hover:border-slate-300'
                     }`}
                   >
-                    <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center mt-1">
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -234,7 +234,7 @@ export function InspectionsTab({ project, data, user }: Props) {
                         className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
                       />
                     </div>
-                    <div className="flex flex-col items-center gap-0.5">
+                    <div className="flex flex-col items-center gap-0.5 mt-0.5">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -271,6 +271,36 @@ export function InspectionsTab({ project, data, user }: Props) {
                       <p className="text-xs font-medium text-slate-500 truncate mt-0.5">
                         {item.work_type} • {item.request_date ? new Date(item.request_date).toLocaleDateString('th-TH') : '-'}
                       </p>
+
+                      {/* Photo preview thumbnails (up to 6 images: 64x64px) */}
+                      {item.photo_urls && item.photo_urls.length > 0 && (
+                        <div className="flex items-center flex-wrap gap-2 mt-2.5">
+                          {item.photo_urls.slice(0, 6).map((pStr, pIdx) => {
+                            const url = pStr.split('|||')[0]
+                            const isLastAndMore = pIdx === 5 && item.photo_urls.length > 6
+                            const remainingCount = item.photo_urls.length - 6
+
+                            return (
+                              <div
+                                key={pIdx}
+                                className="relative w-16 h-16 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 shrink-0 shadow-xs"
+                              >
+                                <img
+                                  src={url}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                                {isLastAndMore && (
+                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-xs font-black text-white">
+                                    +{remainingCount}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )

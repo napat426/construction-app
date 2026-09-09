@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ChevronDown, ChevronUp, Download, CheckCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download, CheckCircle, Printer } from 'lucide-react'
 import type { Project, ProjectMilestone, WBSTask } from '@/lib/types'
 import { PaymentForecastChart } from './portfolio/PaymentForecastChart'
 
@@ -272,10 +272,23 @@ export function DisbursementsView({
     document.body.removeChild(link)
   }
 
+    const handlePrint = () => {
+      window.print()
+    }
+
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-4 animate-fade-in print:space-y-0">
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          @page { size: A4 landscape; margin: 10mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-safe-table { border-collapse: separate !important; border-spacing: 0 !important; }
+          .print-safe-table th, .print-safe-table td { border-bottom: 1px solid #cbd5e1 !important; }
+        }
+      `}} />
+      
       {/* Configuration Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#1e1e38] rounded-2xl p-4 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#1e1e38] rounded-2xl p-4 shadow-xs print:hidden">
         <div>
           <h2 className="text-sm font-bold text-slate-800 dark:text-white">รายงานแสดงสถานะการเบิกจ่ายงบประมาณ WBS / PR / PO / GR / IR</h2>
           <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">หน่วยแสดงผล: ล้านบาท (เช่น 12.050 = 12,050,000 บาท)</p>
@@ -307,15 +320,22 @@ export function DisbursementsView({
             <Download size={13} />
             ส่งออก Excel
           </button>
+          {/* Print Button */}
+          <button
+            onClick={handlePrint}
+            className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
+          >
+            <Printer size={14} /> 🖨 พิมพ์เบิกจ่าย
+          </button>
         </div>
       </div>
 
       {/* Spreadsheet grid */}
-      <div className="overflow-x-auto border border-slate-200 dark:border-[#1e1e38] rounded-2xl bg-white dark:bg-[#13132a] shadow-sm">
-        <table className="w-full border-collapse text-left text-xs min-w-[1200px]">
+      <div className="overflow-x-auto border border-slate-200 dark:border-[#1e1e38] rounded-2xl bg-white dark:bg-[#13132a] shadow-sm print:border-none print:shadow-none print:overflow-visible">
+        <table className="w-full border-collapse text-left text-xs min-w-[1200px] print-safe-table print:text-[10px]">
           <thead>
-            <tr className="bg-slate-50 dark:bg-[#15152c] text-slate-400 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-[#1e1e38]">
-              <th className="p-3 w-10"></th>
+            <tr className="bg-slate-50 dark:bg-[#15152c] text-slate-400 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-[#1e1e38] print:bg-transparent print:text-black">
+              <th className="p-3 w-10 print:hidden"></th>
               <th className="p-3 w-56">โครงการ / รายการ</th>
               <th className="p-3">หมายเลขงาน (WBS)</th>
               <th className="p-3">งบประมาณ</th>
@@ -328,7 +348,8 @@ export function DisbursementsView({
               <th className="p-3">สถานะ</th>
             </tr>
             <tr className="bg-slate-50/50 dark:bg-[#15152c]/50 text-slate-400 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-[#1e1e38] text-[10px] uppercase">
-              <th colSpan={3}></th>
+              <th className="print:hidden"></th>
+              <th colSpan={2}></th>
               <th></th>
               <th></th>
               <th></th>
@@ -352,7 +373,7 @@ export function DisbursementsView({
                     onClick={() => toggleExpand(r.project.id)}
                     className="hover:bg-slate-50 dark:hover:bg-[#15152c]/40 cursor-pointer transition-colors w-full table-row"
                   >
-                    <td className="p-3 text-center">
+                    <td className="p-3 text-center print:hidden">
                       {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </td>
                     <td className="p-3 font-bold text-slate-900 dark:text-white truncate max-w-[220px]" title={r.project.name}>
@@ -459,7 +480,7 @@ export function DisbursementsView({
 
             {/* Total Aggregate Row */}
             <tr className="bg-slate-100/50 dark:bg-[#1a1a36]/50 font-black text-slate-900 dark:text-white border-t-2 border-slate-300 dark:border-[#252548]">
-              <td></td>
+              <td className="print:hidden"></td>
               <td className="p-3 text-left">รวมทั้งสิ้น</td>
               <td></td>
               <td className="p-3 font-mono">{formatMoney(totals.budget)}</td>
@@ -481,7 +502,7 @@ export function DisbursementsView({
       </div>
 
       {/* Monthly Payout Forecast */}
-      <div className="mt-6">
+      <div className="mt-6 print:hidden">
         <PaymentForecastChart
           milestones={milestones}
           projects={projects}

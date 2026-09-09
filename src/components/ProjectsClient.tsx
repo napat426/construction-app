@@ -91,8 +91,8 @@ export function ProjectsClient({
 
   return (
     <>
-      {/* ── Stats row ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+      {/* ── Summary Stats ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6 print:hidden">
         {(
           [
             { label: 'ทั้งหมด',           value: stats.total,   color: 'text-primary-600 dark:text-primary-400',   dot: 'bg-primary-600' },
@@ -115,7 +115,7 @@ export function ProjectsClient({
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
+      <div className="flex flex-wrap items-center gap-3 mb-5 print:hidden">
         {/* Search */}
         <div className="relative flex-1 min-w-48">
           <Search
@@ -397,7 +397,7 @@ export function ProjectsClient({
 
       {/* ── Filter result count ── */}
       {(searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0 || selectedWorkGroups.length > 0) && (
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 print:hidden">
           แสดง{' '}
           <span className="font-bold text-primary-600 dark:text-primary-400">
             {filtered.length}
@@ -468,7 +468,9 @@ export function ProjectsClient({
 
       {/* ── AI Assistant Section ── */}
       {aiEnabled && (
-        <AIAssistantSection projects={initialProjects} user={user} aiOcrEnabled={aiOcrEnabled} />
+        <div className="print:hidden">
+          <AIAssistantSection projects={initialProjects} user={user} aiOcrEnabled={aiOcrEnabled} />
+        </div>
       )}
     </>
   )

@@ -942,12 +942,12 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
             <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1354px' }}>
               <colgroup>
                 <col style={{ width: '72px' }} />{/* WBS No */}
-                <col style={{ width: '280px' }} />{/* Task Name — widened */}
+                <col style={{ width: '380px' }} />{/* Task Name — widened */}
                 <col style={{ width: '88px' }} />{/* Status */}
                 <col style={{ width: '80px' }} />{/* Duration */}
                 <col style={{ width: '108px' }} />{/* Start Date */}
                 <col style={{ width: '100px' }} />{/* End Date */}
-                <col style={{ width: '175px' }} />{/* Predecessors */}
+                <col style={{ width: '100px' }} />{/* Predecessors */}
                 <col style={{ width: '108px' }} />{/* Cost */}
                 <col style={{ width: '68px' }} />{/* Weight */}
                 <col style={{ width: '105px' }} />{/* Progress */}
@@ -1055,12 +1055,12 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                           <td className="py-2 px-2 font-mono text-slate-400 text-xs">
                             {formatDate(t.computedEndDate)}
                           </td>
-                          <td className="py-2 px-2">
-                            <div className="flex items-center gap-1">
+                          <td className="py-2 px-1">
+                            <div className="flex items-center gap-0.5">
                               <input
                                 type="text"
                                 className="input-base input-xs flex-1 min-w-0 text-center font-mono"
-                                style={{ padding: '4px 4px', minWidth: '36px', maxWidth: '48px' }}
+                                style={{ padding: '3px 2px', minWidth: '26px', maxWidth: '34px' }}
                                 value={inputPredWbs}
                                 onChange={(e) => {
                                   const val = e.target.value
@@ -1071,7 +1071,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               />
                               <select
                                 className="input-base input-xs flex-shrink-0"
-                                style={{ padding: '4px 2px', width: '48px' }}
+                                style={{ padding: '3px 1px', width: '42px' }}
                                 value={inputPredType}
                                 onChange={(e) => {
                                   const val = e.target.value as any
@@ -1087,7 +1087,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               <input
                                 type="number"
                                 className="input-base input-xs flex-1 min-w-0 text-center"
-                                style={{ padding: '4px 4px', minWidth: '30px', maxWidth: '40px' }}
+                                style={{ padding: '3px 2px', minWidth: '24px', maxWidth: '32px' }}
                                 value={inputPredLag}
                                 onChange={(e) => {
                                   const val = e.target.value
@@ -1210,12 +1210,12 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                             )}
                           </td>
                           <td className="py-2 px-2" />
-                          <td className="py-2 px-2">
-                            <div className="flex items-center gap-1">
+                          <td className="py-2 px-1">
+                            <div className="flex items-center gap-0.5">
                               <input
                                 type="text"
                                 className="input-base input-xs flex-1 min-w-0 text-center font-mono"
-                                style={{ padding: '4px 4px', minWidth: '36px', maxWidth: '48px' }}
+                                style={{ padding: '3px 2px', minWidth: '26px', maxWidth: '34px' }}
                                 value={inputPredWbs}
                                 onChange={(e) => {
                                   const val = e.target.value
@@ -1226,7 +1226,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               />
                               <select
                                 className="input-base input-xs flex-shrink-0"
-                                style={{ padding: '4px 2px', width: '48px' }}
+                                style={{ padding: '3px 1px', width: '42px' }}
                                 value={inputPredType}
                                 onChange={(e) => {
                                   const val = e.target.value as any
@@ -1242,7 +1242,7 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                               <input
                                 type="number"
                                 className="input-base input-xs flex-1 min-w-0 text-center"
-                                style={{ padding: '4px 4px', minWidth: '30px', maxWidth: '40px' }}
+                                style={{ padding: '3px 2px', minWidth: '24px', maxWidth: '32px' }}
                                 value={inputPredLag}
                                 onChange={(e) => {
                                   const val = e.target.value
@@ -1307,13 +1307,13 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
                             {t.wbs_no}
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             {t.is_milestone && (
                               <span className="text-[9px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1 rounded border border-purple-500/10 flex-shrink-0">
                                 MS
                               </span>
                             )}
-                            <span className="truncate max-w-sm">{t.name}</span>
+                            <span className="truncate flex-1" title={t.name}>{t.name}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4">

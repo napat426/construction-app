@@ -2,10 +2,31 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight, Settings } from 'lucide-react'
+import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight, Settings, ArrowUp, ArrowDown, RotateCcw, X, CalendarRange } from 'lucide-react'
 import { AdminChecklistMasterModal } from '@/components/AdminChecklistMasterModal'
 import { LineGroupSettingsModal } from '@/components/LineGroupSettingsModal'
 import type { LineChannelTarget } from '@/lib/line'
+
+interface DefaultWbsItem {
+  wbs_no: string
+  name: string
+  duration: number
+  predecessors: string | null
+}
+
+const FALLBACK_DEFAULT_WBS_TASKS: DefaultWbsItem[] = [
+  { wbs_no: '1', name: 'งานเตรียมพื้นที่ รื้อถอน เสาเข็ม', duration: 10, predecessors: null },
+  { wbs_no: '2', name: 'งานโครงสร้างฐานราก เสาตอม่อ และคานคอดิน', duration: 14, predecessors: '1' },
+  { wbs_no: '3', name: 'งานโครงสร้าง คสล. ชั้น 1', duration: 14, predecessors: '2' },
+  { wbs_no: '4', name: 'งานโครงสร้าง คสล. ชั้น 2', duration: 14, predecessors: '3' },
+  { wbs_no: '5', name: 'งานโครงสร้างหลังคา และมุงหลังคา', duration: 14, predecessors: '4' },
+  { wbs_no: '6', name: 'งานก่ออิฐ กรีดผนังฝังท่อร้อยสาย และจับเซี้ยมฉาบปูน', duration: 14, predecessors: '5' },
+  { wbs_no: '7', name: 'งานระบบท่อเมนและสุขาภิบาล (ถังบำบัด/บ่อพัก/ท่อระบายน้ำ)', duration: 10, predecessors: '6' },
+  { wbs_no: '8', name: 'งานผิวพื้น ปรับระดับ และปูกระเบื้อง', duration: 14, predecessors: '7' },
+  { wbs_no: '9', name: 'งานฝ้าเพดาน และงานระบบร้อยสายบนฝ้า', duration: 10, predecessors: '8' },
+  { wbs_no: '10', name: 'งานติดตั้งประตู หน้าต่าง ราวบันได และอุปกรณ์ประกอบ', duration: 10, predecessors: '9' },
+  { wbs_no: '11', name: 'งานติดตั้งสุขภัณฑ์ ดวงโคม ตู้ระบบ ทาสี และเก็บความเรียบร้อย', duration: 14, predecessors: '10' }
+]
 
 export function AdminSettingsClient({
   initialSettings,
@@ -18,8 +39,23 @@ export function AdminSettingsClient({
   const [isSaving, setIsSaving] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false)
+  const [isWbsModalOpen, setIsWbsModalOpen] = useState(false)
   const [masterCount, setMasterCount] = useState(37)
   const [activeModalChannel, setActiveModalChannel] = useState<LineChannelTarget | null>(null)
+
+  const [wbsTasks, setWbsTasks] = useState<DefaultWbsItem[]>(() => {
+    try {
+      const val = initialSettings['default_wbs_tasks']
+      if (val) {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {}
+    return FALLBACK_DEFAULT_WBS_TASKS
+  })
+  const [newWbsName, setNewWbsName] = useState('')
+  const [newWbsDuration, setNewWbsDuration] = useState('14')
+  const [isWbsSaving, setIsWbsSaving] = useState(false)
 
   const [workGroups, setWorkGroups] = useState<string[]>(() => {
     try {
@@ -179,6 +215,85 @@ export function AdminSettingsClient({
     saveWorkGroups(updated)
   }
 
+  const saveWbsTasks = async (updated: DefaultWbsItem[]) => {
+    setWbsTasks(updated)
+    setIsWbsSaving(true)
+    try {
+      const serialized = JSON.stringify(updated)
+      const { data } = await supabase.from('system_settings').select('id').eq('key', 'default_wbs_tasks').maybeSingle()
+      if (data) {
+        await supabase.from('system_settings').update({ value: serialized }).eq('key', 'default_wbs_tasks')
+      } else {
+        await supabase.from('system_settings').insert({ key: 'default_wbs_tasks', value: serialized })
+      }
+      setSettings(prev => ({ ...prev, default_wbs_tasks: serialized }))
+    } catch (e) {
+      console.error('Error saving default_wbs_tasks:', e)
+    } finally {
+      setIsWbsSaving(false)
+    }
+  }
+
+  const handleMoveWbsTask = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= wbsTasks.length) return
+    const newItems = [...wbsTasks]
+    const temp = newItems[index]
+    newItems[index] = newItems[targetIndex]
+    newItems[targetIndex] = temp
+
+    const resequenced = newItems.map((item, i) => ({
+      ...item,
+      wbs_no: String(i + 1),
+      predecessors: i === 0 ? null : String(i)
+    }))
+    saveWbsTasks(resequenced)
+  }
+
+  const handleDeleteWbsTask = (index: number) => {
+    const filtered = wbsTasks.filter((_, i) => i !== index)
+    const resequenced = filtered.map((item, i) => ({
+      ...item,
+      wbs_no: String(i + 1),
+      predecessors: i === 0 ? null : String(i)
+    }))
+    saveWbsTasks(resequenced)
+  }
+
+  const handleAddWbsTask = () => {
+    const trimmed = newWbsName.trim()
+    if (!trimmed) return
+    const dur = parseInt(newWbsDuration, 10) || 10
+    const newItem: DefaultWbsItem = {
+      wbs_no: String(wbsTasks.length + 1),
+      name: trimmed,
+      duration: dur,
+      predecessors: wbsTasks.length === 0 ? null : String(wbsTasks.length)
+    }
+    const updated = [...wbsTasks, newItem]
+    saveWbsTasks(updated)
+    setNewWbsName('')
+    setNewWbsDuration('14')
+  }
+
+  const handleUpdateWbsTask = (index: number, field: 'name' | 'duration', value: any) => {
+    setWbsTasks(prev => {
+      const copy = [...prev]
+      copy[index] = { ...copy[index], [field]: value }
+      return copy
+    })
+  }
+
+  const handleBlurSaveWbs = () => {
+    saveWbsTasks(wbsTasks)
+  }
+
+  const handleResetWbsTasks = () => {
+    if (confirm('คุณต้องการรีเซ็ตค่าตั้งต้นแผนงาน WBS กลับเป็น 11 รายการมาตรฐานใช่หรือไม่?')) {
+      saveWbsTasks(FALLBACK_DEFAULT_WBS_TASKS)
+    }
+  }
+
   return (
     <div className="bg-white dark:bg-[#14142a] rounded-xl shadow-sm border border-slate-200 dark:border-[#252548] p-6 space-y-8">
       <div>
@@ -301,6 +416,225 @@ export function AdminSettingsClient({
             )}
           </div>
         </div>
+      </div>
+
+      <hr className="border-slate-200 dark:border-[#252548]" />
+
+      {/* ── DEFAULT WBS TASKS MANAGEMENT SECTION (TRIGGER BUTTON + POPUP MODAL) ── */}
+      <div>
+        <div className="mb-4">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">
+            เทมเพลตแผนงานเริ่มต้น (Default WBS Plan)
+          </h3>
+          <p className="text-xs text-slate-400">
+            ตั้งค่ารายการกิจกรรมและจำนวนวันเริ่มต้นสำหรับการสร้างโครงการใหม่
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsWbsModalOpen(true)}
+          className="flex items-center gap-4 p-5 bg-slate-50 dark:bg-[#1a1a36] hover:bg-slate-100 dark:hover:bg-[#202042] border border-slate-200 dark:border-[#252548] rounded-2xl transition-all w-full text-left cursor-pointer group shadow-xs"
+        >
+          <div className="p-3.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-2xl group-hover:scale-105 transition-transform">
+            <CalendarRange size={28} />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+              เปิดศูนย์ตั้งค่าแผนงาน WBS เริ่มต้น
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-bold">
+                {wbsTasks.length} กิจกรรมตั้งต้น
+              </span>
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              คลิกที่นี่เพื่อเปิดหน้าต่างจัดการรายการกิจกรรม WBS เริ่มต้น ปรับชื่อ ระยะเวลากิจกรรม เพิ่ม/ลบ และสลับลำดับขึ้น-ลง
+            </p>
+          </div>
+          <ChevronRight size={22} className="text-slate-400 group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        {/* Modal Popup */}
+        {isWbsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#252548] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+              
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-[#252548] bg-slate-50/50 dark:bg-[#1a1a36]/50 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-xl">
+                    <CalendarRange size={22} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                      จัดการค่าตั้งต้นแผนงาน WBS
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-bold">
+                        {wbsTasks.length} รายการ
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      รายการกิจกรรมเริ่มต้นที่จะถูกนำไปสร้างแผนงานอัตโนมัติเมื่อเพิ่มโครงการใหม่
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleResetWbsTasks}
+                    disabled={isWbsSaving}
+                    className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-[#252548] rounded-xl hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    title="รีเซ็ตกลับเป็น 11 รายการมาตรฐาน"
+                  >
+                    <RotateCcw size={13} />
+                    <span className="hidden sm:inline">คืนค่า 11 รายการมาตรฐาน</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsWbsModalOpen(false)}
+                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1e1e38] rounded-xl transition-colors cursor-pointer"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-5 overflow-y-auto space-y-4 flex-1">
+                {isWbsSaving && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-primary-500 py-1">
+                    <Loader2 className="animate-spin" size={14} />
+                    กำลังบันทึกค่าตั้งต้นแผนงาน WBS...
+                  </div>
+                )}
+
+                {/* Add new default task input */}
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 bg-slate-50 dark:bg-[#1a1a36]/50 p-3 rounded-xl border border-slate-200 dark:border-[#252548]">
+                  <input
+                    type="text"
+                    placeholder="พิมพ์ชื่อกิจกรรมตั้งต้นใหม่..."
+                    value={newWbsName}
+                    onChange={e => setNewWbsName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleAddWbsTask()
+                    }}
+                    className="input-base text-sm font-semibold flex-1 min-w-[200px]"
+                  />
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      placeholder="วัน"
+                      value={newWbsDuration}
+                      onChange={e => setNewWbsDuration(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleAddWbsTask()
+                      }}
+                      className="input-base text-sm font-semibold w-20 text-center font-mono"
+                      title="ระยะเวลา (วัน)"
+                    />
+                    <span className="text-xs text-slate-400 font-bold whitespace-nowrap">วัน</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddWbsTask}
+                    disabled={isWbsSaving || !newWbsName.trim()}
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                  >
+                    <Plus size={16} /> เพิ่มกิจกรรม
+                  </button>
+                </div>
+
+                {/* List of default tasks */}
+                <div className="border border-slate-200 dark:border-[#252548] rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-[#252548] bg-white dark:bg-[#14142a]">
+                  {wbsTasks.length === 0 ? (
+                    <div className="p-8 text-center text-sm text-slate-400 italic">
+                      ยังไม่มีรายการกิจกรรมตั้งต้น (คลิกปุ่ม &quot;คืนค่า 11 รายการมาตรฐาน&quot; เพื่อโหลดรายการแนะนำ)
+                    </div>
+                  ) : (
+                    wbsTasks.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-50/70 dark:hover:bg-[#1a1a36]/30 transition-colors"
+                      >
+                        {/* Reorder Buttons */}
+                        <div className="flex flex-col items-center gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveWbsTask(idx, 'up')}
+                            disabled={idx === 0 || isWbsSaving}
+                            className="p-1 text-slate-300 hover:text-primary-500 disabled:opacity-20 transition-colors cursor-pointer"
+                            title="เลื่อนขึ้น"
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveWbsTask(idx, 'down')}
+                            disabled={idx === wbsTasks.length - 1 || isWbsSaving}
+                            className="p-1 text-slate-300 hover:text-primary-500 disabled:opacity-20 transition-colors cursor-pointer"
+                            title="เลื่อนลง"
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                        </div>
+
+                        {/* Index / WBS No Badge */}
+                        <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-[#1e1e38] text-slate-600 dark:text-slate-300 font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+
+                        {/* Task Name Input (Inline editable) */}
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={e => handleUpdateWbsTask(idx, 'name', e.target.value)}
+                          onBlur={handleBlurSaveWbs}
+                          className="input-base text-xs sm:text-sm font-semibold flex-1 min-w-0"
+                          placeholder="ชื่อกิจกรรม..."
+                        />
+
+                        {/* Duration Input */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input
+                            type="number"
+                            value={item.duration}
+                            onChange={e => handleUpdateWbsTask(idx, 'duration', parseInt(e.target.value, 10) || 0)}
+                            onBlur={handleBlurSaveWbs}
+                            className="input-base text-xs sm:text-sm font-mono text-center w-16 sm:w-20"
+                            title="ระยะเวลา (วัน)"
+                          />
+                          <span className="text-[11px] text-slate-400 font-bold hidden sm:inline">วัน</span>
+                        </div>
+
+                        {/* Delete button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWbsTask(idx)}
+                          disabled={isWbsSaving}
+                          className="p-1.5 text-slate-300 hover:text-red-500 rounded hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
+                          title="ลบรายการนี้"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-200 dark:border-[#252548] bg-slate-50/50 dark:bg-[#1a1a36]/50 flex justify-end shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsWbsModalOpen(false)}
+                  className="px-5 py-2 text-sm font-bold bg-slate-200 hover:bg-slate-300 dark:bg-[#202042] dark:hover:bg-[#282854] text-slate-700 dark:text-slate-200 rounded-xl transition-colors cursor-pointer"
+                >
+                  ปิดหน้าต่าง
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <hr className="border-slate-200 dark:border-[#252548]" />

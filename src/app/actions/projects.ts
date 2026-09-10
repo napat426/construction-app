@@ -5,22 +5,17 @@ import { revalidatePath } from 'next/cache'
 import type { ActionState } from '@/lib/types'
 
 const DEFAULT_WBS_TASKS = [
-  { wbs_no: '1', name: 'งานเตรียมพื้นที่ วางผังอาคาร และตอกเสาเข็ม', duration: 10, predecessors: null },
-  { wbs_no: '2', name: 'ตัดหัวเสาเข็ม ฐานราก เสาตอม่อ', duration: 10, predecessors: '1' },
-  { wbs_no: '3', name: 'งานคานชั้น 1 พื้นชั้น 1', duration: 14, predecessors: '2' },
-  { wbs_no: '4', name: 'งานเสาชั้น 1', duration: 7, predecessors: '3' },
-  { wbs_no: '5', name: 'งานคานชั้น 2 พื้นชั้น 2', duration: 14, predecessors: '4' },
-  { wbs_no: '6', name: 'งานเสาชั้น 2', duration: 7, predecessors: '5' },
-  { wbs_no: '7', name: 'งานคานหลังคา', duration: 7, predecessors: '6' },
-  { wbs_no: '8', name: 'งานโครงสร้างหลังคาเหล็ก มุงแผ่นหลังคา', duration: 14, predecessors: '7' },
-  { wbs_no: '9', name: 'งานติดตั้งวงกบ และก่ออิฐผนัง', duration: 14, predecessors: '8' },
-  { wbs_no: '10', name: 'งานกรีดผนังฝังท่อร้อยสายไฟ ท่อน้ำดี ท่อน้ำทิ้ง และท่อแอร์', duration: 10, predecessors: '9' },
-  { wbs_no: '11', name: 'งานจับเซี้ยมและฉาบปูนผนัง', duration: 14, predecessors: '10' },
-  { wbs_no: '12', name: 'งานติดตั้งโครงคร่าวและแผ่นฝ้าเพดาน', duration: 14, predecessors: '11' },
-  { wbs_no: '13', name: 'งานปูกระเบื้อง งานระบบกันซึม', duration: 14, predecessors: '12' },
-  { wbs_no: '14', name: 'งานติดตั้งบานประตู หน้าต่าง สุขภัณฑ์ ราวบันได และอุปกรณ์ฟิตติ้ง', duration: 7, predecessors: '13' },
-  { wbs_no: '15', name: 'งานทาสี และติดตั้งดวงโคม สวิตช์ ปลั๊ก ตู้ไฟ MDB', duration: 10, predecessors: '14' },
-  { wbs_no: '16', name: 'งานระบบอื่นๆ เก็บความเรียบร้อย Defect และส่งมอบงาน', duration: 14, predecessors: '15' }
+  { wbs_no: '1', name: 'งานเตรียมพื้นที่ รื้อถอน เสาเข็ม', duration: 10, predecessors: null },
+  { wbs_no: '2', name: 'งานโครงสร้างฐานราก เสาตอม่อ และคานคอดิน', duration: 14, predecessors: '1' },
+  { wbs_no: '3', name: 'งานโครงสร้าง คสล. ชั้น 1', duration: 14, predecessors: '2' },
+  { wbs_no: '4', name: 'งานโครงสร้าง คสล. ชั้น 2', duration: 14, predecessors: '3' },
+  { wbs_no: '5', name: 'งานโครงสร้างหลังคา และมุงหลังคา', duration: 14, predecessors: '4' },
+  { wbs_no: '6', name: 'งานก่ออิฐ กรีดผนังฝังท่อร้อยสาย และจับเซี้ยมฉาบปูน', duration: 14, predecessors: '5' },
+  { wbs_no: '7', name: 'งานระบบท่อเมนและสุขาภิบาล (ถังบำบัด/บ่อพัก/ท่อระบายน้ำ)', duration: 10, predecessors: '6' },
+  { wbs_no: '8', name: 'งานผิวพื้น ปรับระดับ และปูกระเบื้อง', duration: 14, predecessors: '7' },
+  { wbs_no: '9', name: 'งานฝ้าเพดาน และงานระบบร้อยสายบนฝ้า', duration: 10, predecessors: '8' },
+  { wbs_no: '10', name: 'งานติดตั้งประตู หน้าต่าง ราวบันได และอุปกรณ์ประกอบ', duration: 10, predecessors: '9' },
+  { wbs_no: '11', name: 'งานติดตั้งสุขภัณฑ์ ดวงโคม ตู้ระบบ ทาสี และเก็บความเรียบร้อย', duration: 14, predecessors: '10' }
 ]
 
 /* ── Create project ── */
@@ -86,15 +81,33 @@ export async function createProject(
     return { error: `บันทึกไม่สำเร็จ: ${error?.message || 'ไม่สามารถรับข้อมูลโครงการที่สร้างใหม่'}` }
   }
 
-  // Pre-populate default WBS tasks
-  const defaultTasksPayload = DEFAULT_WBS_TASKS.map(t => ({
+  // Pre-populate default WBS tasks from system_settings (or fallback to DEFAULT_WBS_TASKS)
+  let tasksToUse = DEFAULT_WBS_TASKS
+  try {
+    const { data: settingData } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'default_wbs_tasks')
+      .maybeSingle()
+
+    if (settingData?.value) {
+      const parsed = JSON.parse(settingData.value)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        tasksToUse = parsed
+      }
+    }
+  } catch (err) {
+    console.error('Error loading default_wbs_tasks setting, falling back to default:', err)
+  }
+
+  const defaultTasksPayload = tasksToUse.map((t, idx) => ({
     project_id: newProj.id,
-    wbs_no: t.wbs_no,
+    wbs_no: t.wbs_no || String(idx + 1),
     name: t.name,
     cost: 0,
     start_date: newProj.start_date || new Date().toISOString().split('T')[0],
-    duration: t.duration,
-    predecessors: t.predecessors,
+    duration: Number(t.duration) || 10,
+    predecessors: t.predecessors !== undefined ? t.predecessors : (idx === 0 ? null : String(idx)),
     actual_progress: 0,
     is_milestone: false,
   }))

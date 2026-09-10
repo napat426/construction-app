@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useState, useTransition, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Package,
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import type { Project, ProjectMaterial, MaterialStatus } from '@/lib/types'
-import { createMaterial, updateMaterial, deleteMaterial, importMaterials } from '@/app/actions/materials'
+import { createMaterial, updateMaterial, deleteMaterial, importMaterials, reorderMaterials } from '@/app/actions/materials'
 import type { UserSession } from '@/lib/auth'
 
 const labelCls = 'text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5'
@@ -72,13 +72,20 @@ function StatusIcon({ status }: { status: MaterialStatus }) {
 /* ─── Add Modal ─── */
 function AddMaterialModal({
   projectId,
+  materials,
+  defaultInsertAfterId,
   onClose,
 }: {
   projectId: string
+  materials: ProjectMaterial[]
+  defaultInsertAfterId?: string | null
   onClose: () => void
 }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
+  const [insertPosition, setInsertPosition] = useState<string>(
+    defaultInsertAfterId ? `after:${defaultInsertAfterId}` : 'end'
+  )
 
   const router = useRouter()
 
@@ -118,6 +125,32 @@ function AddMaterialModal({
             <label className={labelCls}>วันที่ยื่น</label>
             <input name="submitted_date" type="date" className={inputCls} />
           </div>
+        </div>
+        <div>
+          <label className={labelCls}>หมายเหตุ</label>
+          <input name="note" type="text" placeholder="ระบุรายละเอียดเพิ่มเติม หรือเงื่อนไข (ถ้ามี)..." className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>ตำแหน่งจัดวางในตาราง (ลำดับ)</label>
+          <select
+            name="insert_position"
+            value={insertPosition}
+            onChange={(e) => setInsertPosition(e.target.value)}
+            className={inputCls}
+          >
+            <option value="end">ต่อท้ายสุด (ล่างสุด)</option>
+            <option value="start">แทรกไว้บนสุด (อันดับ 1)</option>
+            {materials.map((m, idx) => (
+              <option key={m.id} value={`after:${m.id}`}>
+                แทรกต่อจาก #{idx + 1} {m.name ? m.name.substring(0, 40) + (m.name.length > 40 ? '...' : '') : ''}
+              </option>
+            ))}
+          </select>
+          {defaultInsertAfterId && (
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+              📌 แทรกต่อจากรายการที่ท่านเลือกโดยอัตโนมัติ
+            </p>
+          )}
         </div>
         {error && <p className="text-red-500 text-xs font-semibold">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
@@ -291,7 +324,8 @@ function ImportExcelModal({
   onClose: () => void
 }) {
   const [isPending, startTransition] = useTransition()
-  const [parsedRows, setParsedRows] = useState<Array<{ name: string; submission_no: string; submitted_date: string; error?: string }>>([])
+  const [parsedRows, setParsedRows] = useState<Array<{ name: string; submission_no: string; submitted_date: string; note: string; error?: string }>>([])
+  const [importMode, setImportMode] = useState<'append' | 'replace'>('append')
   const [dragActive, setDragActive] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -300,22 +334,28 @@ function ImportExcelModal({
     const wb = XLSX.utils.book_new()
     const data = [
       {
-        'ชื่อวัสดุ / รายการ (ห้ามเว้นว่าง)': 'เหล็กเส้น SD40 ขนาด 16 มม. (ตัวอย่าง)',
-        'เลขที่เอกสาร': 'MAT-2026-001 (ตัวอย่าง)',
-        'วันที่ยื่น (ปี-เดือน-วัน)': '2026-07-29',
+        'ลำดับ': 1,
+        'ชื่อวัสดุ / รายการ (ห้ามเว้นว่าง)': 'เหล็กข้ออ้อย DB16 SD40 (ตัวอย่าง)',
+        'เลขที่เอกสาร': 'MAT-001 (ตัวอย่าง)',
+        'วันที่ยื่น (ปี-เดือน-วัน)': '2026-08-01',
+        'หมายเหตุ': 'สำหรับงานฐานรากและคานคอดิน (ตัวอย่าง)',
       },
       {
-        'ชื่อวัสดุ / รายการ (ห้ามเว้นว่าง)': 'คอนกรีตผสมเสร็จ 320 ksc (ตัวอย่าง)',
-        'เลขที่เอกสาร': 'MAT-2026-002 (ตัวอย่าง)',
-        'วันที่ยื่น (ปี-เดือน-วัน)': '2026-08-01',
+        'ลำดับ': 2,
+        'ชื่อวัสดุ / รายการ (ห้ามเว้นว่าง)': 'คอนกรีตผสมเสร็จ 320 ksc ทรงกระบอก (ตัวอย่าง)',
+        'เลขที่เอกสาร': 'MAT-002 (ตัวอย่าง)',
+        'วันที่ยื่น (ปี-เดือน-วัน)': '2026-08-05',
+        'หมายเหตุ': 'โรงผสมซีแพคหรือเทียบเท่า (ตัวอย่าง)',
       }
     ]
     const ws = XLSX.utils.json_to_sheet(data)
     
     ws['!cols'] = [
+      { wch: 10 },
       { wch: 45 },
+      { wch: 22 },
       { wch: 25 },
-      { wch: 25 }
+      { wch: 35 }
     ]
 
     XLSX.utils.book_append_sheet(wb, ws, 'Materials Template')
@@ -343,10 +383,12 @@ function ImportExcelModal({
           const nameKey = keys.find(k => k.includes('ชื่อ') || k.includes('รายการ') || k.toLowerCase().includes('name')) || keys[0]
           const subNoKey = keys.find(k => k.includes('เลขที่') || k.toLowerCase().includes('submission') || k.toLowerCase().includes('no')) || keys[1]
           const dateKey = keys.find(k => k.includes('วัน') || k.toLowerCase().includes('date')) || keys[2]
+          const noteKey = keys.find(k => k.includes('หมายเหตุ') || k.toLowerCase().includes('note') || k.toLowerCase().includes('remark'))
 
           const name = String(row[nameKey] || '').trim()
           const submission_no = String(row[subNoKey] || '').trim()
           let submitted_date = String(row[dateKey] || '').trim()
+          const note = noteKey ? String(row[noteKey] || '').trim() : ''
 
           if (submitted_date && !isNaN(Number(submitted_date))) {
             const dateObj = new Date((Number(submitted_date) - 25569) * 86400 * 1000)
@@ -364,6 +406,7 @@ function ImportExcelModal({
             name,
             submission_no: submission_no.includes('(ตัวอย่าง)') ? '' : submission_no,
             submitted_date: submitted_date.includes('(ตัวอย่าง)') ? '' : submitted_date,
+            note: note.includes('(ตัวอย่าง)') ? '' : note,
             error: rowError
           }
         }).filter(r => !r.name.includes('(ตัวอย่าง)'))
@@ -401,7 +444,7 @@ function ImportExcelModal({
   }
 
   // 3. Edit cells inline
-  const handleCellChange = (index: number, field: 'name' | 'submission_no' | 'submitted_date', value: string) => {
+  const handleCellChange = (index: number, field: 'name' | 'submission_no' | 'submitted_date' | 'note', value: string) => {
     setParsedRows(prev => {
       const updated = [...prev]
       updated[index] = {
@@ -418,7 +461,7 @@ function ImportExcelModal({
   }
 
   const handleAddRow = () => {
-    setParsedRows(prev => [...prev, { name: '', submission_no: '', submitted_date: '', error: 'กรุณาระบุชื่อวัสดุ' }])
+    setParsedRows(prev => [...prev, { name: '', submission_no: '', submitted_date: '', note: '', error: 'กรุณาระบุชื่อวัสดุ' }])
   }
 
   const router = useRouter()
@@ -430,7 +473,7 @@ function ImportExcelModal({
     if (hasErrors) return
 
     startTransition(async () => {
-      const res = await importMaterials(projectId, parsedRows)
+      const res = await importMaterials(projectId, parsedRows, importMode)
       if (res?.error) {
         setErrorMessage(res.error)
       } else {
@@ -444,7 +487,7 @@ function ImportExcelModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="card rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div className="card rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-[#1e1e38]">
@@ -454,7 +497,7 @@ function ImportExcelModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-all cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -467,8 +510,8 @@ function ImportExcelModal({
             <div className="flex items-center gap-3">
               <Download className="text-slate-450 dark:text-slate-300" size={20} />
               <div>
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200">แบบฟอร์มบันทึกข้อมูลมาตรฐาน</p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">ใช้กรอกข้อมูลวัสดุเพื่อให้ระบบดึงข้อมูลรายข้อได้โดยอัตโนมัติ</p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200">แบบฟอร์มบันทึกข้อมูลมาตรฐาน (รวมคอลัมน์หมายเหตุ)</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">ใช้กรอกข้อมูลวัสดุเพื่อให้ระบบดึงข้อมูลรายข้อและลำดับแถวได้โดยอัตโนมัติ</p>
               </div>
             </div>
             <button
@@ -520,9 +563,36 @@ function ImportExcelModal({
           {/* Preview Table Section */}
           {parsedRows.length > 0 && (
             <div className="space-y-3">
+              {/* Import Mode Selection */}
+              <div className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-xs flex-wrap">
+                <span className="font-bold text-slate-700 dark:text-slate-200">รูปแบบการนำเข้า:</span>
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-600 dark:text-slate-300">
+                  <input
+                    type="radio"
+                    name="importMode"
+                    value="append"
+                    checked={importMode === 'append'}
+                    onChange={() => setImportMode('append')}
+                    className="text-primary-600 focus:ring-primary-500"
+                  />
+                  เพิ่มต่อท้ายรายการเดิม (Append)
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-slate-600 dark:text-slate-300">
+                  <input
+                    type="radio"
+                    name="importMode"
+                    value="replace"
+                    checked={importMode === 'replace'}
+                    onChange={() => setImportMode('replace')}
+                    className="text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-amber-600 dark:text-amber-400 font-semibold">แทนที่รายการเดิมทั้งหมด (Replace All)</span>
+                </label>
+              </div>
+
               <div className="flex items-center justify-between">
                 <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  รายการวิเคราะห์พบ ({parsedRows.length} รายการ)
+                  รายการวิเคราะห์พบ ({parsedRows.length} รายการ) • เรียงตามลำดับแถวใน Excel
                 </p>
                 <button
                   onClick={handleAddRow}
@@ -539,9 +609,10 @@ function ImportExcelModal({
                     <thead>
                       <tr className="bg-slate-50 dark:bg-[#14142a] text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-[#1c1c34]">
                         <th className="py-2.5 px-3 w-10 text-center">#</th>
-                        <th className="py-2.5 px-3 min-w-[250px]">ชื่อวัสดุ / รายการสเปค <span className="text-red-500">*</span></th>
-                        <th className="py-2.5 px-3 w-40">เลขที่เอกสาร</th>
-                        <th className="py-2.5 px-3 w-36">วันที่ยื่น</th>
+                        <th className="py-2.5 px-3 min-w-[220px]">ชื่อวัสดุ / รายการสเปค <span className="text-red-500">*</span></th>
+                        <th className="py-2.5 px-3 w-32">เลขที่เอกสาร</th>
+                        <th className="py-2.5 px-3 w-32">วันที่ยื่น</th>
+                        <th className="py-2.5 px-3 min-w-[180px]">หมายเหตุ</th>
                         <th className="py-2.5 px-3 w-12 text-center">ลบ</th>
                       </tr>
                     </thead>
@@ -581,6 +652,15 @@ function ImportExcelModal({
                               value={row.submitted_date}
                               onChange={(e) => handleCellChange(index, 'submitted_date', e.target.value)}
                               className="w-full px-2 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] text-xs bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500 font-mono"
+                            />
+                          </td>
+                          <td className="py-2 px-3">
+                            <input
+                              type="text"
+                              value={row.note}
+                              onChange={(e) => handleCellChange(index, 'note', e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#252548] text-xs bg-transparent text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                              placeholder="ระบุหมายเหตุ (ถ้ามี)..."
                             />
                           </td>
                           <td className="py-2 px-3 text-center">
@@ -641,23 +721,57 @@ export function MaterialsClient({ project, materials, user }: Props) {
   const [showImportModal, setShowImportModal] = useState(false)
   const [editingMaterial, setEditingMaterial] = useState<ProjectMaterial | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [localMaterials, setLocalMaterials] = useState<ProjectMaterial[]>(materials)
+  const [isReordering, setIsReordering] = useState(false)
+  const [insertAfterId, setInsertAfterId] = useState<string | null>(null)
+
+  const router = useRouter()
+
+  useEffect(() => {
+    setLocalMaterials(materials)
+  }, [materials])
 
   const counts = useMemo(
     () => ({
-      all: materials.length,
-      pending: materials.filter((m) => m.status === 'pending').length,
-      approved: materials.filter((m) => m.status === 'approved').length,
-      rejected: materials.filter((m) => m.status === 'rejected').length,
+      all: localMaterials.length,
+      pending: localMaterials.filter((m) => m.status === 'pending').length,
+      approved: localMaterials.filter((m) => m.status === 'approved').length,
+      rejected: localMaterials.filter((m) => m.status === 'rejected').length,
     }),
-    [materials]
+    [localMaterials]
   )
 
   const filtered = useMemo(() => {
-    if (filterStatus === 'all') return materials
-    return materials.filter((m) => m.status === filterStatus)
-  }, [materials, filterStatus])
+    if (filterStatus === 'all') return localMaterials
+    return localMaterials.filter((m) => m.status === filterStatus)
+  }, [localMaterials, filterStatus])
 
-  const router = useRouter()
+  const handleMoveItem = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= localMaterials.length) return
+
+    const updated = [...localMaterials]
+    const temp = updated[index]
+    updated[index] = updated[targetIndex]
+    updated[targetIndex] = temp
+
+    setLocalMaterials(updated)
+    setIsReordering(true)
+    try {
+      await reorderMaterials(project.id, updated.map((m) => m.id))
+      router.refresh()
+    } catch (e) {
+      console.error('Failed to reorder materials:', e)
+      setLocalMaterials(materials)
+    } finally {
+      setIsReordering(false)
+    }
+  }
+
+  const handleInsertAfter = (matId: string) => {
+    setInsertAfterId(matId)
+    setShowAddModal(true)
+  }
 
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new()
@@ -824,12 +938,12 @@ export function MaterialsClient({ project, materials, user }: Props) {
     <thead>
       <tr>
         <th style="width: 5%;">#</th>
-        <th style="width: 30%;">ชื่อวัสดุ / สเปค</th>
+        <th style="width: 23%;">ชื่อวัสดุ / สเปค</th>
         <th style="width: 15%;">เลขที่เอกสาร</th>
         <th style="width: 10%;">วันที่ยื่น</th>
         <th style="width: 10%;">วันที่อนุมัติ</th>
         <th style="width: 12%;">สถานะ</th>
-        <th style="width: 18%;">หมายเหตุ</th>
+        <th style="width: 25%;">หมายเหตุ</th>
       </tr>
     </thead>
     <tbody>${rowsHtml}</tbody>
@@ -954,7 +1068,10 @@ export function MaterialsClient({ project, materials, user }: Props) {
               <button
                 type="button"
                 id="add-material-btn"
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  setInsertAfterId(null)
+                  setShowAddModal(true)
+                }}
                 className="btn-primary flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-primary-500/20 cursor-pointer"
               >
                 <Plus size={15} />
@@ -1005,7 +1122,33 @@ export function MaterialsClient({ project, materials, user }: Props) {
                           mat.status === 'pending' ? 'bg-amber-50/30 dark:bg-amber-500/5' : ''
                         }`}
                       >
-                        <td className="py-3 px-4 text-center text-slate-400 font-mono text-xs">{idx + 1}</td>
+                        <td className="py-3 px-2 text-center text-slate-400 font-mono text-xs">
+                          <div className="flex items-center justify-center gap-1">
+                            {user && (user.role === 'admin' || user.role === 'editor') && filterStatus === 'all' && (
+                              <div className="flex flex-col gap-0.5 shrink-0">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0 || isReordering}
+                                  onClick={() => handleMoveItem(idx, 'up')}
+                                  className="w-4 h-4 rounded flex items-center justify-center text-[9px] font-black hover:bg-slate-200 dark:hover:bg-[#252548] text-slate-500 dark:text-slate-400 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed transition-all"
+                                  title="เลื่อนขึ้น"
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === filtered.length - 1 || isReordering}
+                                  onClick={() => handleMoveItem(idx, 'down')}
+                                  className="w-4 h-4 rounded flex items-center justify-center text-[9px] font-black hover:bg-slate-200 dark:hover:bg-[#252548] text-slate-500 dark:text-slate-400 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed transition-all"
+                                  title="เลื่อนลง"
+                                >
+                                  ▼
+                                </button>
+                              </div>
+                            )}
+                            <span className="w-5 text-center font-bold text-slate-600 dark:text-slate-400">{idx + 1}</span>
+                          </div>
+                        </td>
                         <td className="py-3 px-4">
                           <p className="font-semibold text-slate-800 dark:text-slate-200 leading-snug">{mat.name}</p>
                         </td>
@@ -1048,9 +1191,19 @@ export function MaterialsClient({ project, materials, user }: Props) {
                           {user && (user.role === 'admin' || user.role === 'editor') ? (
                             <div className="flex items-center justify-center gap-1">
                               <button
+                                id={`insert-after-${mat.id}`}
+                                type="button"
+                                onClick={() => handleInsertAfter(mat.id)}
+                                className="w-7 h-7 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300 transition-all cursor-pointer"
+                                title={`แทรกรายการใหม่ต่อจากลำดับที่ ${idx + 1}`}
+                              >
+                                <Plus size={13} className="text-emerald-600 dark:text-emerald-400" />
+                              </button>
+                              <button
                                 id={`edit-material-${mat.id}`}
                                 onClick={() => setEditingMaterial(mat)}
                                 className="w-7 h-7 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 transition-all cursor-pointer"
+                                title="แก้ไข"
                               >
                                 <Pencil size={11} />
                               </button>
@@ -1059,6 +1212,7 @@ export function MaterialsClient({ project, materials, user }: Props) {
                                 onClick={() => handleDelete(mat.id)}
                                 disabled={isPending}
                                 className="w-7 h-7 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-300 transition-all cursor-pointer"
+                                title="ลบ"
                               >
                                 <Trash2 size={11} />
                               </button>
@@ -1090,7 +1244,15 @@ export function MaterialsClient({ project, materials, user }: Props) {
 
       {/* ── Modals ── */}
       {showAddModal && (
-        <AddMaterialModal projectId={project.id} onClose={() => setShowAddModal(false)} />
+        <AddMaterialModal
+          projectId={project.id}
+          materials={localMaterials}
+          defaultInsertAfterId={insertAfterId}
+          onClose={() => {
+            setShowAddModal(false)
+            setInsertAfterId(null)
+          }}
+        />
       )}
       {showImportModal && (
         <ImportExcelModal projectId={project.id} onClose={() => setShowImportModal(false)} />

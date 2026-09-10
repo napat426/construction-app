@@ -27,7 +27,7 @@ export default async function ProjectMaterialsPage({ params }: MaterialsPageProp
 
   const [projectRes, materialsRes] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
-    supabase.from('materials').select('*').eq('project_id', id).order('created_at', { ascending: true }).order('id', { ascending: true }),
+    supabase.from('materials').select('*').eq('project_id', id).order('created_at', { ascending: true }),
   ])
 
   const projectData = projectRes.data

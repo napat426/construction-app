@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useMemo, useEffect } from 'react'
+import { useState, useTransition, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Package,
@@ -20,6 +20,8 @@ import {
   FileUp,
   AlertCircle,
   Printer,
+  Loader2,
+  Check,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import type { Project, ProjectMaterial, MaterialStatus } from '@/lib/types'
@@ -722,14 +724,28 @@ export function MaterialsClient({ project, materials, user }: Props) {
   const [editingMaterial, setEditingMaterial] = useState<ProjectMaterial | null>(null)
   const [isPending, startTransition] = useTransition()
   const [localMaterials, setLocalMaterials] = useState<ProjectMaterial[]>(materials)
-  const [isReordering, setIsReordering] = useState(false)
   const [insertAfterId, setInsertAfterId] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+
+  const reorderTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isPendingSaveRef = useRef<boolean>(false)
+  const savedToastTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const router = useRouter()
 
   useEffect(() => {
-    setLocalMaterials(materials)
+    // Only overwrite from server props if the user is not actively reordering
+    if (!isPendingSaveRef.current) {
+      setLocalMaterials(materials)
+    }
   }, [materials])
+
+  useEffect(() => {
+    return () => {
+      if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current)
+      if (savedToastTimerRef.current) clearTimeout(savedToastTimerRef.current)
+    }
+  }, [])
 
   const counts = useMemo(
     () => ({
@@ -746,26 +762,42 @@ export function MaterialsClient({ project, materials, user }: Props) {
     return localMaterials.filter((m) => m.status === filterStatus)
   }, [localMaterials, filterStatus])
 
-  const handleMoveItem = async (index: number, direction: 'up' | 'down') => {
+  const handleMoveItem = (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1
     if (targetIndex < 0 || targetIndex >= localMaterials.length) return
 
+    // 1. Instant optimistic swap in local React state (60fps, no lag)
     const updated = [...localMaterials]
     const temp = updated[index]
     updated[index] = updated[targetIndex]
     updated[targetIndex] = temp
 
     setLocalMaterials(updated)
-    setIsReordering(true)
-    try {
-      await reorderMaterials(project.id, updated.map((m) => m.id))
-      router.refresh()
-    } catch (e) {
-      console.error('Failed to reorder materials:', e)
-      setLocalMaterials(materials)
-    } finally {
-      setIsReordering(false)
+    setSaveStatus('saving')
+    isPendingSaveRef.current = true
+
+    // 2. Debounce server auto-save (waits 500ms after last click before sending to DB)
+    if (reorderTimerRef.current) {
+      clearTimeout(reorderTimerRef.current)
     }
+    if (savedToastTimerRef.current) {
+      clearTimeout(savedToastTimerRef.current)
+    }
+
+    reorderTimerRef.current = setTimeout(async () => {
+      try {
+        await reorderMaterials(project.id, updated.map((m) => m.id))
+        setSaveStatus('saved')
+        savedToastTimerRef.current = setTimeout(() => {
+          setSaveStatus('idle')
+        }, 2000)
+      } catch (e) {
+        console.error('Failed to reorder materials:', e)
+        setSaveStatus('idle')
+      } finally {
+        isPendingSaveRef.current = false
+      }
+    }, 500)
   }
 
   const handleInsertAfter = (matId: string) => {
@@ -1083,6 +1115,22 @@ export function MaterialsClient({ project, materials, user }: Props) {
 
         {/* ── Table ── */}
         <div className="card rounded-2xl overflow-hidden">
+          {saveStatus !== 'idle' && (
+            <div className="bg-slate-50/90 dark:bg-[#14142a]/90 px-4 py-1.5 border-b border-slate-200/60 dark:border-[#1c1c34] flex items-center justify-between text-xs transition-all">
+              <span className="text-slate-500 dark:text-slate-400">การจัดเรียงลำดับ</span>
+              {saveStatus === 'saving' ? (
+                <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold animate-pulse">
+                  <Loader2 size={12} className="animate-spin" />
+                  กำลังบันทึกลำดับใหม่อัตโนมัติ...
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <Check size={12} />
+                  บันทึกลำดับเรียบร้อยแล้ว
+                </span>
+              )}
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -1128,7 +1176,7 @@ export function MaterialsClient({ project, materials, user }: Props) {
                               <div className="flex flex-col gap-0.5 shrink-0">
                                 <button
                                   type="button"
-                                  disabled={idx === 0 || isReordering}
+                                  disabled={idx === 0}
                                   onClick={() => handleMoveItem(idx, 'up')}
                                   className="w-4 h-4 rounded flex items-center justify-center text-[9px] font-black hover:bg-slate-200 dark:hover:bg-[#252548] text-slate-500 dark:text-slate-400 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed transition-all"
                                   title="เลื่อนขึ้น"
@@ -1137,7 +1185,7 @@ export function MaterialsClient({ project, materials, user }: Props) {
                                 </button>
                                 <button
                                   type="button"
-                                  disabled={idx === filtered.length - 1 || isReordering}
+                                  disabled={idx === filtered.length - 1}
                                   onClick={() => handleMoveItem(idx, 'down')}
                                   className="w-4 h-4 rounded flex items-center justify-center text-[9px] font-black hover:bg-slate-200 dark:hover:bg-[#252548] text-slate-500 dark:text-slate-400 disabled:opacity-20 cursor-pointer disabled:cursor-not-allowed transition-all"
                                   title="เลื่อนลง"

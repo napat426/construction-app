@@ -63,12 +63,14 @@ export async function createMaterial(projectId: string, formData: FormData) {
     }
 
     const baseTime = Date.now() - orderedIds.length * 1000
-    for (let i = 0; i < orderedIds.length; i++) {
-      await supabase
-        .from('materials')
-        .update({ created_at: new Date(baseTime + i * 1000).toISOString() })
-        .eq('id', orderedIds[i])
-    }
+    await Promise.all(
+      orderedIds.map((id, i) =>
+        supabase
+          .from('materials')
+          .update({ created_at: new Date(baseTime + i * 1000).toISOString() })
+          .eq('id', id)
+      )
+    )
   }
 
   revalidatePath(`/projects/${projectId}/materials`)
@@ -79,12 +81,14 @@ export async function reorderMaterials(projectId: string, orderedIds: string[]) 
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) return { success: true }
 
   const baseTime = Date.now() - orderedIds.length * 1000
-  for (let i = 0; i < orderedIds.length; i++) {
-    await supabase
-      .from('materials')
-      .update({ created_at: new Date(baseTime + i * 1000).toISOString() })
-      .eq('id', orderedIds[i])
-  }
+  await Promise.all(
+    orderedIds.map((id, i) =>
+      supabase
+        .from('materials')
+        .update({ created_at: new Date(baseTime + i * 1000).toISOString() })
+        .eq('id', id)
+    )
+  )
 
   revalidatePath(`/projects/${projectId}/materials`)
   return { success: true }

@@ -17,6 +17,7 @@ import {
   Download,
   Upload,
   FileSpreadsheet,
+  FileUp,
   AlertCircle,
   Printer,
 } from 'lucide-react'
@@ -658,6 +659,95 @@ export function MaterialsClient({ project, materials, user }: Props) {
 
   const router = useRouter()
 
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new()
+    const rows = [
+      {
+        'ลำดับ': 1,
+        'ชื่อวัสดุ / สเปค (ห้ามเว้นว่าง)': 'เหล็กข้ออ้อย DB16 SD40 (ตัวอย่าง)',
+        'เลขที่เอกสาร': 'MAT-001 (ตัวอย่าง)',
+        'วันที่ยื่น (ปี-เดือน-วัน)': '2026-08-01',
+        'หมายเหตุ': 'สำหรับงานฐานรากและคานคอดิน (ตัวอย่าง)',
+      },
+      {
+        'ลำดับ': 2,
+        'ชื่อวัสดุ / สเปค (ห้ามเว้นว่าง)': 'คอนกรีตผสมเสร็จ 320 ksc ทรงกระบอก (ตัวอย่าง)',
+        'เลขที่เอกสาร': 'MAT-002 (ตัวอย่าง)',
+        'วันที่ยื่น (ปี-เดือน-วัน)': '2026-08-05',
+        'หมายเหตุ': 'โรงผสมซีแพคหรือเทียบเท่า (ตัวอย่าง)',
+      },
+    ]
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [
+      { wch: 10 },
+      { wch: 48 },
+      { wch: 22 },
+      { wch: 25 },
+      { wch: 40 },
+    ]
+    XLSX.utils.book_append_sheet(wb, ws, 'Materials Template')
+
+    const instructions = [
+      { 'คำแนะนำการใช้งานแบบฟอร์มวัสดุ': `แบบฟอร์มสำหรับนำเข้าข้อมูลวัสดุโครงการ "${project.name || 'โครงการ'}"` },
+      { 'คำแนะนำการใช้งานแบบฟอร์มวัสดุ': '1. ห้ามลบหรือเปลี่ยนชื่อหัวคอลัมน์ในแถวแรก' },
+      { 'คำแนะนำการใช้งานแบบฟอร์มวัสดุ': '2. คอลัมน์ "ชื่อวัสดุ / สเปค" จำเป็นต้องระบุข้อมูล (ห้ามเว้นว่าง)' },
+      { 'คำแนะนำการใช้งานแบบฟอร์มวัสดุ': '3. คอลัมน์ "เลขที่เอกสาร" ระบุเลขที่เอกสารเสนออนุมัติ เช่น MAT-001 (หากไม่มีให้เว้นว่าง)' },
+      { 'คำแนะนำการใช้งานแบบฟอร์มวัสดุ': '4. คอลัมน์ "วันที่ยื่น" ระบุในรูปแบบ ค.ศ. เช่น 2026-08-01' },
+      { 'คำแนะนำการใช้งานแบบฟอร์มวัสดุ': '5. คอลัมน์ "หมายเหตุ" ระบุรายละเอียดหรือเงื่อนไขเพิ่มเติม' },
+      { 'คำแนะนำการใช้งานแบบฟอร์มวัสดุ': '6. แถวที่มีข้อความ "(ตัวอย่าง)" ระบบจะไม่นำเข้าข้อมูล' },
+      { 'คำแนะนำการใช้งานแบบฟอร์มวัสดุ': '7. สามารถเพิ่มแถวหรือแก้ไขได้ตามจริง แล้วนำไฟล์มาอัปโหลดที่ปุ่ม "นำเข้าจาก Excel"' },
+    ]
+    const wsHelp = XLSX.utils.json_to_sheet(instructions)
+    wsHelp['!cols'] = [{ wch: 85 }]
+    XLSX.utils.book_append_sheet(wb, wsHelp, 'คำแนะนำ')
+
+    const safeProjName = (project.name || 'project').replace(/[\\/:*?"<>|]/g, '_')
+    XLSX.writeFile(wb, `Material_Template_${safeProjName}.xlsx`)
+  }
+
+  const handleExportCurrentMaterials = () => {
+    if (!materials || materials.length === 0) {
+      alert('โครงการนี้ยังไม่มีรายการวัสดุให้ดาวน์โหลด')
+      return
+    }
+
+    const rows = materials.map((item, idx) => ({
+      'ลำดับ': idx + 1,
+      'ชื่อวัสดุ / สเปค': item.name || '',
+      'เลขที่เอกสาร': item.submission_no || '',
+      'วันที่ยื่น': item.submitted_date || '',
+      'วันที่อนุมัติ': item.approved_date || '',
+      'สถานะ': STATUS_META[item.status]?.label || item.status,
+      'หมายเหตุ': item.note || '',
+    }))
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [
+      { wch: 10 },
+      { wch: 48 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 40 },
+    ]
+    XLSX.utils.book_append_sheet(wb, ws, 'Materials')
+
+    const instructions = [
+      { 'ข้อมูลรายการวัสดุ': `รายการวัสดุและการอนุมัติของโครงการ "${project.name || 'โครงการ'}"` },
+      { 'ข้อมูลรายการวัสดุ': `จำนวนรายการทั้งหมด: ${materials.length} รายการ` },
+      { 'ข้อมูลรายการวัสดุ': `วันที่ส่งออกข้อมูล: ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}` },
+      { 'ข้อมูลรายการวัสดุ': 'สามารถนำไฟล์นี้ไปจัดเก็บเป็นเอกสารรายงาน สำรองข้อมูล หรืออัปโหลดต่อในระบบได้' },
+    ]
+    const wsHelp = XLSX.utils.json_to_sheet(instructions)
+    wsHelp['!cols'] = [{ wch: 85 }]
+    XLSX.utils.book_append_sheet(wb, wsHelp, 'ข้อมูลสรุป')
+
+    const safeProjName = (project.name || 'project').replace(/[\\/:*?"<>|]/g, '_')
+    XLSX.writeFile(wb, `รายการวัสดุ_${safeProjName}.xlsx`)
+  }
+
   function handleDelete(id: string) {
     if (!confirm('ลบรายการนี้ออกจากระบบ?')) return
     startTransition(async () => {
@@ -814,33 +904,62 @@ export function MaterialsClient({ project, materials, user }: Props) {
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Download Template Button */}
             <button
-              onClick={handlePrintMaterials}
-              className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#252548]"
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-all cursor-pointer shadow-2xs hover:border-primary-500/50"
+              title="ดาวน์โหลดไฟล์แม่แบบเปล่าสำหรับเริ่มต้นกรอกข้อมูลวัสดุ"
             >
-              <Printer size={15} className="text-primary-600 dark:text-primary-500" />
+              <Download size={14} className="text-primary-600 dark:text-primary-400" />
+              ดาวน์โหลด Template
+            </button>
+
+            {/* Download Current Project Materials Button */}
+            <button
+              type="button"
+              onClick={handleExportCurrentMaterials}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-all cursor-pointer shadow-2xs hover:border-sky-500/50"
+              title="ดาวน์โหลดรายการวัสดุจริงทั้งหมดของโครงการนี้ (Excel) เพื่อนำไปใช้งานต่อหรือสำรองข้อมูล"
+            >
+              <FileSpreadsheet size={14} className="text-sky-600 dark:text-sky-400" />
+              ดาวน์โหลดรายการวัสดุนี้
+            </button>
+
+            {user && (user.role === 'admin' || user.role === 'editor') && (
+              <button
+                type="button"
+                id="import-excel-btn"
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-all cursor-pointer shadow-2xs hover:border-emerald-500/50"
+                title="นำเข้ารายการวัสดุจากไฟล์ Excel"
+              >
+                <FileUp size={14} className="text-emerald-600 dark:text-emerald-400" />
+                นำเข้าจาก Excel
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handlePrintMaterials}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-all cursor-pointer shadow-2xs"
+              title="พิมพ์เอกสารรายการวัสดุ"
+            >
+              <Printer size={14} className="text-slate-600 dark:text-slate-400" />
               พิมพ์รายการวัสดุ
             </button>
+
             {user && (user.role === 'admin' || user.role === 'editor') && (
-              <>
-                <button
-                  id="import-excel-btn"
-                  onClick={() => setShowImportModal(true)}
-                  className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
-                >
-                  <FileSpreadsheet size={15} className="text-emerald-600 dark:text-emerald-500" />
-                  นำเข้าจาก Excel
-                </button>
-                <button
-                  id="add-material-btn"
-                  onClick={() => setShowAddModal(true)}
-                  className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 cursor-pointer"
-                >
-                  <Plus size={15} />
-                  เพิ่มรายการวัสดุ
-                </button>
-              </>
+              <button
+                type="button"
+                id="add-material-btn"
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-primary-500/20 cursor-pointer"
+              >
+                <Plus size={15} />
+                เพิ่มรายการวัสดุ
+              </button>
             )}
           </div>
         </div>

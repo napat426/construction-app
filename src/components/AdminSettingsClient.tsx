@@ -10,7 +10,7 @@ import type { LineChannelTarget } from '@/lib/line'
 interface DefaultWbsItem {
   wbs_no: string
   name: string
-  duration: number
+  duration: number | string
   predecessors: string | null
 }
 
@@ -216,10 +216,14 @@ export function AdminSettingsClient({
   }
 
   const saveWbsTasks = async (updated: DefaultWbsItem[]) => {
-    setWbsTasks(updated)
+    const normalized = updated.map(item => ({
+      ...item,
+      duration: Math.max(1, parseInt(String(item.duration), 10) || 1)
+    }))
+    setWbsTasks(normalized)
     setIsWbsSaving(true)
     try {
-      const serialized = JSON.stringify(updated)
+      const serialized = JSON.stringify(normalized)
       const { data } = await supabase.from('system_settings').select('id').eq('key', 'default_wbs_tasks').maybeSingle()
       if (data) {
         await supabase.from('system_settings').update({ value: serialized }).eq('key', 'default_wbs_tasks')
@@ -597,8 +601,9 @@ export function AdminSettingsClient({
                         <div className="flex items-center gap-1 shrink-0">
                           <input
                             type="number"
+                            min="1"
                             value={item.duration}
-                            onChange={e => handleUpdateWbsTask(idx, 'duration', parseInt(e.target.value, 10) || 0)}
+                            onChange={e => handleUpdateWbsTask(idx, 'duration', e.target.value)}
                             onBlur={handleBlurSaveWbs}
                             className="input-base text-xs sm:text-sm font-mono text-center w-16 sm:w-20"
                             title="ระยะเวลา (วัน)"

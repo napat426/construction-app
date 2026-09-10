@@ -352,3 +352,80 @@ export async function insertTaskAfter(
   revalidatePath('/projects')
   return { success: true }
 }
+
+export interface ImportWbsTaskItem {
+  wbs_no: string
+  name: string
+  duration: number
+  cost: number
+  predecessors?: string | null
+}
+
+export async function importWbsTasksBulk(
+  projectId: string,
+  tasks: ImportWbsTaskItem[],
+  mode: 'replace' | 'append' = 'replace'
+): Promise<ActionState> {
+  if (!projectId) return { error: 'ไม่พบ ID โครงการ' }
+  if (!tasks || tasks.length === 0) return { error: 'ไม่มีรายการกิจกรรมที่ต้องการนำเข้า' }
+
+  // Fetch project start_date to use as base date
+  const { data: proj, error: projErr } = await supabase
+    .from('projects')
+    .select('start_date')
+    .eq('id', projectId)
+    .single()
+
+  if (projErr || !proj) {
+    return { error: 'ไม่พบข้อมูลโครงการ' }
+  }
+
+  const baseStartDate = proj.start_date || new Date().toISOString().split('T')[0]
+
+  // If replace mode, delete all existing tasks for this project
+  if (mode === 'replace') {
+    const { error: delErr } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('project_id', projectId)
+
+    if (delErr) {
+      return { error: `ลบแผนงานเดิมไม่สำเร็จ: ${delErr.message}` }
+    }
+  }
+
+  // Format tasks for insert
+  const rowsToInsert = tasks.map((t, index) => {
+    const wbs_no = t.wbs_no?.trim() || String(index + 1)
+    const name = t.name?.trim() || `กิจกรรมที่ ${index + 1}`
+    const duration = Math.max(1, Number(t.duration) || 1)
+    const cost = Math.max(0, Number(t.cost) || 0)
+    const predecessors = t.predecessors?.trim() || null
+
+    return {
+      project_id: projectId,
+      wbs_no,
+      name,
+      cost,
+      start_date: baseStartDate,
+      duration,
+      predecessors,
+      actual_progress: 0,
+      is_milestone: false,
+    }
+  })
+
+  const { error: insertErr } = await supabase.from('tasks').insert(rowsToInsert)
+
+  if (insertErr) {
+    return { error: `นำเข้ารายการกิจกรรมไม่สำเร็จ: ${insertErr.message}` }
+  }
+
+  await recalculateProjectProgress(projectId)
+  revalidatePath(`/projects/${projectId}/planning`)
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/projects')
+
+  return { success: true }
+}
+

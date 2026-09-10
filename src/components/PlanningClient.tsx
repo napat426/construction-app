@@ -16,20 +16,49 @@ import {
   AlertTriangle,
   ArrowDownToLine,
   Printer,
+  Download,
+  FileUp,
+  FileSpreadsheet,
+  X,
+  Loader2,
+  CheckCircle2,
+  HelpCircle,
 } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { deleteTask } from '@/app/actions/tasks'
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended, parsePredecessor } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
 
+export interface DefaultWbsTaskItem {
+  wbs_no: string
+  name: string
+  duration: number
+  predecessors?: string | null
+}
+
 interface PlanningClientProps {
   project: Project
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
-  
   amendments?: ContractAmendment[]
   user?: UserSession | null
+  defaultWbsTasks?: DefaultWbsTaskItem[]
 }
+
+const FALLBACK_DEFAULT_WBS: DefaultWbsTaskItem[] = [
+  { wbs_no: '1', name: 'งานเตรียมพื้นที่ รื้อถอน เสาเข็ม', duration: 10, predecessors: null },
+  { wbs_no: '2', name: 'งานโครงสร้างฐานราก เสาตอม่อ และคานคอดิน', duration: 14, predecessors: '1' },
+  { wbs_no: '3', name: 'งานโครงสร้าง คสล. ชั้น 1', duration: 14, predecessors: '2' },
+  { wbs_no: '4', name: 'งานโครงสร้าง คสล. ชั้น 2', duration: 14, predecessors: '3' },
+  { wbs_no: '5', name: 'งานโครงสร้างหลังคา และมุงหลังคา', duration: 14, predecessors: '4' },
+  { wbs_no: '6', name: 'งานก่ออิฐ กรีดผนังฝังท่อร้อยสาย และจับเซี้ยมฉาบปูน', duration: 14, predecessors: '5' },
+  { wbs_no: '7', name: 'งานระบบท่อเมนและสุขาภิบาล (ถังบำบัด/บ่อพัก/ท่อระบายน้ำ)', duration: 10, predecessors: '6' },
+  { wbs_no: '8', name: 'งานผิวพื้น ปรับระดับ และปูกระเบื้อง', duration: 14, predecessors: '7' },
+  { wbs_no: '9', name: 'งานฝ้าเพดาน และงานระบบร้อยสายบนฝ้า', duration: 10, predecessors: '8' },
+  { wbs_no: '10', name: 'งานติดตั้งประตู หน้าต่าง ราวบันได และอุปกรณ์ประกอบ', duration: 10, predecessors: '9' },
+  { wbs_no: '11', name: 'งานติดตั้งสุขภัณฑ์ ดวงโคม ตู้ระบบ ทาสี และเก็บความเรียบร้อย', duration: 14, predecessors: '10' },
+]
 
 // Custom natural sort for WBS numbers (e.g., 1.2 comes before 1.10)
 function sortWBS(a: string, b: string): number {
@@ -62,7 +91,14 @@ function formatDate(dateStr: string): string {
   })
 }
 
-export function PlanningClient({ project, tasks, milestones, amendments = [], user }: PlanningClientProps) {
+export function PlanningClient({
+  project,
+  tasks,
+  milestones,
+  amendments = [],
+  user,
+  defaultWbsTasks = [],
+}: PlanningClientProps) {
   const [activeTab, setActiveTab] = useState<'wbs' | 'gantt' | 'scurve'>('wbs')
   const [isPending, startTransition] = useTransition()
   
@@ -110,6 +146,197 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
   const [inputCost, setInputCost] = useState<string | number>('')
   const [inputProgress, setInputProgress] = useState<string | number>('')
   const [inputIsMilestone, setInputIsMilestone] = useState(false)
+
+  // Excel Import / Export states
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [importedRows, setImportedRows] = useState<Array<{
+    wbs_no: string
+    name: string
+    duration: number
+    cost: number
+    predecessors: string | null
+  }>>([])
+  const [importMode, setImportMode] = useState<'replace' | 'append'>('replace')
+  const [importError, setImportError] = useState<string | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleDownloadTemplate = () => {
+    const listToUse = defaultWbsTasks && defaultWbsTasks.length > 0 ? defaultWbsTasks : FALLBACK_DEFAULT_WBS
+
+    const rows = listToUse.map((item, idx) => ({
+      'ลำดับ (WBS No.)': item.wbs_no || String(idx + 1),
+      'รายการกิจกรรม (Task Name)': item.name || '',
+      'ระยะเวลา (วัน)': item.duration || 14,
+      'มูลค่างาน (บาท)': '',
+      'งานก่อนหน้า (Predecessors)': item.predecessors || '',
+    }))
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(rows)
+
+    ws['!cols'] = [
+      { wch: 18 },
+      { wch: 55 },
+      { wch: 16 },
+      { wch: 20 },
+      { wch: 25 },
+    ]
+
+    XLSX.utils.book_append_sheet(wb, ws, 'WBS Template')
+
+    const instructions = [
+      { 'คำแนะนำการใช้งานแบบฟอร์ม WBS': '1. ห้ามลบหรือเปลี่ยนชื่อหัวคอลัมน์ในแถวแรก' },
+      { 'คำแนะนำการใช้งานแบบฟอร์ม WBS': '2. คอลัมน์ "ลำดับ (WBS No.)" ให้ระบุเลขลำดับ เช่น 1, 2, 3 หรือ 1.1, 1.2' },
+      { 'คำแนะนำการใช้งานแบบฟอร์ม WBS': '3. คอลัมน์ "รายการกิจกรรม" ระบุชื่อขั้นตอนงานก่อสร้าง' },
+      { 'คำแนะนำการใช้งานแบบฟอร์ม WBS': '4. คอลัมน์ "ระยะเวลา (วัน)" และ "มูลค่างาน (บาท)" ให้ระบุเป็นตัวเลข' },
+      { 'คำแนะนำการใช้งานแบบฟอร์ม WBS': '5. คอลัมน์ "งานก่อนหน้า" ระบุเลข WBS ที่ต้องทำเสร็จก่อน เช่น 1 หรือ 2 (หากไม่มีให้เว้นว่าง)' },
+      { 'คำแนะนำการใช้งานแบบฟอร์ม WBS': '6. สามารถเพิ่มแถว ปรับเปลี่ยนลำดับ หรือแก้ไขได้ตามโครงการจริง แล้วนำไฟล์มาอัปโหลดที่ปุ่ม "นำเข้าจาก Excel"' },
+    ]
+    const wsHelp = XLSX.utils.json_to_sheet(instructions)
+    wsHelp['!cols'] = [{ wch: 85 }]
+    XLSX.utils.book_append_sheet(wb, wsHelp, 'คำแนะนำ')
+
+    const safeProjName = (project.name || 'project').replace(/[\\/:*?"<>|]/g, '_')
+    XLSX.writeFile(wb, `WBS_Template_${safeProjName}.xlsx`)
+  }
+
+  const handleExportCurrentWbs = () => {
+    if (!tasks || tasks.length === 0) {
+      alert('โครงการนี้ยังไม่มีรายการกิจกรรม WBS ให้ดาวน์โหลด')
+      return
+    }
+
+    const sorted = [...tasks].sort((a, b) => sortWBS(a.wbs_no, b.wbs_no))
+
+    const rows = sorted.map((item, idx) => ({
+      'ลำดับ (WBS No.)': item.wbs_no || String(idx + 1),
+      'รายการกิจกรรม (Task Name)': item.name || '',
+      'ระยะเวลา (วัน)': item.duration || 14,
+      'มูลค่างาน (บาท)': item.cost > 0 ? item.cost : '',
+      'งานก่อนหน้า (Predecessors)': item.predecessors || '',
+    }))
+
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(rows)
+
+    ws['!cols'] = [
+      { wch: 18 },
+      { wch: 55 },
+      { wch: 16 },
+      { wch: 20 },
+      { wch: 25 },
+    ]
+
+    XLSX.utils.book_append_sheet(wb, ws, 'WBS Plan')
+
+    const instructions = [
+      { 'คำแนะนำการใช้งาน': `ไฟล์นี้เป็นแผนงาน WBS ของโครงการ "${project.name}" สามารถนำไปอัปโหลดต่อในโครงการอื่นได้ทันที` },
+      { 'คำแนะนำการใช้งาน': '1. ห้ามลบหรือเปลี่ยนชื่อหัวคอลัมน์ในแถวแรก' },
+      { 'คำแนะนำการใช้งาน': '2. สามารถปรับเปลี่ยนหรือเพิ่มรายการกิจกรรมได้ตามต้องการ' },
+      { 'คำแนะนำการใช้งาน': '3. เมื่อพร้อมแล้ว ให้นำไฟล์นี้ไปอัปโหลดที่ปุ่ม "นำเข้าจาก Excel" ในโครงการที่ต้องการ' },
+    ]
+    const wsHelp = XLSX.utils.json_to_sheet(instructions)
+    wsHelp['!cols'] = [{ wch: 85 }]
+    XLSX.utils.book_append_sheet(wb, wsHelp, 'คำแนะนำ')
+
+    const safeProjName = (project.name || 'project').replace(/[\\/:*?"<>|]/g, '_')
+    XLSX.writeFile(wb, `WBS_${safeProjName}.xlsx`)
+  }
+
+  const handleFileProcess = (file: File) => {
+    setImportError(null)
+    setFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer)
+        const wb = XLSX.read(data, { type: 'array' })
+        const sheetName = wb.SheetNames[0]
+        const ws = wb.Sheets[sheetName]
+        const rawJson = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' })
+
+        if (!rawJson || rawJson.length === 0) {
+          setImportError('ไม่พบข้อมูลในไฟล์ Excel หรือไฟล์ว่างเปล่า')
+          setImportedRows([])
+          return
+        }
+
+        const parsed = rawJson.map((row, idx) => {
+          const keys = Object.keys(row)
+          const wbsKey = keys.find(k => k.includes('WBS') || k.includes('ลำดับ') || k.toLowerCase().includes('wbs')) || keys[0]
+          const nameKey = keys.find(k => k.includes('รายการ') || k.includes('ชื่อ') || k.toLowerCase().includes('name') || k.toLowerCase().includes('task')) || keys[1]
+          const durKey = keys.find(k => k.includes('ระยะเวลา') || k.includes('วัน') || k.toLowerCase().includes('dur') || k.toLowerCase().includes('day')) || keys[2]
+          const costKey = keys.find(k => k.includes('มูลค่า') || k.includes('ราคา') || k.toLowerCase().includes('cost') || k.toLowerCase().includes('amount') || k.toLowerCase().includes('budget')) || keys[3]
+          const predKey = keys.find(k => k.includes('ก่อนหน้า') || k.toLowerCase().includes('pred')) || keys[4]
+
+          const wbs_no = String(row[wbsKey] || (idx + 1)).trim()
+          const name = String(row[nameKey] || '').trim()
+          
+          let duration = Number(row[durKey])
+          if (isNaN(duration) || duration <= 0) duration = 14
+
+          let cost = 0
+          if (row[costKey] !== undefined && row[costKey] !== '') {
+            const cleanCostStr = String(row[costKey]).replace(/,/g, '').trim()
+            cost = Number(cleanCostStr)
+            if (isNaN(cost)) cost = 0
+          }
+
+          const predecessors = row[predKey] ? String(row[predKey]).trim() : null
+
+          return {
+            wbs_no,
+            name,
+            duration,
+            cost,
+            predecessors
+          }
+        }).filter(item => item.name.length > 0)
+
+        if (parsed.length === 0) {
+          setImportError('ไม่สามารถอ่านข้อมูลชื่อกิจกรรมได้ กรุณาตรวจสอบว่ามีคอลัมน์ชื่อกิจกรรมถูกต้อง')
+          setImportedRows([])
+          return
+        }
+
+        setImportedRows(parsed)
+      } catch (err: any) {
+        setImportError(`เกิดข้อผิดพลาดในการอ่านไฟล์: ${err?.message || 'รูปแบบไฟล์ไม่ถูกต้อง'}`)
+        setImportedRows([])
+      }
+    }
+    reader.readAsArrayBuffer(file)
+  }
+
+  const handleConfirmImport = async () => {
+    if (importedRows.length === 0) return
+    setIsImporting(true)
+    setImportError(null)
+    try {
+      const { importWbsTasksBulk } = await import('@/app/actions/tasks')
+      const res = await importWbsTasksBulk(project.id, importedRows, importMode)
+      if (res?.error) {
+        setImportError(res.error)
+      } else {
+        setIsImportModalOpen(false)
+        setImportedRows([])
+        setFileName(null)
+      }
+    } catch (e: any) {
+      setImportError(e.message || 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล')
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  const previewSummary = useMemo(() => {
+    const totalCost = importedRows.reduce((acc, curr) => acc + (curr.cost || 0), 0)
+    const totalDuration = importedRows.reduce((acc, curr) => acc + (curr.duration || 0), 0)
+    return { totalCost, totalDuration }
+  }, [importedRows])
 
   // Sort tasks naturally by WBS No. and calculate dynamic schedule dates
   const scheduledTasks = useMemo(() => {
@@ -920,17 +1147,59 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
           })}
         </div>
 
-        {user && (user.role === 'admin' || user.role === 'editor') && (
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {/* Download Template Button */}
           <button
-            id="add-task-wbs-btn"
-            onClick={handleNewInline}
-            disabled={editingTaskId === 'new'}
-            className="flex items-center gap-2 px-3.5 py-2 mb-2 rounded-lg text-xs font-bold text-white btn-primary flex-shrink-0 disabled:opacity-50 cursor-pointer"
+            type="button"
+            onClick={handleDownloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#202042] transition-all cursor-pointer shadow-2xs hover:border-primary-500/50"
+            title="ดาวน์โหลดไฟล์แม่แบบเปล่าสำหรับเริ่มต้นกรอกข้อมูล WBS"
           >
-            <Plus size={14} />
-            เพิ่มงานย่อย WBS
+            <Download size={14} className="text-primary-600 dark:text-primary-400" />
+            ดาวน์โหลด Template
           </button>
-        )}
+
+          {/* Download Current Project WBS Button */}
+          <button
+            type="button"
+            onClick={handleExportCurrentWbs}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#202042] transition-all cursor-pointer shadow-2xs hover:border-sky-500/50"
+            title="ดาวน์โหลดรายการแผนงานจริงของโครงการนี้ (Excel) เพื่อนำไปใช้งานต่อกับโครงการอื่น"
+          >
+            <FileSpreadsheet size={14} className="text-sky-600 dark:text-sky-400" />
+            ดาวน์โหลดแผนงานนี้
+          </button>
+
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <>
+              {/* Import Excel Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setImportError(null)
+                  setImportedRows([])
+                  setFileName(null)
+                  setIsImportModalOpen(true)
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#202042] transition-all cursor-pointer shadow-2xs hover:border-emerald-500/50"
+                title="นำเข้าแผนงาน WBS จากไฟล์ Excel"
+              >
+                <FileUp size={14} className="text-emerald-600 dark:text-emerald-400" />
+                นำเข้าจาก Excel
+              </button>
+
+              <button
+                id="add-task-wbs-btn"
+                onClick={handleNewInline}
+                disabled={editingTaskId === 'new'}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold text-white btn-primary flex-shrink-0 disabled:opacity-50 cursor-pointer"
+              >
+                <Plus size={14} />
+                เพิ่มงานย่อย WBS
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Tab Content Areas ── */}
@@ -1943,6 +2212,315 @@ export function PlanningClient({ project, tasks, milestones, amendments = [], us
               <p className="leading-relaxed">
                 เส้น S-Curve นี้ประกอบไปด้วย 3 ส่วนสำคัญตามระบบ Earned Value Management ได้แก่ PV (แผนสะสม), EV (ผลงานที่ได้จริง), และ AC (รายจ่ายจริงสะสมที่ชำระเบิกจ่ายแล้ว) เพื่อประเมินความคุ้มค่าโครงการอย่างครบวงจร
               </p>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── EXCEL IMPORT MODAL ── */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#252548] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-[#252548] bg-slate-50/50 dark:bg-[#1a1a36]/50 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                  <FileSpreadsheet size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                    นำเข้าแผนงาน WBS จากไฟล์ Excel (.xlsx)
+                    {importedRows.length > 0 && (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold">
+                        {importedRows.length} รายการ
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    อัปโหลดไฟล์ Excel ที่กรอกรายการกิจกรรม มูลค่างาน และระยะเวลา เพื่อสร้างแผนงานและคำนวณอัตโนมัติ
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isImporting) {
+                    setIsImportModalOpen(false)
+                    setImportedRows([])
+                    setFileName(null)
+                  }
+                }}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1e1e38] rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".xlsx, .xls"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleFileProcess(file)
+                  e.target.value = ''
+                }}
+              />
+
+              {/* Error Box */}
+              {importError && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400 flex items-start gap-2.5">
+                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span className="font-bold">เกิดข้อผิดพลาด: </span>
+                    {importError}
+                  </div>
+                </div>
+              )}
+
+              {/* Drop Area (When no rows or replacing file) */}
+              {importedRows.length === 0 ? (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDragging(true)
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setIsDragging(false)
+                    const file = e.dataTransfer.files?.[0]
+                    if (file) handleFileProcess(file)
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 ${
+                    isDragging
+                      ? 'border-emerald-500 bg-emerald-500/10'
+                      : 'border-slate-300 dark:border-[#252548] hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-slate-50 dark:hover:bg-[#1a1a36]/50'
+                  }`}
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
+                    <FileUp size={32} />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-slate-800 dark:text-white">
+                      คลิกเพื่อเลือกไฟล์ หรือลากไฟล์ Excel (.xlsx) มาวางที่นี่
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-1">
+                      รองรับไฟล์ .xlsx และ .xls ที่มีคอลัมน์ WBS No., ชื่อกิจกรรม, ระยะเวลา (วัน), มูลค่างาน (บาท)
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-[#252548] flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <HelpCircle size={14} className="text-primary-500" />
+                    <span>ยังไม่มีแบบฟอร์ม?</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDownloadTemplate()
+                      }}
+                      className="font-bold text-primary-600 dark:text-primary-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Download size={12} />
+                      ดาวน์โหลด Template Excel มาตรฐานที่นี่
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* File parsed summary card */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-[#1a1a36]/60 rounded-xl border border-slate-200 dark:border-[#252548]">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium">ไฟล์ที่โหลดเข้าสู่ระบบ:</p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                          <span>{fileName || 'ไฟล์ Excel'}</span>
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-[#252548] text-slate-600 dark:text-slate-300">
+                            {importedRows.length} รายการ
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-[#252548] rounded-lg hover:bg-slate-100 dark:hover:bg-[#202042] transition-colors cursor-pointer"
+                    >
+                      เปลี่ยนไฟล์อื่น
+                    </button>
+                  </div>
+
+                  {/* Summary Metric Chips */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 bg-white dark:bg-[#181830] rounded-xl border border-slate-200 dark:border-[#252548]">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">จำนวนกิจกรรม</span>
+                      <p className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                        {importedRows.length} รายการ
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-[#181830] rounded-xl border border-slate-200 dark:border-[#252548]">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">มูลค่างานรวม</span>
+                      <p className="text-lg font-black text-primary-600 dark:text-primary-400 mt-0.5">
+                        {formatCurrency(previewSummary.totalCost)}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-[#181830] rounded-xl border border-slate-200 dark:border-[#252548]">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">รวมระยะเวลาทำงาน</span>
+                      <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        {previewSummary.totalDuration} วัน
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Import Mode Radio selection */}
+                  <div className="p-4 bg-slate-50 dark:bg-[#1a1a36]/40 rounded-xl border border-slate-200 dark:border-[#252548] space-y-2">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
+                      เลือกรูปแบบการนำเข้าข้อมูล:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        importMode === 'replace'
+                          ? 'bg-primary-50/50 dark:bg-primary-950/20 border-primary-500 dark:border-primary-600'
+                          : 'bg-white dark:bg-[#14142a] border-slate-200 dark:border-[#252548]'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="importMode"
+                          value="replace"
+                          checked={importMode === 'replace'}
+                          onChange={() => setImportMode('replace')}
+                          className="mt-0.5 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                        />
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 dark:text-white block">
+                            แทนที่แผนงานทั้งหมด (แนะนำ)
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            ลบรายการ WBS เดิมของโครงการนี้ แล้วบันทึกรายการใหม่ทั้ง {importedRows.length} รายการแทนที่ทันที
+                          </span>
+                        </div>
+                      </label>
+
+                      <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        importMode === 'append'
+                          ? 'bg-primary-50/50 dark:bg-primary-950/20 border-primary-500 dark:border-primary-600'
+                          : 'bg-white dark:bg-[#14142a] border-slate-200 dark:border-[#252548]'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="importMode"
+                          value="append"
+                          checked={importMode === 'append'}
+                          onChange={() => setImportMode('append')}
+                          className="mt-0.5 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                        />
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 dark:text-white block">
+                            เพิ่มต่อท้าย (Append)
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            เก็บรายการงานเดิมไว้ และนำเข้ารายการจาก Excel เพิ่มเติมต่อท้าย
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Preview Table */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                      พรีวิวรายการกิจกรรมที่จะนำเข้า ({importedRows.length} รายการ):
+                    </span>
+                    <div className="border border-slate-200 dark:border-[#252548] rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="bg-slate-100 dark:bg-[#1e1e38] text-slate-500 dark:text-slate-400 font-bold sticky top-0 z-10 border-b border-slate-200 dark:border-[#252548]">
+                          <tr>
+                            <th className="py-2.5 px-3 w-16 text-center">WBS</th>
+                            <th className="py-2.5 px-3">รายการกิจกรรม</th>
+                            <th className="py-2.5 px-3 w-24 text-center">ระยะเวลา</th>
+                            <th className="py-2.5 px-3 w-32 text-right">มูลค่างาน (บาท)</th>
+                            <th className="py-2.5 px-3 w-28 text-center">งานก่อนหน้า</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-[#252548] bg-white dark:bg-[#14142a]">
+                          {importedRows.map((row, i) => (
+                            <tr key={i} className="hover:bg-slate-50/70 dark:hover:bg-[#1a1a36]/30 transition-colors">
+                              <td className="py-2 px-3 text-center font-mono font-bold text-slate-500 dark:text-slate-400">
+                                {row.wbs_no}
+                              </td>
+                              <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                                {row.name}
+                              </td>
+                              <td className="py-2 px-3 text-center font-mono text-slate-600 dark:text-slate-300">
+                                {row.duration} วัน
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-primary-600 dark:text-primary-400">
+                                {row.cost > 0 ? formatCurrency(row.cost) : <span className="text-slate-300 dark:text-slate-600">-</span>}
+                              </td>
+                              <td className="py-2 px-3 text-center font-mono text-slate-500 dark:text-slate-400">
+                                {row.predecessors || '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 dark:border-[#252548] bg-slate-50/50 dark:bg-[#1a1a36]/50 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isImporting) {
+                    setIsImportModalOpen(false)
+                    setImportedRows([])
+                    setFileName(null)
+                  }
+                }}
+                disabled={isImporting}
+                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl transition-colors cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+
+              <div className="flex items-center gap-2">
+                {importedRows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleConfirmImport}
+                    disabled={isImporting || importedRows.length === 0}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-colors flex items-center gap-2 cursor-pointer shadow-md"
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        กำลังนำเข้าข้อมูลและคำนวณแผนงาน...
+                      </>
+                    ) : (
+                      <>
+                        <FileUp size={15} />
+                        ยืนยันนำเข้า {importedRows.length} รายการสู่แผนงาน
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
           </div>

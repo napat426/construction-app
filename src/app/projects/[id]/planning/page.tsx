@@ -30,12 +30,14 @@ export default async function ProjectPlanningPage({ params }: PlanningPageProps)
     projectRes,
     tasksRes,
     milestonesRes,
-    amendmentsRes
+    amendmentsRes,
+    settingsRes
   ] = await Promise.all([
     supabase.from('projects').select('*').eq('id', id).single(),
     supabase.from('tasks').select('*').eq('project_id', id).order('wbs_no', { ascending: true }),
     supabase.from('project_milestones').select('*').eq('project_id', id).order('milestone_no', { ascending: true }),
-    supabase.from('contract_amendments').select('*').eq('project_id', id).order('amendment_no', { ascending: true })
+    supabase.from('contract_amendments').select('*').eq('project_id', id).order('amendment_no', { ascending: true }),
+    supabase.from('system_settings').select('value').eq('key', 'default_wbs_tasks').maybeSingle(),
   ])
 
   const projectData = projectRes.data
@@ -51,7 +53,16 @@ export default async function ProjectPlanningPage({ params }: PlanningPageProps)
   const project = projectData as Project
   const tasks = (tasksData as WBSTask[]) || []
   const milestones = (milestonesData as ProjectMilestone[]) || []
-    const amendments = (amendmentsRes.data as ContractAmendment[]) || []
+  const amendments = (amendmentsRes.data as ContractAmendment[]) || []
+
+  let defaultWbsTasks = []
+  try {
+    if (settingsRes.data?.value) {
+      defaultWbsTasks = JSON.parse(settingsRes.data.value)
+    }
+  } catch (e) {
+    console.error('Failed to parse default_wbs_tasks:', e)
+  }
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -65,7 +76,14 @@ export default async function ProjectPlanningPage({ params }: PlanningPageProps)
 
         <main className="flex-1 p-6">
           <ProjectTabs projectId={project.id} />
-          <PlanningClient project={project} tasks={tasks} milestones={milestones} amendments={amendments} user={user} />
+          <PlanningClient
+            project={project}
+            tasks={tasks}
+            milestones={milestones}
+            amendments={amendments}
+            user={user}
+            defaultWbsTasks={defaultWbsTasks}
+          />
         </main>
       </div>
     </div>

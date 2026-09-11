@@ -598,6 +598,7 @@ function DailyReportForm({
               <label className={labelCls}>อุณหภูมิ (°C)</label>
               <input 
                 type="number"
+                step="any"
                 value={temperature} 
                 onChange={e => setTemperature(e.target.value)}
                 className={inputCls} 
@@ -607,6 +608,7 @@ function DailyReportForm({
               <label className={labelCls}>ปริมาณน้ำฝน (มม.)</label>
               <input 
                 type="number"
+                step="any"
                 value={precipitation} 
                 onChange={e => {
                   setPrecipitation(e.target.value)

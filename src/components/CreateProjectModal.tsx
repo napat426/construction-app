@@ -172,7 +172,7 @@ export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalPr
                 name="budget"
                 type="number"
                 min="0"
-                step="10000"
+                step="any"
                 placeholder="0"
                 className={inputCls}
               />
@@ -184,7 +184,7 @@ export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalPr
                 name="opening_pr"
                 type="number"
                 min="0"
-                step="10000"
+                step="any"
                 placeholder="0"
                 className={inputCls}
               />

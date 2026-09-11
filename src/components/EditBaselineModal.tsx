@@ -398,7 +398,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                 name="penalty_rate"
                 type="number"
                 min="0"
-                step="100"
+                step="any"
                 defaultValue={project.penalty_rate || 0}
                 className={inputCls}
               />
@@ -413,7 +413,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                 name="budget"
                 type="number"
                 min="0"
-                step="10000"
+                step="any"
                 defaultValue={project.budget || ''}
                 className={inputCls}
               />
@@ -425,7 +425,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                 name="opening_pr"
                 type="number"
                 min="0"
-                step="10000"
+                step="any"
                 defaultValue={project.opening_pr || 0}
                 className={inputCls}
               />
@@ -496,6 +496,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                         <input
                           type="number"
                           min="0"
+                          step="any"
                           placeholder="0"
                           value={m.amount || ''}
                           onChange={(e) => handleUpdateMilestone(idx, 'amount', parseFloat(e.target.value) || 0)}

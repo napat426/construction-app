@@ -209,7 +209,7 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
                 name="cost"
                 type="number"
                 min="0"
-                step="1000"
+                step="any"
                 value={cost || ''}
                 onChange={(e) => setCost(e.target.value.replace(/^0+(?=\d)/, ''))}
                 placeholder="0"
@@ -228,6 +228,7 @@ export function TaskModal({ projectId, task, onClose }: TaskModalProps) {
                 type="number"
                 min="0"
                 max="100"
+                step="any"
                 value={actualProgress || ''}
                 onChange={(e) => setActualProgress(e.target.value.replace(/^0+(?=\d)/, ''))}
                 placeholder="0"

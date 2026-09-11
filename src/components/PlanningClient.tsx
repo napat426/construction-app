@@ -1371,6 +1371,7 @@ export function PlanningClient({
                           <td className="py-2 px-2">
                             <input
                               type="number"
+                              step="any"
                               className="input-base input-xs w-full text-right"
                               style={{ padding: '4px 6px' }}
                               value={inputCost || ''}
@@ -1386,6 +1387,7 @@ export function PlanningClient({
                               type="number"
                               min="0"
                               max="100"
+                              step="any"
                               className="input-base input-xs w-full text-center"
                               style={{ padding: '4px 6px' }}
                               value={inputProgress || ''}
@@ -1526,6 +1528,7 @@ export function PlanningClient({
                           <td className="py-2 px-2">
                             <input
                               type="number"
+                              step="any"
                               className="input-base input-xs w-full text-right"
                               style={{ padding: '4px 6px' }}
                               value={inputCost || ''}
@@ -1539,6 +1542,7 @@ export function PlanningClient({
                               type="number"
                               min="0"
                               max="100"
+                              step="any"
                               className="input-base input-xs w-full text-center"
                               style={{ padding: '4px 6px' }}
                               value={inputProgress || ''}
@@ -1783,6 +1787,7 @@ export function PlanningClient({
                     <td className="py-2 px-2">
                       <input
                         type="number"
+                        step="any"
                         placeholder="0"
                         className="input-base input-xs w-full text-right"
                         style={{ padding: '4px 6px' }}
@@ -1796,6 +1801,7 @@ export function PlanningClient({
                         type="number"
                         min="0"
                         max="100"
+                        step="any"
                         placeholder="0"
                         className={`input-base input-xs w-full text-center ${isCurrentlySuspended ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-[#14142a]' : ''}`}
                         style={{ padding: '4px 6px' }}

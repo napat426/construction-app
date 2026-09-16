@@ -42,7 +42,7 @@ export function ReportsClient({
   const [activeTab, setActiveTab] = useState<TabType>('inspections')
 
   const tabs = [
-    { id: 'executive', label: '📊 สรุปสถานะโครงการ (ผู้บริหาร)', icon: FileSpreadsheet },
+    { id: 'executive', label: '📊 สรุปสถานะโครงการ', icon: FileSpreadsheet },
     { id: 'inspections', label: 'ตรวจสอบคุณภาพ', icon: ClipboardCheck },
     { id: 'daily', label: 'รายงานประจำวัน', icon: FileClock },
     { id: 'weekly', label: 'รายงานประจำสัปดาห์', icon: CalendarDays },

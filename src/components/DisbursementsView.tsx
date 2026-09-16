@@ -287,25 +287,59 @@ export function DisbursementsView({
         }
       `}} />
       
+      {/* Print-only title & status */}
+      <div className="hidden print:block mb-3">
+        <h2 className="text-base font-bold text-black">รายงานแสดงสถานะการเบิกจ่ายงบประมาณ WBS / PR / PO / GR / IR</h2>
+        <p className="text-xs text-slate-600">
+          หน่วยแสดงผล: ล้านบาท • <strong className="text-black">สถานะยอดเงิน: {exVatEnabled ? 'ไม่รวมภาษีมูลค่าเพิ่ม 7% (ถอด VAT แล้ว ตามระบบ SAP)' : 'รวมภาษีมูลค่าเพิ่ม 7% (ยอดเต็มตามสัญญา/งบประมาณ)'}</strong>
+        </p>
+      </div>
+
       {/* Configuration Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#1e1e38] rounded-2xl p-4 shadow-xs print:hidden">
         <div>
-          <h2 className="text-sm font-bold text-slate-800 dark:text-white">รายงานแสดงสถานะการเบิกจ่ายงบประมาณ WBS / PR / PO / GR / IR</h2>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">หน่วยแสดงผล: ล้านบาท (เช่น 12.050 = 12,050,000 บาท)</p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-white">รายงานแสดงสถานะการเบิกจ่ายงบประมาณ WBS / PR / PO / GR / IR</h2>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all ${
+                exVatEnabled
+                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                  : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${exVatEnabled ? 'bg-amber-500 animate-pulse' : 'bg-blue-500'}`} />
+              {exVatEnabled ? 'สถานะ: ถอด VAT 7% (SAP)' : 'สถานะ: รวม VAT 7%'}
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-1">
+            หน่วยแสดงผล: ล้านบาท (เช่น 12.050 = 12,050,000 บาท) • 
+            <span className={exVatEnabled ? 'font-bold text-amber-600 dark:text-amber-400 ml-1' : 'font-bold text-blue-600 dark:text-blue-400 ml-1'}>
+              {exVatEnabled ? 'หักภาษีมูลค่าเพิ่ม 7% แล้ว (ยอดสุทธิก่อน VAT)' : 'รวมภาษีมูลค่าเพิ่ม 7% (ยอดเต็มตามสัญญา/งบประมาณ)'}
+            </span>
+          </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Ex-VAT SAP Toggle */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">หักภาษีมูลค่าเพิ่ม 7% (ระบบ SAP)</span>
+        <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+          {/* Ex-VAT SAP Toggle Button with Live Status Label */}
+          <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-[#181830] px-3 py-1.5 rounded-xl border border-slate-200 dark:border-[#252548]">
+            <div className="flex flex-col text-right select-none">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                {exVatEnabled ? 'หักภาษีมูลค่าเพิ่ม 7%' : 'ไม่หักภาษี (รวม VAT)'}
+              </span>
+              <span className={`text-[10px] font-semibold ${exVatEnabled ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                {exVatEnabled ? '● ถอด VAT (ระบบ SAP)' : '○ ยอดเต็มตามสัญญา'}
+              </span>
+            </div>
             <button
+              type="button"
               onClick={() => setExVatEnabled(!exVatEnabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                exVatEnabled ? 'bg-primary-600' : 'bg-slate-200 dark:bg-slate-700'
+              title={exVatEnabled ? 'คลิกเพื่อสลับเป็นแสดงยอดรวม VAT 7%' : 'คลิกเพื่อสลับเป็นแสดงยอดหักภาษี 7% (ระบบ SAP)'}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
+                exVatEnabled ? 'bg-primary-600' : 'bg-slate-300 dark:bg-slate-700'
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
                   exVatEnabled ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
@@ -330,6 +364,29 @@ export function DisbursementsView({
         </div>
       </div>
 
+      {/* Prominent VAT Status Information Banner */}
+      <div
+        className={`px-4 py-3 rounded-xl border flex items-center gap-3 text-xs transition-all print:hidden ${
+          exVatEnabled
+            ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
+            : 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200'
+        }`}
+      >
+        <span className="text-xl flex-shrink-0">{exVatEnabled ? '🏷️' : '📋'}</span>
+        <div>
+          <span className="font-bold text-sm">
+            {exVatEnabled
+              ? 'ยอดเงินที่แสดงในขณะนี้: ไม่รวมภาษีมูลค่าเพิ่ม 7% (ถอด VAT แล้ว ตามระบบ SAP)'
+              : 'ยอดเงินที่แสดงในขณะนี้: รวมภาษีมูลค่าเพิ่ม 7% (ยอดเต็มตามสัญญา/งบประมาณ)'}
+          </span>
+          <span className="block text-[11px] opacity-80 mt-0.5">
+            {exVatEnabled
+              ? 'ตัวเลขเงินทุกช่องในตารางถูกคำนวณแบบถอด VAT 7% (ยอดเงิน ÷ 1.07) เพื่อให้ตรงกับข้อมูลตัดเบิกจ่ายในระบบ SAP'
+              : 'ตัวเลขเงินทุกช่องในตารางแสดงยอดเต็มตามสัญญาและงบประมาณ (ยังไม่ได้หักภาษีมูลค่าเพิ่ม 7%)'}
+          </span>
+        </div>
+      </div>
+
       {/* Spreadsheet grid */}
       <div className="overflow-x-auto border border-slate-200 dark:border-[#1e1e38] rounded-2xl bg-white dark:bg-[#13132a] shadow-sm print:border-none print:shadow-none print:overflow-visible">
         <table className="w-full border-collapse text-left text-xs min-w-[1200px] print-safe-table print:text-[10px]">
@@ -338,13 +395,41 @@ export function DisbursementsView({
               <th className="p-3 w-10 print:hidden"></th>
               <th className="p-3 w-56">โครงการ / รายการ</th>
               <th className="p-3">หมายเลขงาน (WBS)</th>
-              <th className="p-3">งบประมาณ</th>
-              <th className="p-3">วงเงินจ้างก่อสร้าง</th>
-              <th className="p-3 text-primary-600 dark:text-primary-400">PR คงเหลือ<br/><span className="text-[9px]">(Cost Saving)</span></th>
-              <th className="p-3 text-center bg-blue-500/5" colSpan={2}>แผนเบิกจ่าย</th>
-              <th className="p-3 text-center bg-emerald-500/5" colSpan={2}>เบิกจ่ายจริง</th>
+              <th className="p-3">
+                <div>งบประมาณ</div>
+                <div className={`text-[9px] font-semibold ${exVatEnabled ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                  ({exVatEnabled ? 'ไม่รวม VAT' : 'รวม VAT'})
+                </div>
+              </th>
+              <th className="p-3">
+                <div>วงเงินจ้างก่อสร้าง</div>
+                <div className={`text-[9px] font-semibold ${exVatEnabled ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                  ({exVatEnabled ? 'ไม่รวม VAT' : 'รวม VAT'})
+                </div>
+              </th>
+              <th className="p-3 text-primary-600 dark:text-primary-400">
+                PR คงเหลือ<br/>
+                <span className="text-[9px]">(Cost Saving)</span>
+              </th>
+              <th className="p-3 text-center bg-blue-500/5" colSpan={2}>
+                <div>แผนเบิกจ่าย</div>
+                <div className={`text-[9px] font-semibold ${exVatEnabled ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                  ({exVatEnabled ? 'ไม่รวม VAT' : 'รวม VAT'})
+                </div>
+              </th>
+              <th className="p-3 text-center bg-emerald-500/5" colSpan={2}>
+                <div>เบิกจ่ายจริง</div>
+                <div className={`text-[9px] font-semibold ${exVatEnabled ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                  ({exVatEnabled ? 'ไม่รวม VAT' : 'รวม VAT'})
+                </div>
+              </th>
               <th className="p-3 text-center bg-amber-500/5" colSpan={4}>อยู่ระหว่างดำเนินการ (Pipeline)</th>
-              <th className="p-3">คงเหลือ</th>
+              <th className="p-3">
+                <div>คงเหลือ</div>
+                <div className={`text-[9px] font-semibold ${exVatEnabled ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                  ({exVatEnabled ? 'ไม่รวม VAT' : 'รวม VAT'})
+                </div>
+              </th>
               <th className="p-3">สถานะ</th>
             </tr>
             <tr className="bg-slate-50/50 dark:bg-[#15152c]/50 text-slate-400 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-[#1e1e38] text-[10px] uppercase">
@@ -481,7 +566,12 @@ export function DisbursementsView({
             {/* Total Aggregate Row */}
             <tr className="bg-slate-100/50 dark:bg-[#1a1a36]/50 font-black text-slate-900 dark:text-white border-t-2 border-slate-300 dark:border-[#252548]">
               <td className="print:hidden"></td>
-              <td className="p-3 text-left">รวมทั้งสิ้น</td>
+              <td className="p-3 text-left">
+                <div>รวมทั้งสิ้น</div>
+                <div className={`text-[9px] font-bold ${exVatEnabled ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                  ({exVatEnabled ? 'ถอด VAT 7% (SAP)' : 'รวม VAT 7%'})
+                </div>
+              </td>
               <td></td>
               <td className="p-3 font-mono">{formatMoney(totals.budget)}</td>
               <td className="p-3 font-mono">{formatMoney(totals.openingPr)}</td>

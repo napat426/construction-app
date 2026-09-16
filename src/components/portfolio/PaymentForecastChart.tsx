@@ -435,13 +435,31 @@ export function PaymentForecastChart({ milestones, projects, exVatEnabled = fals
         </div>
         <div className="flex gap-6 text-right">
           <div>
-            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">แผนเบิกจ่ายรวม</p>
+            <div className="flex items-center justify-end gap-1.5 mb-0.5">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">แผนเบิกจ่ายรวม</p>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                exVatEnabled
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+              }`}>
+                {exVatEnabled ? 'ถอด VAT 7%' : 'รวม VAT'}
+              </span>
+            </div>
             <p className="text-xl font-black text-blue-600 dark:text-blue-400 font-mono">
               ฿ {(finalPlanTotal + rawGroupedData.planUnassigned).toLocaleString()}
             </p>
           </div>
           <div className="border-l border-slate-100 dark:border-[#252548] pl-6">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">เบิกจ่ายจริงรวม</p>
+            <div className="flex items-center justify-end gap-1.5 mb-0.5">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">เบิกจ่ายจริงรวม</p>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                exVatEnabled
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+              }`}>
+                {exVatEnabled ? 'ถอด VAT 7%' : 'รวม VAT'}
+              </span>
+            </div>
             <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
               ฿ {(finalActualTotal + rawGroupedData.actualUnassigned).toLocaleString()}
             </p>

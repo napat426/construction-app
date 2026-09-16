@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import {
   FileClock,
   Plus,
@@ -18,7 +18,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardPaste,
-  Loader2
+  Loader2,
+  Sparkles,
+  ListTodo
 } from 'lucide-react'
 import type { Project, DailyReport, ResourceItem, ReportPhoto } from '@/lib/types'
 import { 
@@ -29,7 +31,8 @@ import {
   backfillDailyReport, 
   createQuickDailyReport,
   getDailyDefaults,
-  uploadReportPhoto
+  uploadReportPhoto,
+  getPlannedTasksForDate
 } from '@/app/actions/reports'
 import { getWeatherText, getWeatherIcon } from '@/lib/weatherUtils'
 import type { UserSession } from '@/lib/auth'
@@ -47,6 +50,50 @@ const THAI_MONTHS = [
   'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
 ]
+
+function AutoResizeTextarea({
+  value,
+  onChange,
+  placeholder,
+  className,
+  minRows = 2,
+  disabled = false,
+}: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  placeholder?: string
+  className?: string
+  minRows?: number
+  disabled?: boolean
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  const resize = () => {
+    if (ref.current) {
+      ref.current.style.height = 'auto'
+      ref.current.style.height = `${Math.max(ref.current.scrollHeight, minRows * 26)}px`
+    }
+  }
+
+  useEffect(() => {
+    resize()
+  }, [value, minRows])
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => {
+        onChange(e)
+        resize()
+      }}
+      disabled={disabled}
+      placeholder={placeholder}
+      className={`${className} overflow-hidden resize-none transition-[height] duration-75`}
+      rows={minRows}
+    />
+  )
+}
 
 export function DailyReportsTab({ project, data, user }: Props) {
   const [items, setItems] = useState<DailyReport[]>(data)
@@ -395,6 +442,73 @@ function DailyReportForm({
   const [uploading, setUploading] = useState(false)
   const [isConfirmed, setIsConfirmed] = useState(item.is_confirmed || false)
   const [isSyncingWeather, setIsSyncingWeather] = useState(false)
+  const [isAnalyzingAI, setIsAnalyzingAI] = useState(false)
+
+  const handleAnalyzePhotosWithAI = async () => {
+    if (photos.length === 0) {
+      alert('กรุณาอัปโหลดรูปภาพการทำงานหน้างานอย่างน้อย 1 รูปก่อนเริ่มวิเคราะห์ด้วย AI')
+      return
+    }
+
+    let shouldOverwrite = true
+    if (workDone.trim()) {
+      shouldOverwrite = confirm('มีข้อความในช่อง "รายละเอียดความคืบหน้างานวันนี้" อยู่แล้ว\n\n- กด [ตกลง / OK] เพื่อแทนที่ข้อความเดิมด้วยผลวิเคราะห์จาก AI\n- กด [ยกเลิก / Cancel] เพื่อนำข้อความจาก AI ไปต่อท้ายข้อความเดิม')
+    }
+
+    setIsAnalyzingAI(true)
+    try {
+      const res = await fetch('/api/ai/analyze-daily-photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          reportDate: item.report_date,
+          photos: photos.map(p => p.url)
+        })
+      })
+
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพด้วย AI')
+      }
+
+      if (data.workDone) {
+        if (workDone.trim() && !shouldOverwrite) {
+          setWorkDone(prev => prev + '\n\n' + data.workDone)
+        } else {
+          setWorkDone(data.workDone)
+        }
+      }
+    } catch (err: any) {
+      alert(err.message || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพด้วย AI')
+    } finally {
+      setIsAnalyzingAI(false)
+    }
+  }
+
+  const [isFetchingWBS, setIsFetchingWBS] = useState(false)
+
+  const handleFetchPlannedWBS = async () => {
+    if (workDone.trim()) {
+      if (!confirm('ต้องการดึงรายการงานตามแผน (WBS) ประจำวันนี้มาแทนที่ข้อความเดิมใช่หรือไม่?')) {
+        return
+      }
+    }
+
+    setIsFetchingWBS(true)
+    try {
+      const res = await getPlannedTasksForDate(project.id, item.report_date)
+      if (res.text) {
+        setWorkDone(res.text)
+      } else {
+        alert('ไม่พบรายการงานตามแผนสำหรับวันนี้')
+      }
+    } catch (err: any) {
+      alert(err.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลแผนงาน WBS')
+    } finally {
+      setIsFetchingWBS(false)
+    }
+  }
 
   const handleSyncWeather = async () => {
     setIsSyncingWeather(true)
@@ -707,21 +821,61 @@ function DailyReportForm({
 
         {/* Work Done */}
         <div>
-          <label className={labelCls}>รายละเอียดความคืบหน้างานวันนี้ (Work Done)</label>
-          <textarea 
-            rows={5} 
+          <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+            <label className={`${labelCls} mb-0`}>รายละเอียดความคืบหน้างานวันนี้ (Work Done)</label>
+            {user && (user.role === 'admin' || user.role === 'editor') && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFetchPlannedWBS}
+                  disabled={isFetchingWBS || isAnalyzingAI}
+                  className="px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-all cursor-pointer disabled:opacity-50"
+                  title="ดึงรายการงานที่กำลังดำเนินการตามแผน WBS ประจำวันนี้"
+                >
+                  {isFetchingWBS ? (
+                    <Loader2 size={13} className="animate-spin text-primary-500" />
+                  ) : (
+                    <ListTodo size={13} className="text-primary-500" />
+                  )}
+                  <span>{isFetchingWBS ? 'กำลังดึง...' : '📋 ดึงงานตามแผน (WBS)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAnalyzePhotosWithAI}
+                  disabled={isAnalyzingAI || photos.length === 0 || uploading || isFetchingWBS}
+                  className="px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  title={photos.length === 0 ? 'กรุณาอัปโหลดรูปถ่ายหน้างานก่อน' : 'วิเคราะห์รูปภาพหน้างานด้วย Gemini Vision AI'}
+                >
+                  {isAnalyzingAI ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>กำลังวิเคราะห์ภาพด้วย AI...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} className="text-amber-300 fill-amber-300" />
+                      <span>✨ วิเคราะห์งานจากรูปถ่าย (AI Vision)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+          <AutoResizeTextarea 
+            minRows={4} 
             value={workDone} 
             onChange={e => setWorkDone(e.target.value)}
             className={`${inputCls} leading-relaxed`} 
-            placeholder="ระบุความคืบหน้าของ WBS และงานย่อย..." 
+            placeholder="ระบุความคืบหน้าของ WBS และงานย่อย หรือคลิก '✨ วิเคราะห์งานจากรูปถ่าย (AI Vision)'..." 
           />
         </div>
 
         {/* Issues */}
         <div>
           <label className={labelCls}>ปัญหาและอุปสรรค (Issues & Roadblocks)</label>
-          <textarea 
-            rows={2} 
+          <AutoResizeTextarea 
+            minRows={2} 
             value={issues} 
             onChange={e => setIssues(e.target.value)}
             className={inputCls} 

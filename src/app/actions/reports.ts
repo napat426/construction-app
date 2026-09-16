@@ -235,65 +235,98 @@ export async function backfillDailyReport(projectId: string, dateStr: string) {
     }
 
     // 5. Fetch tasks and compute active WBS
+    const planned = await getPlannedTasksForDate(projectId, dateStr)
+    const workDoneText = planned.text || 'ไม่มีงานที่อยู่ระหว่างดำเนินการตามแผนในวันนี้'
+
+    // 6. Insert new daily report
+    const { error: insErr } = await supabase
+      .from('daily_reports')
+      .insert({
+        project_id: projectId,
+        report_date: dateStr,
+        weather: weatherText,
+        temperature,
+        precipitation,
+        weather_code: weatherCode,
+        manpower: defaults?.manpower_defaults || [],
+        machinery: defaults?.machinery_defaults || [],
+        work_done: workDoneText,
+        issues: '',
+        photos: [],
+        is_auto_generated: true,
+        is_confirmed: false,
+      })
+
+    if (insErr) {
+      return { error: `Failed to insert daily report: ${insErr.message}` }
+    }
+
+    revalidatePath(`/projects/${projectId}/reports`)
+    return { success: true }
+  } catch (error: any) {
+    console.error('Backfill error:', error)
+    return { error: error.message }
+  }
+}
+
+// Compute active planned tasks for a given date from project WBS
+export async function getPlannedTasksForDate(projectId: string, dateStr: string) {
+  try {
+    const { data: project } = await supabase
+      .from('projects')
+      .select('start_date')
+      .eq('id', projectId)
+      .single()
+
+    if (!project || !project.start_date) {
+      return { success: false, text: '', count: 0 }
+    }
+
     const { data: dbTasks } = await supabase
       .from('tasks')
       .select('*')
       .eq('project_id', projectId)
 
-    let workDoneText = ''
-    if (dbTasks && dbTasks.length > 0 && project.start_date) {
-      const sorted = [...dbTasks].sort((a, b) => {
-        const aParts = a.wbs_no.split('.').map(Number)
-        const bParts = b.wbs_no.split('.').map(Number)
-        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-          const aVal = aParts[i] || 0
-          const bVal = bParts[i] || 0
-          if (aVal !== bVal) return aVal - bVal
-        }
-        return 0
-      })
-      const scheduled = computeTaskDates(sorted, project.start_date)
-      const targetTime = new Date(dateStr).getTime()
-
-      const activeTasks = scheduled.filter(t => {
-        const tStart = new Date(t.computedStartDate).getTime()
-        const tEnd = new Date(t.computedEndDate).getTime()
-        return tStart <= targetTime && targetTime <= tEnd && (t.actual_progress || 0) < 100
-      })
-
-      if (activeTasks.length > 0) {
-        workDoneText = 'งานดำเนินการตามแผน:\n' + activeTasks.map(t => `• [${t.wbs_no}] ${t.name} (${t.actual_progress || 0}% → รอ update)`).join('\n')
-      } else {
-        workDoneText = 'ไม่มีงานที่อยู่ระหว่างดำเนินการตามแผนในวันนี้'
-      }
+    if (!dbTasks || dbTasks.length === 0) {
+      return { success: true, text: 'ไม่มีรายการงาน WBS ในระบบ', count: 0 }
     }
 
-    // 6. Insert new report
-    const { error: insErr } = await supabase.from('daily_reports').insert({
-      project_id: projectId,
-      report_date: dateStr,
-      weather: weatherText,
-      temperature,
-      precipitation,
-      weather_code: weatherCode,
-      manpower: defaults?.manpower_defaults || [],
-      machinery: defaults?.machinery_defaults || [],
-      work_done: workDoneText,
-      issues: '',
-      photos: [],
-      is_auto_generated: true,
-      is_confirmed: false,
+    const sorted = [...dbTasks].sort((a, b) => {
+      const aParts = (a.wbs_no || '').split('.').map(Number)
+      const bParts = (b.wbs_no || '').split('.').map(Number)
+      for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+        const aVal = aParts[i] || 0
+        const bVal = bParts[i] || 0
+        if (aVal !== bVal) return aVal - bVal
+      }
+      return 0
     })
 
-    if (insErr) return { error: insErr.message }
-    revalidatePath(`/projects/${projectId}/reports`)
-    return { success: true }
+    const scheduled = computeTaskDates(sorted, project.start_date)
+    const targetDate = new Date(dateStr)
+    targetDate.setHours(0, 0, 0, 0)
+    const targetTime = targetDate.getTime()
+
+    const activeTasks = scheduled.filter(t => {
+      const tStart = new Date(t.computedStartDate)
+      tStart.setHours(0, 0, 0, 0)
+      const tEnd = new Date(t.computedEndDate)
+      tEnd.setHours(23, 59, 59, 999)
+      return tStart.getTime() <= targetTime && targetTime <= tEnd.getTime() && (t.actual_progress || 0) < 100
+    })
+
+    if (activeTasks.length > 0) {
+      const text = 'งานดำเนินการตามแผน:\n' + activeTasks.map(t => `• [${t.wbs_no}] ${t.name} (${t.actual_progress || 0}% → รอ update)`).join('\n')
+      return { success: true, text, count: activeTasks.length }
+    } else {
+      return { success: true, text: 'ไม่มีงานที่อยู่ระหว่างดำเนินการตามแผนในวันนี้', count: 0 }
+    }
   } catch (err: any) {
-    return { error: err.message }
+    return { success: false, error: err.message, text: '', count: 0 }
   }
 }
 
-// Fast-create a blank daily report (no weather API call) — used when user clicks a date
+// Fast-create a daily report with default WBS tasks — used when user clicks a date
 export async function createQuickDailyReport(projectId: string, dateStr: string) {
   try {
     // Check duplicate
@@ -305,12 +338,16 @@ export async function createQuickDailyReport(projectId: string, dateStr: string)
       .single()
     if (existing) return { error: 'รายงานของวันนี้มีอยู่แล้วในระบบ' }
 
-    // Fetch defaults only (fast)
+    // Fetch defaults (fast)
     const { data: defaults } = await supabase
       .from('project_daily_defaults')
       .select('manpower_defaults, machinery_defaults')
       .eq('project_id', projectId)
       .single()
+
+    // Compute planned tasks for this date as initial Work Done
+    const planned = await getPlannedTasksForDate(projectId, dateStr)
+    const initialWorkDone = planned.text || ''
 
     const { data: inserted, error: insErr } = await supabase
       .from('daily_reports')
@@ -323,10 +360,10 @@ export async function createQuickDailyReport(projectId: string, dateStr: string)
         weather_code: 0,
         manpower: defaults?.manpower_defaults || [],
         machinery: defaults?.machinery_defaults || [],
-        work_done: '',
+        work_done: initialWorkDone,
         issues: '',
         photos: [],
-        is_auto_generated: false,
+        is_auto_generated: planned.count ? planned.count > 0 : false,
         is_confirmed: false,
       })
       .select('id')

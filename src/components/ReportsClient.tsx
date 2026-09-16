@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ClipboardCheck, FileClock, CalendarDays, Truck } from 'lucide-react'
+import { ClipboardCheck, FileClock, CalendarDays, Truck, FileSpreadsheet } from 'lucide-react'
 import type { Project, Inspection, DailyReport, WeeklyReport, WBSTask, ProjectMilestone, ConcretePour, ContractAmendment } from '@/lib/types'
 
 // We will lazily load or statically import the child components
@@ -9,6 +9,7 @@ import { InspectionsTab } from './reports/InspectionsTab'
 import { DailyReportsTab } from './reports/DailyReportsTab'
 import { WeeklyReportsTab } from './reports/WeeklyReportsTab'
 import { ConcretePoursTab } from './reports/ConcretePoursTab'
+import { ExecutiveSummaryTab } from './reports/ExecutiveSummaryTab'
 
 import type { UserSession } from '@/lib/auth'
 
@@ -25,7 +26,7 @@ interface Props {
   user?: UserSession | null
 }
 
-type TabType = 'inspections' | 'daily' | 'weekly' | 'concrete'
+type TabType = 'executive' | 'inspections' | 'daily' | 'weekly' | 'concrete'
 
 export function ReportsClient({
   project,
@@ -41,6 +42,7 @@ export function ReportsClient({
   const [activeTab, setActiveTab] = useState<TabType>('inspections')
 
   const tabs = [
+    { id: 'executive', label: '📊 สรุปสถานะโครงการ (ผู้บริหาร)', icon: FileSpreadsheet },
     { id: 'inspections', label: 'ตรวจสอบคุณภาพ', icon: ClipboardCheck },
     { id: 'daily', label: 'รายงานประจำวัน', icon: FileClock },
     { id: 'weekly', label: 'รายงานประจำสัปดาห์', icon: CalendarDays },
@@ -59,7 +61,7 @@ export function ReportsClient({
               key={t.id}
               onClick={() => setActiveTab(t.id)}
               className={[
-                'flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-0.5',
+                'flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-0.5 cursor-pointer',
                 isActive
                   ? 'border-primary-600 text-primary-700 dark:text-primary-400 font-extrabold'
                   : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300',
@@ -74,6 +76,18 @@ export function ReportsClient({
 
       {/* ── Tab Content Areas ── */}
       <div className="print:m-0 print:p-0">
+        {activeTab === 'executive' && (
+          <ExecutiveSummaryTab
+            project={project}
+            inspections={inspections}
+            dailyReports={dailyReports}
+            weeklyReports={weeklyReports}
+            tasks={tasks}
+            milestones={milestones}
+            amendments={amendments}
+            user={user}
+          />
+        )}
         {activeTab === 'inspections' && <InspectionsTab project={project} data={inspections} user={user} />}
         {activeTab === 'daily' && <DailyReportsTab project={project} data={dailyReports} user={user} />}
         {activeTab === 'weekly' && (

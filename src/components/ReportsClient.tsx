@@ -98,6 +98,8 @@ export function ReportsClient({
             milestones={milestones}
             userRole={user?.role}
             amendments={amendments}
+            dailyReports={dailyReports}
+            inspections={inspections}
           />
         )}
         {activeTab === 'concrete' && (

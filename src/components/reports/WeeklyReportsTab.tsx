@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect } from "react";
+import { useState, useTransition, useMemo, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   Plus,
@@ -9,6 +10,7 @@ import {
   Printer,
   ArrowUp,
   ArrowDown,
+  Sparkles,
 } from "lucide-react";
 import type {
   Project,
@@ -16,7 +18,9 @@ import type {
   WBSTask,
   ProjectMilestone,
   ContractAmendment,
-  } from "@/lib/types";
+  DailyReport,
+  Inspection,
+} from "@/lib/types";
 import {
   createWeeklyReport,
   updateWeeklyReport,
@@ -34,6 +38,8 @@ interface Props {
   milestones?: ProjectMilestone[];
   userRole?: string | null;
   amendments?: ContractAmendment[];
+  dailyReports?: DailyReport[];
+  inspections?: Inspection[];
 }
 
 // Custom natural sort for WBS numbers
@@ -55,6 +61,50 @@ function formatCurrency(amount: number): string {
     currency: "THB",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function AutoResizeTextarea({
+  name,
+  value,
+  onChange,
+  placeholder,
+  className,
+  minRows = 3,
+}: {
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
+  className?: string;
+  minRows?: number;
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+
+  const resize = () => {
+    if (ref.current) {
+      ref.current.style.height = "auto";
+      ref.current.style.height = `${Math.max(ref.current.scrollHeight, minRows * 24)}px`;
+    }
+  };
+
+  useEffect(() => {
+    resize();
+  }, [value, minRows]);
+
+  return (
+    <textarea
+      ref={ref}
+      name={name}
+      value={value}
+      onChange={(e) => {
+        onChange(e);
+        resize();
+      }}
+      placeholder={placeholder}
+      className={`${className} overflow-hidden resize-none transition-[height] duration-75`}
+      rows={minRows}
+    />
+  );
 }
 
 function formatDate(dateStr: string): string {
@@ -134,6 +184,8 @@ export function WeeklyReportsTab({
   milestones = [],
   userRole,
   amendments = [],
+  dailyReports = [],
+  inspections = [],
 }: Props) {
   const [items, setItems] = useState<WeeklyReport[]>(data);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -153,6 +205,23 @@ export function WeeklyReportsTab({
   }
 
   const selectedItem = items.find((i) => i.id === selectedId) || null;
+
+  const router = useRouter();
+
+  const handleSaveSuccess = (savedItem: WeeklyReport) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((p) => p.id === savedItem.id);
+      if (idx !== -1) {
+        const next = [...prev];
+        next[idx] = savedItem;
+        return next;
+      }
+      return [savedItem, ...prev];
+    });
+    setSelectedId(savedItem.id);
+    setIsCreating(false);
+    router.refresh();
+  };
 
   const handleMove = (index: number, direction: "up" | "down") => {
     if (direction === "up" && index === 0) return;
@@ -188,16 +257,21 @@ export function WeeklyReportsTab({
   };
 
   const handlePrint = (singleItem?: WeeklyReport) => {
-    const originalSelected = [...selectedIds];
     if (singleItem) {
+      setItems((prev) => {
+        const idx = prev.findIndex((p) => p.id === singleItem.id);
+        if (idx !== -1) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...singleItem };
+          return next;
+        }
+        return [singleItem, ...prev];
+      });
       setSelectedIds([singleItem.id]);
     }
     setTimeout(() => {
       window.print();
-      if (singleItem) {
-        setSelectedIds(originalSelected);
-      }
-    }, 100);
+    }, 150);
   };
 
   return (
@@ -347,7 +421,10 @@ export function WeeklyReportsTab({
             tasks={tasks}
             milestones={milestones}
             amendments={amendments}
+            dailyReports={dailyReports}
+            inspections={inspections}
             onClose={() => setIsCreating(false)}
+            onSaveSuccess={handleSaveSuccess}
             onDelete={handleDelete}
             onPrint={handlePrint}
             userRole={userRole}
@@ -401,6 +478,8 @@ export function WeeklyReportsTab({
               tasks={tasks}
               milestones={milestones}
               amendments={amendments}
+              dailyReports={dailyReports}
+              inspections={inspections}
               onClose={() => {}}
               onDelete={() => {}}
               onPrint={() => {}}
@@ -420,7 +499,10 @@ function WeeklyReportForm({
   tasks,
   milestones,
   amendments = [],
+  dailyReports = [],
+  inspections = [],
   onClose,
+  onSaveSuccess,
   onDelete,
   onPrint,
   userRole,
@@ -431,7 +513,10 @@ function WeeklyReportForm({
   tasks: WBSTask[];
   milestones: ProjectMilestone[];
   amendments?: ContractAmendment[];
+  dailyReports?: DailyReport[];
+  inspections?: Inspection[];
   onClose: () => void;
+  onSaveSuccess?: (savedItem: WeeklyReport) => void;
   onDelete: (id: string) => void;
   onPrint: (item: WeeklyReport) => void;
   userRole?: string | null;
@@ -443,6 +528,36 @@ function WeeklyReportForm({
     null,
   );
   const [lockSnapshot, setLockSnapshot] = useState(true);
+
+  // Controlled form states for dates and narratives
+  const [dateStart, setDateStart] = useState<string>(() => {
+    if (item?.date_range) {
+      const parsed = parseDateRangeStart(item.date_range);
+      if (parsed) return parsed;
+    }
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return d.toISOString().slice(0, 10);
+  });
+  const [dateEnd, setDateEnd] = useState<string>(() => {
+    if (item?.date_range) {
+      const parsed = parseDateRangeEnd(item.date_range);
+      if (parsed) return parsed;
+    }
+    return new Date().toISOString().slice(0, 10);
+  });
+  const [summaryText, setSummaryText] = useState<string>(item?.summary || '');
+  const [delayedTasksText, setDelayedTasksText] = useState<string>(item?.delayed_tasks || '');
+  const [lookAheadText, setLookAheadText] = useState<string>(item?.look_ahead || '');
+  const [draftGeneratedMsg, setDraftGeneratedMsg] = useState<string>('');
+
+  useEffect(() => {
+    setDateStart(item?.date_range ? parseDateRangeStart(item.date_range) : '');
+    setDateEnd(item?.date_range ? parseDateRangeEnd(item.date_range) : '');
+    setSummaryText(item?.summary || '');
+    setDelayedTasksText(item?.delayed_tasks || '');
+    setLookAheadText(item?.look_ahead || '');
+  }, [item?.id, item?.summary, item?.delayed_tasks, item?.look_ahead, item?.date_range]);
 
   useEffect(() => {
     const handleBeforePrint = () => {
@@ -525,10 +640,10 @@ function WeeklyReportForm({
     }
 
     const payload = {
-      date_range: formatDateRange(fd.get("date_start") as string, fd.get("date_end") as string),
-      summary: fd.get("summary") || null,
-      delayed_tasks: fd.get("delayed_tasks") || null,
-      look_ahead: fd.get("look_ahead") || null,
+      date_range: formatDateRange(dateStart, dateEnd),
+      summary: summaryText || null,
+      delayed_tasks: delayedTasksText || null,
+      look_ahead: lookAheadText || null,
       snapshot: finalSnapshot,
     };
 
@@ -543,6 +658,10 @@ function WeeklyReportForm({
       if (res?.error) {
         setErrorMsg(res.error);
       } else {
+        const savedItem = res?.data || (item ? { ...item, ...payload } : null);
+        if (savedItem && onSaveSuccess) {
+          onSaveSuccess(savedItem);
+        }
         onClose();
       }
     });
@@ -974,6 +1093,219 @@ function WeeklyReportForm({
     }
   };
 
+  // --- Smart Evidence-Based Auto-Draft Generator ---
+  const handleAutoGenerateDrafts = () => {
+    let startD = dateStart ? new Date(dateStart) : null;
+    let endD = dateEnd ? new Date(dateEnd) : null;
+
+    if (!endD || isNaN(endD.getTime())) {
+      endD = new Date();
+    }
+    endD.setHours(23, 59, 59, 999);
+
+    if (!startD || isNaN(startD.getTime())) {
+      startD = new Date(endD);
+      startD.setDate(startD.getDate() - 6);
+    }
+    startD.setHours(0, 0, 0, 0);
+
+    const todayDateOnly = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate());
+
+    // 1. Calculate EV / PV at endD
+    const totalWbsCost = scheduledTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0);
+    let pvCumulative = 0;
+    let evCumulative = 0;
+
+    if (totalWbsCost > 0) {
+      for (const t of scheduledTasks) {
+        const tStart = new Date(t.computedStartDate);
+        const tEnd = new Date(t.computedEndDate);
+        tStart.setHours(0, 0, 0, 0);
+        tEnd.setHours(0, 0, 0, 0);
+        const weight = (Number(t.cost) || 0) / totalWbsCost;
+
+        let plannedProgress = 0;
+        if (todayDateOnly >= tEnd) plannedProgress = 100;
+        else if (todayDateOnly < tStart) plannedProgress = 0;
+        else {
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments));
+          const elapsed = countWorkingDays(tStart, todayDateOnly, amendments);
+          plannedProgress = (elapsed / totalDur) * 100;
+        }
+        pvCumulative += weight * plannedProgress;
+        evCumulative += weight * (t.actual_progress || 0);
+      }
+    } else if (scheduledTasks.length > 0) {
+      let totalPlanned = 0, totalActual = 0;
+      for (const t of scheduledTasks) {
+        const tStart = new Date(t.computedStartDate);
+        const tEnd = new Date(t.computedEndDate);
+        tStart.setHours(0, 0, 0, 0);
+        tEnd.setHours(0, 0, 0, 0);
+        let plannedProgress = 0;
+        if (todayDateOnly >= tEnd) plannedProgress = 100;
+        else if (todayDateOnly < tStart) plannedProgress = 0;
+        else {
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments));
+          const elapsed = countWorkingDays(tStart, todayDateOnly, amendments);
+          plannedProgress = (elapsed / totalDur) * 100;
+        }
+        totalPlanned += plannedProgress;
+        totalActual += (t.actual_progress || 0);
+      }
+      pvCumulative = totalPlanned / scheduledTasks.length;
+      evCumulative = totalActual / scheduledTasks.length;
+    }
+
+    const svPercent = evCumulative - pvCumulative;
+
+    const completedTasks = scheduledTasks.filter(t => (t.actual_progress || 0) >= 100);
+    const inProgressTasks = scheduledTasks.filter(t => (t.actual_progress || 0) > 0 && (t.actual_progress || 0) < 100);
+
+    // Weather & Rain days in this week window
+    const weekDailyReports = dailyReports.filter(d => {
+      if (!d.report_date) return false;
+      const rDate = new Date(d.report_date);
+      rDate.setHours(12, 0, 0, 0);
+      return rDate >= startD && rDate <= endD;
+    });
+
+    const rainDaysThisWeek = weekDailyReports.filter(d => {
+      const w = (d.weather || '').toLowerCase();
+      const p = Number(d.precipitation) || 0;
+      return w.includes('ฝน') || w.includes('rain') || p > 0;
+    }).length;
+
+    // Inspections in this week window
+    const weekInspections = inspections.filter(ins => {
+      const dateStr = ins.request_date || ins.created_at;
+      if (!dateStr) return false;
+      const iDate = new Date(dateStr);
+      return iDate >= startD && iDate <= endD;
+    });
+
+    // 1. Generate Executive Summary
+    let summaryGen = `ความก้าวหน้าโครงการสะสม: ผลงานจริงสะสม ${evCumulative.toFixed(1)}% (แผนงานสะสม ${pvCumulative.toFixed(1)}%, ส่วนต่าง ${svPercent >= 0 ? '+' : ''}${svPercent.toFixed(1)}%)\n`;
+
+    if (completedTasks.length > 0) {
+      summaryGen += `• กิจกรรมที่ดำเนินงานแล้วเสร็จ 100%: ${completedTasks.slice(0, 3).map(t => `${t.wbs_no ? `[${t.wbs_no}] ` : ''}${t.name}`).join(', ')}\n`;
+    }
+    if (inProgressTasks.length > 0) {
+      summaryGen += `• กิจกรรมที่อยู่ระหว่างดำเนินการ: ${inProgressTasks.slice(0, 3).map(t => `${t.wbs_no ? `[${t.wbs_no}] ` : ''}${t.name} (คืบหน้า ${t.actual_progress}%)`).join(', ')}\n`;
+    }
+    if (weekInspections.length > 0) {
+      summaryGen += `• มีการขอตรวจสอบคุณภาพงาน (Inspection) จำนวน ${weekInspections.length} รายการ ได้แก่ ${weekInspections.slice(0, 2).map(i => i.title || i.work_type || 'ขอตรวจงาน').join(', ')}\n`;
+    }
+    if (rainDaysThisWeek > 0) {
+      summaryGen += `• ในรอบสัปดาห์มีสถิติฝนตกสะสม ${rainDaysThisWeek} วัน (จาก ${Math.max(1, weekDailyReports.length)} วันที่บันทึก) ซึ่งส่งผลกระทบต่องานภายนอกอาคาร`;
+    } else {
+      summaryGen += `• สภาพอากาศโดยรวมปลอดโปร่ง สามารถดำเนินงานก่อสร้างได้ตามปกติ`;
+    }
+
+    // 2. Generate Delayed Tasks & Causes
+    const delayedTasksList: Array<{ name: string; wbs_no: string; actual: number; planned: number; diff: number; overdueDays?: number }> = [];
+
+    for (const t of scheduledTasks) {
+      const tStart = new Date(t.computedStartDate);
+      const tEnd = new Date(t.computedEndDate);
+      tStart.setHours(0, 0, 0, 0);
+      tEnd.setHours(23, 59, 59, 999);
+
+      if (todayDateOnly >= tStart) {
+        let taskPlanned = 0;
+        if (todayDateOnly >= tEnd) {
+          taskPlanned = 100;
+        } else {
+          const totalDur = Math.max(1, countWorkingDays(tStart, tEnd, amendments));
+          const elapsed = countWorkingDays(tStart, todayDateOnly, amendments);
+          taskPlanned = Math.min(100, Math.round((elapsed / totalDur) * 100));
+        }
+
+        const taskActual = t.actual_progress || 0;
+        const diff = taskPlanned - taskActual;
+
+        // Delayed condition: behind planned by >= 5% or overdue past end date with < 100%
+        if (diff >= 5 || (todayDateOnly >= tEnd && taskActual < 100)) {
+          let overdueDays = 0;
+          if (todayDateOnly > tEnd && taskActual < 100) {
+            overdueDays = countWorkingDays(tEnd, todayDateOnly, amendments);
+          }
+          delayedTasksList.push({
+            name: t.name,
+            wbs_no: t.wbs_no || '',
+            actual: taskActual,
+            planned: taskPlanned,
+            diff,
+            overdueDays,
+          });
+        }
+      }
+    }
+
+    let delayedGen = '';
+    if (delayedTasksList.length === 0) {
+      delayedGen = 'ไม่มีกิจกรรมงานที่ล่าช้ากว่าแผนงาน ทุกกิจกรรมดำเนินงานเป็นไปตามกรอบเวลาของแผนงานก่อสร้าง';
+    } else {
+      delayedGen = delayedTasksList.slice(0, 4).map((dt, idx) => {
+        let line = `${idx + 1}. ${dt.wbs_no ? `[${dt.wbs_no}] ` : ''}${dt.name}: ผลงานจริง ${dt.actual}% (ตามแผนควรได้ ${dt.planned}%, ล่าช้า ${dt.diff}%`;
+        if (dt.overdueDays && dt.overdueDays > 0) {
+          line += ` หรือเกินกำหนดประมาณ ${dt.overdueDays} วัน`;
+        }
+        line += ')';
+
+        if (rainDaysThisWeek > 0) {
+          line += `\n   - สาเหตุ: ได้รับผลกระทบจากสภาพอากาศฝนตกสะสม ${rainDaysThisWeek} วัน ทำให้ไม่สามารถดำเนินงานกลางแจ้งได้อย่างเต็มกำลัง`;
+        } else {
+          line += `\n   - สาเหตุ: การจัดสรรชุดแรงงานและเครื่องจักรของผู้รับจ้างยังไม่เต็มอัตรากำลังตามแผนงานงวดนี้`;
+        }
+        return line;
+      }).join('\n');
+    }
+
+    // 3. Generate Look Ahead (Next 7 days from endD)
+    const nextStart = new Date(endD);
+    nextStart.setDate(nextStart.getDate() + 1);
+    nextStart.setHours(0, 0, 0, 0);
+
+    const nextEnd = new Date(nextStart);
+    nextEnd.setDate(nextEnd.getDate() + 7);
+    nextEnd.setHours(23, 59, 59, 999);
+
+    const upcomingTasks = scheduledTasks.filter(t => {
+      const tStart = new Date(t.computedStartDate);
+      const tEnd = new Date(t.computedEndDate);
+      tStart.setHours(0, 0, 0, 0);
+      tEnd.setHours(23, 59, 59, 999);
+      return tStart <= nextEnd && tEnd >= nextStart && (t.actual_progress || 0) < 100;
+    });
+
+    let lookAheadGen = '';
+    let stepNo = 1;
+
+    const continuingTasks = upcomingTasks.filter(t => (t.actual_progress || 0) > 0);
+    if (continuingTasks.length > 0) {
+      lookAheadGen += `${stepNo++}. ดำเนินงานต่อเนื่อง: ${continuingTasks.slice(0, 2).map(t => `${t.wbs_no ? `[${t.wbs_no}] ` : ''}${t.name} (เร่งรัดให้ได้ตามเป้าหมาย)`).join(', ')}\n`;
+    }
+
+    const newTasks = upcomingTasks.filter(t => (t.actual_progress || 0) === 0);
+    if (newTasks.length > 0) {
+      lookAheadGen += `${stepNo++}. เริ่มดำเนินงานตามแผน: ${newTasks.slice(0, 2).map(t => `${t.wbs_no ? `[${t.wbs_no}] ` : ''}${t.name} (เริ่มตามแผน ${formatThaiDate(t.computedStartDate)})`).join(', ')}\n`;
+    }
+
+    if (delayedTasksList.length > 0) {
+      lookAheadGen += `${stepNo++}. แผนงานเร่งรัดชดเชยเวลา: สั่งการให้ผู้รับจ้างเพิ่มชุดแรงงานและขยายเวลาทำงานล่วงเวลา (OT) ในกิจกรรม ${delayedTasksList.slice(0, 2).map(t => t.name).join(', ')} เพื่อชดเชยความล่าช้า\n`;
+    }
+
+    lookAheadGen += `${stepNo++}. ประสานงานเตรียมความพร้อมในการขอตรวจสอบคุณภาพงาน (Inspection) ก่อนการเข้าแบบและเทคอนกรีตในงวดงานถัดไป`;
+
+    // Apply generated drafts to state
+    setSummaryText(summaryGen);
+    setDelayedTasksText(delayedGen);
+    setLookAheadText(lookAheadGen);
+    setDraftGeneratedMsg('สร้างข้อความอัตโนมัติจากแผนงานสำเร็จ!');
+    setTimeout(() => setDraftGeneratedMsg(''), 3000);
+  };
+
   const labelCls =
     "text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5";
   const inputCls =
@@ -1092,7 +1424,16 @@ function WeeklyReportForm({
               {item && userRole && (
                 <button
                   type="button"
-                  onClick={() => onPrint(item)}
+                  onClick={() => {
+                    const currentReportData: WeeklyReport = {
+                      ...item,
+                      date_range: formatDateRange(dateStart, dateEnd),
+                      summary: summaryText,
+                      delayed_tasks: delayedTasksText,
+                      look_ahead: lookAheadText,
+                    };
+                    onPrint(currentReportData);
+                  }}
                   className="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer"
                 >
                   <Printer size={14} /> พิมพ์รายงาน (รวมกราฟ)
@@ -1273,7 +1614,8 @@ function WeeklyReportForm({
               <input
                 name="date_start"
                 type="date"
-                defaultValue={item?.date_range ? parseDateRangeStart(item.date_range) : ''}
+                value={dateStart}
+                onChange={(e) => setDateStart(e.target.value)}
                 className={inputCls}
                 required
               />
@@ -1281,7 +1623,8 @@ function WeeklyReportForm({
               <input
                 name="date_end"
                 type="date"
-                defaultValue={item?.date_range ? parseDateRangeEnd(item.date_range) : ''}
+                value={dateEnd}
+                onChange={(e) => setDateEnd(e.target.value)}
                 className={inputCls}
                 required
               />
@@ -1292,41 +1635,84 @@ function WeeklyReportForm({
             </p>
           </div>
 
+          {/* Smart Auto-Draft Action Banner (print:hidden) */}
+          <div className="bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-950/20 dark:to-indigo-950/20 border border-primary-200 dark:border-primary-800/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 print:hidden shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                  ผู้ช่วยวิเคราะห์และร่างเนื้อหารายงานอัตโนมัติ
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  ดึงข้อมูลจริงจากตาราง WBS, ความล่าช้า, รายงานสภาพอากาศ และแผนงาน 7 วันข้างหน้า
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleAutoGenerateDrafts}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-primary-600 hover:bg-primary-700 active:scale-98 text-white flex items-center gap-1.5 shadow-xs transition-all cursor-pointer whitespace-nowrap self-stretch sm:self-auto justify-center"
+            >
+              <Sparkles size={14} />
+              ร่างข้อความอัตโนมัติจากแผนงาน
+            </button>
+          </div>
+
+          {draftGeneratedMsg && (
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 px-4 py-2.5 rounded-xl text-xs font-medium flex items-center gap-2 print:hidden">
+              <span>{draftGeneratedMsg}</span>
+            </div>
+          )}
+
           <div>
             <label className={labelCls}>
               สรุปภาพรวมความคืบหน้า (Executive Summary)
             </label>
-            <textarea
+            <AutoResizeTextarea
               name="summary"
-              rows={4}
-              defaultValue={item?.summary || ""}
-              className={`${inputCls} print:border-none print:p-0 print:bg-transparent print:min-h-0 print:h-auto print:text-[10px]`}
+              minRows={4}
+              value={summaryText}
+              onChange={(e) => setSummaryText(e.target.value)}
+              className={`${inputCls} print:hidden`}
               placeholder="สรุปสถานะการทำงานในสัปดาห์นี้..."
             />
+            <div className="hidden print:block whitespace-pre-wrap text-[10px] leading-relaxed text-slate-800 font-medium py-1">
+              {summaryText || "-"}
+            </div>
           </div>
 
           <div>
             <label className={labelCls}>
               งานที่ล่าช้า และ สาเหตุ (Delayed Tasks & Causes)
             </label>
-            <textarea
+            <AutoResizeTextarea
               name="delayed_tasks"
-              rows={3}
-              defaultValue={item?.delayed_tasks || ""}
-              className={`${inputCls} print:border-none print:p-0 print:bg-transparent print:min-h-0 print:h-auto print:text-[10px]`}
+              minRows={3}
+              value={delayedTasksText}
+              onChange={(e) => setDelayedTasksText(e.target.value)}
+              className={`${inputCls} print:hidden`}
               placeholder="หากไม่มีให้ขีด -"
             />
+            <div className="hidden print:block whitespace-pre-wrap text-[10px] leading-relaxed text-slate-800 font-medium py-1">
+              {delayedTasksText || "-"}
+            </div>
           </div>
 
           <div>
             <label className={labelCls}>แผนงานสัปดาห์ถัดไป (Look Ahead)</label>
-            <textarea
+            <AutoResizeTextarea
               name="look_ahead"
-              rows={3}
-              defaultValue={item?.look_ahead || ""}
-              className={`${inputCls} print:border-none print:p-0 print:bg-transparent print:min-h-0 print:h-auto print:text-[10px]`}
+              minRows={3}
+              value={lookAheadText}
+              onChange={(e) => setLookAheadText(e.target.value)}
+              className={`${inputCls} print:hidden`}
               placeholder="แผนการดำเนินงานในสัปดาห์หน้า..."
             />
+            <div className="hidden print:block whitespace-pre-wrap text-[10px] leading-relaxed text-slate-800 font-medium py-1">
+              {lookAheadText || "-"}
+            </div>
           </div>
 
           {/* --- S-Curve --- */}

@@ -405,22 +405,26 @@ export async function updateDailyReportsOrder(projectId: string, updates: { id: 
 // Weekly Reports Actions
 // ==========================================
 export async function createWeeklyReport(projectId: string, payload: any) {
-  const { error } = await supabase.from('weekly_reports').insert({
-    project_id: projectId,
-    date_range: payload.date_range,
-    summary: payload.summary,
-    delayed_tasks: payload.delayed_tasks,
-    look_ahead: payload.look_ahead,
-    snapshot: payload.snapshot,
-  })
+  const { data, error } = await supabase
+    .from('weekly_reports')
+    .insert({
+      project_id: projectId,
+      date_range: payload.date_range,
+      summary: payload.summary,
+      delayed_tasks: payload.delayed_tasks,
+      look_ahead: payload.look_ahead,
+      snapshot: payload.snapshot,
+    })
+    .select()
+    .single()
 
   if (error) return { error: error.message }
   revalidatePath(`/projects/${projectId}/reports`)
-  return { success: true }
+  return { success: true, data }
 }
 
 export async function updateWeeklyReport(id: string, projectId: string, payload: any) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('weekly_reports')
     .update({
       date_range: payload.date_range,
@@ -430,10 +434,12 @@ export async function updateWeeklyReport(id: string, projectId: string, payload:
       snapshot: payload.snapshot,
     })
     .eq('id', id)
+    .select()
+    .single()
 
   if (error) return { error: error.message }
   revalidatePath(`/projects/${projectId}/reports`)
-  return { success: true }
+  return { success: true, data }
 }
 
 export async function deleteWeeklyReport(id: string, projectId: string) {

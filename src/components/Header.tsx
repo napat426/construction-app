@@ -156,6 +156,7 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
           <button
             type="button"
             id="theme-toggle"
+            suppressHydrationWarning
             onClick={() => {
               toggleTheme();
             }}
@@ -188,6 +189,7 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
                 <div className="flex items-center gap-2 mr-2 border-r border-slate-200 dark:border-[#252548] pr-4">
                   <span className="text-[10px] font-bold text-slate-500">AI Assistant</span>
                   <button 
+                    suppressHydrationWarning
                     onClick={toggleAi}
                     className={`w-8 h-4 rounded-full transition-colors relative ${aiEnabled ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                   >
@@ -215,6 +217,7 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
 
               <button
                 type="button"
+                suppressHydrationWarning
                 onClick={async () => {
                   const { logoutUser } = await import('@/app/actions/user')
                   await logoutUser()

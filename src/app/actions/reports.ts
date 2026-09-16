@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
 import type { InspectionStatus } from '@/lib/types'
 import { getWeatherText } from '@/lib/weatherUtils'
+import { logActivity } from '@/lib/auditLogger'
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 let supabaseUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) ? rawUrl : 'https://txexenqijhxtdrzgltsm.supabase.co'
@@ -160,6 +161,13 @@ export async function confirmDailyReport(id: string, projectId: string) {
       .update({ is_confirmed: true })
       .eq('id', id)
     if (error) return { error: error.message }
+    await logActivity({
+      projectId,
+      actionType: 'CONFIRM',
+      entityType: 'daily_report',
+      entityId: id,
+      entityTitle: `ยืนยันรายงานประจำวัน`,
+    })
     revalidatePath(`/projects/${projectId}/reports`)
     return { success: true }
   } catch (err: any) {
@@ -370,6 +378,16 @@ export async function createQuickDailyReport(projectId: string, dateStr: string)
       .single()
 
     if (insErr) return { error: insErr.message }
+
+    await logActivity({
+      projectId,
+      actionType: 'CREATE',
+      entityType: 'daily_report',
+      entityId: inserted?.id,
+      entityTitle: `สร้างรายงานประจำวันที่ ${dateStr}`,
+      details: { autoWbs: (planned.count || 0) > 0 }
+    })
+
     revalidatePath(`/projects/${projectId}/reports`)
     return { success: true, id: inserted?.id }
   } catch (err: any) {
@@ -419,6 +437,15 @@ export async function updateDailyReport(id: string, projectId: string, payload: 
     .eq('id', id)
 
   if (error) return { error: error.message }
+
+  await logActivity({
+    projectId,
+    actionType: 'UPDATE',
+    entityType: 'daily_report',
+    entityId: id,
+    entityTitle: `บันทึกรายงานประจำวันที่ ${payload.report_date}`,
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true }
 }
@@ -426,6 +453,15 @@ export async function updateDailyReport(id: string, projectId: string, payload: 
 export async function deleteDailyReport(id: string, projectId: string) {
   const { error } = await supabase.from('daily_reports').delete().eq('id', id)
   if (error) return { error: error.message }
+
+  await logActivity({
+    projectId,
+    actionType: 'DELETE',
+    entityType: 'daily_report',
+    entityId: id,
+    entityTitle: `ลบรายงานประจำวัน`,
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true }
 }

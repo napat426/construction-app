@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { computeTaskDates } from '@/lib/scheduler'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { logActivity } from '@/lib/auditLogger'
 
 function getProjectProgress(project: any, allTasks: any[]) {
   const pTasks = allTasks.filter(t => t.project_id === project.id)
@@ -421,6 +422,20 @@ ${rawContext}`
         created_at: now
       })
     }
+ 
+    // Log AI Consultation activity (non-blocking)
+    logActivity({
+      projectId: projectIds?.[0] || null,
+      moduleType: 'ai_chat',
+      actionType: 'AI_CHAT',
+      entityType: 'ai_chat',
+      entityTitle: question ? (question.length > 50 ? question.slice(0, 50) + '...' : question) : 'ปรึกษาข้อมูลกับ AI Assistant',
+      details: {
+        question: question || actionType || 'สรุปข้อมูล',
+        project_count: projectIds?.length || 0,
+        model: selectedModel || 'gemini',
+      },
+    })
 
     return NextResponse.json({ answer, sources, cachedAt: hasHistory ? undefined : now })
   } catch (error: any) {

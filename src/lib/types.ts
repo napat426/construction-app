@@ -317,3 +317,51 @@ export interface ProjectNote {
   created_at: string
   updated_at: string
 }
+
+export type ActivityModuleType =
+  | 'project'
+  | 'presentation'
+  | 'ai_chat'
+  | 'system'
+
+export type ActivityActionType = 
+  | 'CREATE' 
+  | 'UPDATE' 
+  | 'DELETE' 
+  | 'CONFIRM' 
+  | 'APPROVE' 
+  | 'REJECT' 
+  | 'AI_ANALYZE'
+  | 'AI_CHAT'
+  | 'EXPORT'
+  | 'GENERATE'
+  | 'FETCH_WBS'
+
+export type ActivityEntityType = 
+  | 'daily_report' 
+  | 'weekly_report' 
+  | 'material' 
+  | 'wbs_task' 
+  | 'inspection' 
+  | 'punchlist' 
+  | 'presentation'
+  | 'ai_chat'
+  | 'project'
+  | 'system'
+
+export interface ActivityLog {
+  id: string
+  project_id?: string | null
+  project_name?: string | null
+  module_type: ActivityModuleType | string
+  user_id?: string | null
+  user_name: string
+  user_role: string
+  action_type: ActivityActionType | string
+  entity_type: ActivityEntityType | string
+  entity_id?: string | null
+  entity_title?: string | null
+  details?: any
+  created_at: string
+}
+

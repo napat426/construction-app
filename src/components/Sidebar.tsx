@@ -13,11 +13,13 @@ import {
   HardHat,
   ChevronRight,
   MonitorPlay,
+  History,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/projects',    icon: Building2,      label: 'โครงการทั้งหมด' },
   { href: '/presentation', icon: MonitorPlay,    label: 'นำเสนองาน' },
+  { href: '/activities',  icon: History,        label: 'ประวัติกิจกรรม' },
 ]
 
 export function Sidebar() {

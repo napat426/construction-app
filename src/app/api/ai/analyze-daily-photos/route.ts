@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { supabase } from '@/lib/supabase'
+import { logActivity } from '@/lib/auditLogger'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -149,6 +150,19 @@ ${taskListText ? `รายการงานตามแผนงาน/WBS ใ
         { error: `AI ขัดข้องชั่วขณะ (${errMsg}) กรุณาลองใหม่อีกครั้งหรือใช้ปุ่ม 'ดึงงานตามแผน (WBS)' แทน` },
         { status: 500 }
       )
+    }
+
+    if (projectId) {
+      await logActivity({
+        projectId,
+        actionType: 'AI_ANALYZE',
+        entityType: 'daily_report',
+        entityTitle: `วิเคราะห์รูปภาพหน้างานด้วย AI Vision (${reportDate || 'ประจำวัน'})`,
+        details: {
+          photoCount: validParts.length,
+          preview: generatedText.slice(0, 100) + '...'
+        }
+      })
     }
 
     return NextResponse.json({

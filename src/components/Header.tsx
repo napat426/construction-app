@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react'
 import { useTheme } from './ThemeProvider'
-import { Sun, Moon, ChevronRight } from 'lucide-react'
+import { Sun, Moon, ChevronRight, History } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -100,7 +100,11 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
                     crumb === 'Dashboard' ||
                     crumb === 'Planning' ||
                     crumb === 'Materials' ||
-                    crumb === 'Reports'
+                    crumb === 'Reports' ||
+                    crumb === 'Notes' ||
+                    crumb === 'History' ||
+                    crumb === 'ประวัติกิจกรรม' ||
+                    crumb === 'Activities'
 
                   if (!isSystemCrumb && displayCrumb.length > 15) {
                     displayCrumb = displayCrumb.slice(0, 15) + '...'
@@ -152,6 +156,17 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
         {/* Right: actions + theme toggle + user account controls */}
         <div className="flex items-center gap-3 flex-shrink-0">
           {actions}
+
+          {pathname !== '/activities' && (
+            <Link
+              href="/activities"
+              title="ศูนย์รวมประวัติกิจกรรมทั้งหมด (Global Activity Center)"
+              className="px-3 h-9 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center gap-2 justify-center text-slate-600 dark:text-slate-300 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 cursor-pointer"
+            >
+              <History size={16} className="text-primary-500" />
+              <span className="text-xs font-bold hidden md:inline">ประวัติกิจกรรม</span>
+            </Link>
+          )}
 
           <button
             type="button"

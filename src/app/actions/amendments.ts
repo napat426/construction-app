@@ -40,7 +40,7 @@ export async function saveAmendment(projectId: string, formData: FormData) {
       
     if (error) return { error: error.message }
 
-    logActivity({
+    await logActivity({
       projectId,
       actionType: 'UPDATE',
       entityType: 'amendment',
@@ -55,7 +55,7 @@ export async function saveAmendment(projectId: string, formData: FormData) {
       
     if (error) return { error: error.message }
 
-    logActivity({
+    await logActivity({
       projectId,
       actionType: 'CREATE',
       entityType: 'amendment',
@@ -78,7 +78,7 @@ export async function deleteAmendment(id: string) {
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     actionType: 'DELETE',
     entityType: 'amendment',
     entityId: id,

@@ -52,7 +52,7 @@ export async function createQuickLink(payload: {
 
   if (error) return { error: error.message }
   
-  logActivity({
+  await logActivity({
     projectId: payload.project_id || undefined,
     actionType: 'CREATE',
     entityType: 'quick_link',
@@ -84,7 +84,7 @@ export async function updateQuickLink(id: string, payload: Partial<QuickLink>) {
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId: payload.project_id || undefined,
     actionType: 'UPDATE',
     entityType: 'quick_link',
@@ -106,7 +106,7 @@ export async function deleteQuickLink(id: string, projectId?: string | null) {
   const { error } = await supabase.from('quick_links').delete().eq('id', id)
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId: projectId || undefined,
     actionType: 'DELETE',
     entityType: 'quick_link',

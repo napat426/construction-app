@@ -39,7 +39,7 @@ export async function createPunchList(projectId: string) {
     return { error: 'ไม่สามารถสร้าง Punch List ใหม่ได้' }
   }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'CREATE',
     entityType: 'punchlist',
@@ -137,7 +137,7 @@ export async function updatePunchList(
 
   // Find projectId to revalidate paths
   if (updatedHeader) {
-    logActivity({
+    await logActivity({
       projectId: updatedHeader.project_id,
       actionType: 'UPDATE',
       entityType: 'punchlist',
@@ -173,7 +173,7 @@ export async function deletePunchList(punchListId: string) {
   }
 
   if (header) {
-    logActivity({
+    await logActivity({
       projectId: header.project_id,
       actionType: 'DELETE',
       entityType: 'punchlist',

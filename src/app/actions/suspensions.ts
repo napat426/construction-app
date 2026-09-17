@@ -31,7 +31,7 @@ export async function saveSuspension(projectId: string, formData: FormData) {
       
     if (error) return { error: error.message }
 
-    logActivity({
+    await logActivity({
       projectId,
       actionType: 'UPDATE',
       entityType: 'suspension',
@@ -46,7 +46,7 @@ export async function saveSuspension(projectId: string, formData: FormData) {
       
     if (error) return { error: error.message }
 
-    logActivity({
+    await logActivity({
       projectId,
       actionType: 'CREATE',
       entityType: 'suspension',
@@ -69,7 +69,7 @@ export async function deleteSuspension(id: string) {
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     actionType: 'DELETE',
     entityType: 'suspension',
     entityId: id,

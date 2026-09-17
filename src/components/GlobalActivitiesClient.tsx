@@ -508,6 +508,24 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                             {log.details.suspend_date && (
                               <p>⏸️ หยุดงาน: {log.details.suspend_date} ถึง {log.details.resume_date || 'ยังไม่กำหนด'} {log.details.reason ? `(${log.details.reason})` : ''}</p>
                             )}
+                            {log.details.penalty_rate !== undefined && Number(log.details.penalty_rate) > 0 && (
+                              <p>⚖️ ค่าปรับรายวัน: ฿{Number(log.details.penalty_rate).toLocaleString()} บาท/วัน</p>
+                            )}
+                            {log.details.inspection_committee && Array.isArray(log.details.inspection_committee) && log.details.inspection_committee.length > 0 && (
+                              <p>👥 กรรมการตรวจรับพัสดุ: {log.details.inspection_committee.join(', ')}</p>
+                            )}
+                            {log.details.supervisor && (
+                              <p>👷 ผู้ควบคุมงาน: {log.details.supervisor}</p>
+                            )}
+                            {log.details.contractor && (
+                              <p>🏢 ผู้รับจ้าง: {log.details.contractor}</p>
+                            )}
+                            {log.details.contract_no && (
+                              <p>📄 สัญญาเลขที่: {log.details.contract_no}</p>
+                            )}
+                            {log.details.budget !== undefined && Number(log.details.budget) > 0 && (
+                              <p>💵 งบประมาณสัญญา: ฿{Number(log.details.budget).toLocaleString()}</p>
+                            )}
                           </div>
                         )}
                       </div>

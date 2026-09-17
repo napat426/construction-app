@@ -167,7 +167,7 @@ export async function updateUserRoleStatus(
       return { error: `ปฏิเสธบัญชีไม่สำเร็จ: ${deleteErr.message}` }
     }
 
-    logActivity({
+    await logActivity({
       actionType: 'DELETE',
       entityType: 'user',
       entityId: userId,
@@ -199,7 +199,7 @@ export async function updateUserRoleStatus(
     return { error: `ปรับปรุงข้อมูลไม่สำเร็จ: ${updateErr.message}` }
   }
 
-  logActivity({
+  await logActivity({
     actionType: status === 'approved' ? 'APPROVE' : 'UPDATE',
     entityType: 'user',
     entityId: userId,

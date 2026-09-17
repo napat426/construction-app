@@ -423,8 +423,8 @@ ${rawContext}`
       })
     }
  
-    // Log AI Consultation activity (non-blocking)
-    logActivity({
+    // Log AI Consultation activity
+    await logActivity({
       projectId: projectIds?.[0] || null,
       moduleType: 'ai_chat',
       actionType: 'AI_CHAT',

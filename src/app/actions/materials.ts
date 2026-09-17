@@ -74,7 +74,7 @@ export async function createMaterial(projectId: string, formData: FormData) {
     )
   }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'CREATE',
     entityType: 'material',
@@ -133,7 +133,7 @@ export async function updateMaterial(
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'UPDATE',
     entityType: 'material',
@@ -151,7 +151,7 @@ export async function deleteMaterial(id: string, projectId: string) {
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'DELETE',
     entityType: 'material',
@@ -193,13 +193,14 @@ export async function importMaterials(
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'IMPORT',
     entityType: 'material',
     entityTitle: `นำเข้ารายการวัสดุ ${materialsList.length} รายการ (${mode === 'replace' ? 'แทนที่ทั้งหมด' : 'เพิ่มต่อท้าย'})`,
     details: { count: materialsList.length, mode },
   })
+
 
   revalidatePath(`/projects/${projectId}/materials`)
   return { success: true }

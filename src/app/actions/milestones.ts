@@ -43,10 +43,10 @@ export async function saveMilestones(projectId: string, milestones: ProjectMiles
     }
   }
 
-  // 3. Calculate total paid amount
-  const totalPaid = milestones
-    .filter(m => m.status === 'Paid' || m.is_paid)
-    .reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
+  // 3. Calculate total paid amount and count
+  const paidMilestones = milestones.filter(m => m.status === 'Paid' || m.is_paid)
+  const paidCount = paidMilestones.length
+  const totalPaid = paidMilestones.reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
 
   // 4. Update project paid_amount in DB
   const { error: projErr } = await supabase
@@ -59,8 +59,7 @@ export async function saveMilestones(projectId: string, milestones: ProjectMiles
     return { error: 'ไม่สามารถอัปเดตยอดชำระเงินรวมได้' }
   }
 
-  const paidCount = milestones.filter(m => m.status === 'Paid' || m.is_paid).length
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'UPDATE',
     entityType: 'milestone',

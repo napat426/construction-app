@@ -121,7 +121,7 @@ export async function createProject(
     console.error('Error pre-populating WBS tasks:', tasksError)
   }
 
-  logActivity({
+  await logActivity({
     projectId: newProj.id,
     projectName: name,
     actionType: 'CREATE',
@@ -145,7 +145,7 @@ export async function deleteProject(id: string): Promise<ActionState> {
     return { error: `ลบโครงการไม่สำเร็จ: ${error.message}` }
   }
 
-  logActivity({
+  await logActivity({
     projectId: id,
     actionType: 'DELETE',
     entityType: 'project',
@@ -204,6 +204,39 @@ export async function updateProjectBaseline(
   const line_token           = (formData.get('line_token') as string)?.trim()           || null
   const wbs_no               = (formData.get('wbs_no') as string)?.trim()               || null
 
+  // Fetch current project to detect changes
+  const { data: oldProj } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  const changedFields: string[] = []
+  if (oldProj) {
+    if (oldProj.name !== name) changedFields.push('ชื่อโครงการ')
+    if (oldProj.supervisor !== supervisor) changedFields.push('ผู้ควบคุมงาน')
+    if (Number(oldProj.penalty_rate || 0) !== Number(penalty_rate || 0)) changedFields.push(`ค่าปรับรายวัน (฿${Number(penalty_rate || 0).toLocaleString()})`)
+    if (oldProj.inspection_committee !== inspection_committee) changedFields.push('กรรมการตรวจรับ')
+    if (Number(oldProj.budget || 0) !== Number(budget || 0)) changedFields.push('งบประมาณสัญญา')
+    if (oldProj.status !== status) changedFields.push(`สถานะ: ${status}`)
+    if (Number(oldProj.progress || 0) !== Number(progress || 0)) changedFields.push(`ผลงาน: ${progress}%`)
+    if (Number(oldProj.planned_progress || 0) !== Number(planned_progress || 0)) changedFields.push(`แผนงาน: ${planned_progress}%`)
+    if (oldProj.contractor !== contractor) changedFields.push('ผู้รับจ้าง')
+    if (oldProj.contract_no !== contract_no) changedFields.push('สัญญาเลขที่')
+    if (oldProj.start_date !== start_date || oldProj.end_date !== end_date) changedFields.push('ระยะเวลาสัญญา')
+  }
+
+  let committeeList: string[] = []
+  if (inspection_committee) {
+    try {
+      const parsed = JSON.parse(inspection_committee)
+      if (Array.isArray(parsed)) committeeList = parsed.filter(Boolean)
+      else committeeList = [inspection_committee]
+    } catch {
+      committeeList = inspection_committee.split(',').map(s => s.trim()).filter(Boolean)
+    }
+  }
+
   const updatePayload: Record<string, any> = {
     name,
     supervisor,
@@ -238,14 +271,32 @@ export async function updateProjectBaseline(
     return { error: `แก้ไขข้อมูลโครงการไม่สำเร็จ: ${error.message}` }
   }
 
-  logActivity({
+  const titleSummary = changedFields.length > 0
+    ? `แก้ไขข้อมูลโครงการ: ${name} (${changedFields.join(', ')})`
+    : `แก้ไขข้อมูลโครงการ: ${name}`
+
+  await logActivity({
     projectId: id,
     projectName: name,
     actionType: 'UPDATE',
     entityType: 'project',
     entityId: id,
-    entityTitle: `แก้ไขข้อมูลโครงการ: ${name}`,
-    details: { status, progress, planned_progress, budget },
+    entityTitle: titleSummary,
+    details: {
+      changes: changedFields,
+      penalty_rate,
+      inspection_committee: committeeList,
+      supervisor,
+      contractor,
+      contract_no,
+      budget,
+      status,
+      progress,
+      planned_progress,
+      start_date,
+      end_date,
+      work_group,
+    },
   })
 
   // Trigger Red Flag threshold check asynchronously
@@ -258,3 +309,4 @@ export async function updateProjectBaseline(
   revalidatePath(`/projects/${id}`)
   return { success: true }
 }
+

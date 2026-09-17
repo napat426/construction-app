@@ -62,7 +62,7 @@ export async function createInspection(projectId: string, formData: FormData, ph
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'CREATE',
     entityType: 'inspection',
@@ -99,7 +99,7 @@ export async function updateInspection(id: string, projectId: string, formData: 
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'UPDATE',
     entityType: 'inspection',
@@ -116,7 +116,7 @@ export async function deleteInspection(id: string, projectId: string) {
   const { error } = await supabase.from('inspections').delete().eq('id', id)
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'DELETE',
     entityType: 'inspection',
@@ -547,7 +547,7 @@ export async function createWeeklyReport(projectId: string, payload: any) {
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'CREATE',
     entityType: 'weekly_report',
@@ -576,7 +576,7 @@ export async function updateWeeklyReport(id: string, projectId: string, payload:
 
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'UPDATE',
     entityType: 'weekly_report',
@@ -593,7 +593,7 @@ export async function deleteWeeklyReport(id: string, projectId: string) {
   const { error } = await supabase.from('weekly_reports').delete().eq('id', id)
   if (error) return { error: error.message }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'DELETE',
     entityType: 'weekly_report',

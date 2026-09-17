@@ -42,7 +42,7 @@ export async function createConcretePour(projectId: string, prevState: ActionSta
       return { error: 'ไม่สามารถบันทึกรายการเทคอนกรีตได้' }
     }
 
-    logActivity({
+    await logActivity({
       projectId,
       actionType: 'CREATE',
       entityType: 'concrete_pour',
@@ -94,7 +94,7 @@ export async function updateConcretePour(pourId: string, projectId: string, prev
       return { error: 'ไม่สามารถอัปเดตรายการเทคอนกรีตได้' }
     }
 
-    logActivity({
+    await logActivity({
       projectId,
       actionType: 'UPDATE',
       entityType: 'concrete_pour',
@@ -123,7 +123,7 @@ export async function deleteConcretePour(pourId: string, projectId: string): Pro
       return { error: 'ไม่สามารถลบรายการได้' }
     }
 
-    logActivity({
+    await logActivity({
       projectId,
       actionType: 'DELETE',
       entityType: 'concrete_pour',

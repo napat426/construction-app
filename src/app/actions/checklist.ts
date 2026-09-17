@@ -321,7 +321,7 @@ export async function updateChecklistResult(
       return { error: error.message }
     }
 
-    logActivity({
+    await logActivity({
       projectId,
       actionType: 'UPDATE',
       entityType: 'checklist',
@@ -364,7 +364,7 @@ export async function addMasterChecklist(payload: {
 
     if (error) return { error: error.message }
 
-    logActivity({
+    await logActivity({
       actionType: 'CREATE',
       entityType: 'checklist',
       entityId: data?.id,
@@ -400,7 +400,7 @@ export async function editMasterChecklist(
 
     if (error) return { error: error.message }
 
-    logActivity({
+    await logActivity({
       actionType: 'UPDATE',
       entityType: 'checklist',
       entityId: id,
@@ -421,7 +421,7 @@ export async function deleteMasterChecklist(id: string) {
     const { error } = await supabase.from('checklist_masters').delete().eq('id', id)
     if (error) return { error: error.message }
 
-    logActivity({
+    await logActivity({
       actionType: 'DELETE',
       entityType: 'checklist',
       entityId: id,

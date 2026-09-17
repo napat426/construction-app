@@ -62,7 +62,7 @@ export async function createNote(
   if (error) return { success: false, error: error.message }
 
   // Log activity
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'CREATE',
     entityType: 'project_note',
@@ -96,7 +96,7 @@ export async function updateNote(
   if (error) return { success: false, error: error.message }
 
   // Log activity
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'UPDATE',
     entityType: 'project_note',
@@ -125,7 +125,7 @@ export async function deleteNote(
   if (error) return { success: false, error: error.message }
 
   // Log activity
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'DELETE',
     entityType: 'project_note',
@@ -137,3 +137,4 @@ export async function deleteNote(
   revalidatePath(`/projects/${projectId}/notes`)
   return { success: true }
 }
+

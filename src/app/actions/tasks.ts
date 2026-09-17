@@ -102,7 +102,7 @@ export async function createTask(
     return { error: `สร้างกิจกรรมย่อยไม่สำเร็จ: ${error.message}` }
   }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'CREATE',
     entityType: 'wbs_task',
@@ -171,7 +171,7 @@ export async function updateTask(
     return { error: `แก้ไขกิจกรรมไม่สำเร็จ: ${error.message}` }
   }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'UPDATE',
     entityType: 'wbs_task',
@@ -196,7 +196,7 @@ export async function deleteTask(projectId: string, taskId: string): Promise<Act
     return { error: `ลบกิจกรรมไม่สำเร็จ: ${error.message}` }
   }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'DELETE',
     entityType: 'wbs_task',
@@ -372,7 +372,7 @@ export async function insertTaskAfter(
     return { error: `สร้างกิจกรรมย่อยไม่สำเร็จ: ${insertError.message}` }
   }
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'CREATE',
     entityType: 'wbs_task',
@@ -457,7 +457,7 @@ export async function importWbsTasksBulk(
 
   await recalculateProjectProgress(projectId)
 
-  logActivity({
+  await logActivity({
     projectId,
     actionType: 'IMPORT',
     entityType: 'wbs_task',

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { sendLineMessage, formatMorningBriefingMessage, type LineChannelTarget } from '@/lib/line'
 import { computeTaskDates } from '@/lib/scheduler'
+import { logActivity } from '@/lib/auditLogger'
 import type { Project, WBSTask, ProjectMilestone } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -52,6 +53,12 @@ export async function POST(request: Request) {
       const sendRes = await sendLineMessage(channel.token, pingMsg)
 
       if (sendRes.success) {
+        await logActivity({
+          actionType: 'EXPORT',
+          entityType: 'line_broadcast',
+          entityTitle: `ทดสอบการเชื่อมต่อกลุ่ม LINE: ${channel.name}`,
+          details: { channelName: channel.name, mode: 'test' },
+        })
         return NextResponse.json({
           success: true,
           message: `ส่งข้อความทดสอบการเชื่อมต่อเข้ากลุ่ม "${channel.name}" เรียบร้อยแล้ว!`,
@@ -223,6 +230,12 @@ export async function POST(request: Request) {
       }
 
       if (sentCount > 0) {
+        await logActivity({
+          actionType: 'EXPORT',
+          entityType: 'line_broadcast',
+          entityTitle: `ส่งสรุปรายงานเช้าเข้ากลุ่ม LINE: ${channel.name} (${sentCount} โครงการ)`,
+          details: { channelName: channel.name, sentCount, targetProjects: targetProjects.map(p => p.name) },
+        })
         return NextResponse.json({
           success: true,
           message: `ส่งรายงานสรุปเข้ากลุ่ม "${channel.name}" สำเร็จ! (${sentCount} โครงการ)`,

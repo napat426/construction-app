@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight, Settings, ArrowUp, ArrowDown, RotateCcw, X, CalendarRange } from 'lucide-react'
 import { AdminChecklistMasterModal } from '@/components/AdminChecklistMasterModal'
 import { LineGroupSettingsModal } from '@/components/LineGroupSettingsModal'
+import { saveSystemSetting, updateWorkGroupsSetting, updateDefaultWbsTasksSetting } from '@/app/actions/settings'
 import type { LineChannelTarget } from '@/lib/line'
 
 interface DefaultWbsItem {
@@ -150,12 +151,7 @@ export function AdminSettingsClient({
     setSettings((prev) => ({ ...prev, [key]: value }))
     setIsSaving(true)
     try {
-      const { data, error } = await supabase.from('system_settings').select('id').eq('key', key).maybeSingle()
-      if (data) {
-        await supabase.from('system_settings').update({ value }).eq('key', key)
-      } else {
-        await supabase.from('system_settings').insert({ key, value })
-      }
+      await saveSystemSetting(key, value)
     } catch (e) {
       console.error('Error in saveSettingKey:', e)
     } finally {
@@ -169,12 +165,7 @@ export function AdminSettingsClient({
     
     setIsSaving(true)
     try {
-      const { data, error } = await supabase.from('system_settings').select('id').eq('key', key).maybeSingle()
-      if (data) {
-        await supabase.from('system_settings').update({ value: newVal }).eq('key', key)
-      } else {
-        await supabase.from('system_settings').insert({ key, value: newVal })
-      }
+      await saveSystemSetting(key, newVal)
     } catch (e) {
       console.error('Error in handleToggle:', e)
     } finally {
@@ -186,14 +177,8 @@ export function AdminSettingsClient({
     setWorkGroups(updated)
     setIsSaving(true)
     try {
-      const serialized = JSON.stringify(updated)
-      const { data } = await supabase.from('system_settings').select('id').eq('key', 'work_groups').single()
-      if (data) {
-        await supabase.from('system_settings').update({ value: serialized }).eq('key', 'work_groups')
-      } else {
-        await supabase.from('system_settings').insert({ key: 'work_groups', value: serialized })
-      }
-      setSettings(prev => ({ ...prev, work_groups: serialized }))
+      await updateWorkGroupsSetting(updated)
+      setSettings(prev => ({ ...prev, work_groups: JSON.stringify(updated) }))
     } catch (e) {
       console.error(e)
     } finally {
@@ -223,14 +208,8 @@ export function AdminSettingsClient({
     setWbsTasks(normalized)
     setIsWbsSaving(true)
     try {
-      const serialized = JSON.stringify(normalized)
-      const { data } = await supabase.from('system_settings').select('id').eq('key', 'default_wbs_tasks').maybeSingle()
-      if (data) {
-        await supabase.from('system_settings').update({ value: serialized }).eq('key', 'default_wbs_tasks')
-      } else {
-        await supabase.from('system_settings').insert({ key: 'default_wbs_tasks', value: serialized })
-      }
-      setSettings(prev => ({ ...prev, default_wbs_tasks: serialized }))
+      await updateDefaultWbsTasksSetting(normalized)
+      setSettings(prev => ({ ...prev, default_wbs_tasks: JSON.stringify(normalized) }))
     } catch (e) {
       console.error('Error saving default_wbs_tasks:', e)
     } finally {

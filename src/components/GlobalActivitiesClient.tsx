@@ -536,7 +536,7 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                               <p>🔍 ตรวจพบงาน: {log.details.detected_tasks.join(', ')}</p>
                             )}
                             {log.details.paid_count !== undefined && (
-                              <p>💰 งวดที่ชำระแล้ว: {log.details.paid_count} งวด (รวม ฿{Number(log.details.total_paid_amount || 0).toLocaleString()})</p>
+                              <p>💰 งวดที่ชำระแล้ว: {log.details.paid_count} งวด (รวม ฿{Number(log.details.total_paid ?? log.details.total_paid_amount ?? 0).toLocaleString()})</p>
                             )}
                             {log.details.element && (
                               <p>🏗️ ตำแหน่งเทคอนกรีต: {log.details.element} ({log.details.volume || 0} ลบ.ม.)</p>

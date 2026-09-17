@@ -37,6 +37,28 @@ export async function POST(req: Request) {
       if (updateError) throw updateError
     }
 
+    if (status === 'ready' || isComplete) {
+      try {
+        const { logActivity } = await import('@/lib/auditLogger')
+        const { data: doc } = await supabase.from('project_documents').select('file_name, doc_type, scope').eq('id', docId).single()
+        await logActivity({
+          projectId: projectId || null,
+          actionType: 'CREATE',
+          entityType: 'document',
+          entityId: docId,
+          entityTitle: `ประมวลผลเอกสาร AI Knowledge Base: ${doc?.file_name || 'เอกสารใหม่'} (${pageCount || '?'} หน้า)`,
+          details: {
+            fileName: doc?.file_name,
+            docType: doc?.doc_type,
+            pages: pageCount,
+            scope: doc?.scope,
+          },
+        })
+      } catch (err) {
+        console.warn('Failed to log document activity:', err)
+      }
+    }
+
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Save chunks error:', error)

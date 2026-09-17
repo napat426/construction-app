@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useState, useEffect } from 'react'
+import { saveSystemSetting } from '@/app/actions/settings'
 
 import type { UserSession } from '@/lib/auth'
 
@@ -36,7 +37,7 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
   const toggleAi = async () => {
     const newVal = !aiEnabled
     setAiEnabled(newVal)
-    await supabase.from('system_settings').update({ value: newVal }).eq('key', 'ai_assistant_enabled')
+    await saveSystemSetting('ai_assistant_enabled', String(newVal))
     // force reload to apply
     window.location.reload()
   }

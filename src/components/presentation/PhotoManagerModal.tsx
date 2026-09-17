@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import type { Project, Inspection } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
-import { uploadReportPhoto } from '@/app/actions/reports'
+import { uploadReportPhoto, deleteInspectionPhoto, addInspectionPhoto } from '@/app/actions/reports'
 import type { UserSession } from '@/lib/auth'
 import { X, Upload, CheckCircle2, Image as ImageIcon, Loader2 } from 'lucide-react'
 
@@ -97,11 +97,10 @@ export function PhotoManagerModal({ projectId, project, inspections, dailyReport
         await supabase.storage.from(bucket).remove([path])
       }
 
-      // 2. Update database (remove from photo_urls array in that inspection)
+      // 2. Update database (remove from photo_urls array in that inspection) with audit log
       const inspection = inspections.find(i => i.id === photo.sourceId)
       if (inspection) {
-        const updatedUrls = (inspection.photo_urls || []).filter(u => u.split('|||')[0] !== photo.url)
-        await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', photo.sourceId)
+        await deleteInspectionPhoto(projectId, photo.sourceId, photo.url)
       }
 
       // 3. Update local state
@@ -151,13 +150,10 @@ export function PhotoManagerModal({ projectId, project, inspections, dailyReport
       
       const publicUrl = res.url
 
-      // Update DB
+      // Update DB with audit log
       const targetInsp = inspections.find(i => i.id === targetInspectionId)
-      const currentUrls = targetInsp?.photo_urls || []
       const rawUrlToSave = `${publicUrl}|||`
-      const updatedUrls = [...currentUrls, rawUrlToSave]
-      
-      await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', targetInspectionId)
+      await addInspectionPhoto(projectId, targetInspectionId, rawUrlToSave)
 
       // Update local state
       setAllPhotos(prev => [{ url: publicUrl, rawUrl: rawUrlToSave, date: new Date().toISOString(), sourceId: targetInspectionId!, sourceType: 'inspection' }, ...prev])

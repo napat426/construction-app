@@ -678,3 +678,75 @@ export async function deleteExecutiveSummarySnapshot(
   }
 }
 
+export async function deleteInspectionPhoto(
+  projectId: string,
+  inspectionId: string,
+  photoUrl: string
+) {
+  try {
+    const { data: inspection } = await supabase
+      .from('inspections')
+      .select('photo_urls, title')
+      .eq('id', inspectionId)
+      .single()
+
+    if (inspection) {
+      const updatedUrls = (inspection.photo_urls || []).filter((u: string) => u.split('|||')[0] !== photoUrl)
+      await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', inspectionId)
+
+      await logActivity({
+        projectId,
+        moduleType: 'presentation',
+        actionType: 'DELETE',
+        entityType: 'inspection',
+        entityId: inspectionId,
+        entityTitle: `ลบรูปภาพจากงานนำเสนอ: ${inspection.title || ''}`,
+      })
+
+      revalidatePath(`/presentation`)
+      revalidatePath(`/projects/${projectId}/reports`)
+      revalidatePath('/activities')
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message }
+  }
+}
+
+export async function addInspectionPhoto(
+  projectId: string,
+  inspectionId: string,
+  rawUrlToSave: string
+) {
+  try {
+    const { data: targetInsp } = await supabase
+      .from('inspections')
+      .select('photo_urls, title')
+      .eq('id', inspectionId)
+      .single()
+
+    if (targetInsp) {
+      const updatedUrls = [...(targetInsp.photo_urls || []), rawUrlToSave]
+      await supabase.from('inspections').update({ photo_urls: updatedUrls }).eq('id', inspectionId)
+
+      await logActivity({
+        projectId,
+        moduleType: 'presentation',
+        actionType: 'CREATE',
+        entityType: 'inspection',
+        entityId: inspectionId,
+        entityTitle: `เพิ่มรูปภาพเข้างานนำเสนอ: ${targetInsp.title || ''}`,
+      })
+
+      revalidatePath(`/presentation`)
+      revalidatePath(`/projects/${projectId}/reports`)
+      revalidatePath('/activities')
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message }
+  }
+}
+

@@ -63,6 +63,21 @@ export async function registerUser(
     return { error: `ลงทะเบียนไม่สำเร็จ: ${error.message}` }
   }
 
+  await logActivity({
+    actionType: 'CREATE',
+    entityType: 'user',
+    entityTitle: `ลงทะเบียนผู้ใช้ใหม่: ${displayName} (@${username}) (รออนุมัติ)`,
+    details: {
+      username,
+      display_name: displayName,
+      role: 'viewer',
+      status: 'pending',
+    },
+  })
+
+  revalidatePath('/admin/users')
+  revalidatePath('/activities')
+
   return { success: true }
 }
 

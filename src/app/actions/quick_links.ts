@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { QuickLink } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 export async function getQuickLinks(projectId?: string): Promise<QuickLink[]> {
   try {
@@ -51,6 +52,15 @@ export async function createQuickLink(payload: {
 
   if (error) return { error: error.message }
   
+  logActivity({
+    projectId: payload.project_id || undefined,
+    actionType: 'CREATE',
+    entityType: 'quick_link',
+    entityId: data?.id,
+    entityTitle: `เพิ่มลิงก์/โน้ตด่วน "${payload.title}" (${payload.category || 'ทั่วไป'})`,
+    details: { title: payload.title, type: payload.type, category: payload.category },
+  })
+
   if (payload.project_id) {
     revalidatePath(`/projects/${payload.project_id}`)
   }
@@ -74,6 +84,15 @@ export async function updateQuickLink(id: string, payload: Partial<QuickLink>) {
 
   if (error) return { error: error.message }
 
+  logActivity({
+    projectId: payload.project_id || undefined,
+    actionType: 'UPDATE',
+    entityType: 'quick_link',
+    entityId: id,
+    entityTitle: `แก้ไขลิงก์/โน้ตด่วน "${payload.title || id}"`,
+    details: { title: payload.title, type: payload.type, category: payload.category },
+  })
+
   if (payload.project_id) {
     revalidatePath(`/projects/${payload.project_id}`)
   }
@@ -86,6 +105,14 @@ export async function updateQuickLink(id: string, payload: Partial<QuickLink>) {
 export async function deleteQuickLink(id: string, projectId?: string | null) {
   const { error } = await supabase.from('quick_links').delete().eq('id', id)
   if (error) return { error: error.message }
+
+  logActivity({
+    projectId: projectId || undefined,
+    actionType: 'DELETE',
+    entityType: 'quick_link',
+    entityId: id,
+    entityTitle: `ลบลิงก์/โน้ตด่วน`,
+  })
 
   if (projectId) {
     revalidatePath(`/projects/${projectId}`)

@@ -2,6 +2,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
+import { logActivity } from '@/lib/auditLogger'
 
 export async function saveSuspension(projectId: string, formData: FormData) {
   const id = formData.get('id') as string | null
@@ -29,12 +30,29 @@ export async function saveSuspension(projectId: string, formData: FormData) {
       .eq('id', id)
       
     if (error) return { error: error.message }
+
+    logActivity({
+      projectId,
+      actionType: 'UPDATE',
+      entityType: 'suspension',
+      entityId: id,
+      entityTitle: `แก้ไขการหยุดงานชั่วคราว (${suspend_date} - ${resume_date || 'ยังไม่กำหนด'})`,
+      details: { reason, suspend_date, resume_date, note },
+    })
   } else {
     const { error } = await supabase
       .from('contract_suspensions')
       .insert(payload)
       
     if (error) return { error: error.message }
+
+    logActivity({
+      projectId,
+      actionType: 'CREATE',
+      entityType: 'suspension',
+      entityTitle: `เพิ่มบันทึกหยุดงานชั่วคราว (${suspend_date} - ${resume_date || 'ยังไม่กำหนด'})`,
+      details: { reason, suspend_date, resume_date, note },
+    })
   }
 
   revalidatePath('/')
@@ -50,6 +68,13 @@ export async function deleteSuspension(id: string) {
     .eq('id', id)
 
   if (error) return { error: error.message }
+
+  logActivity({
+    actionType: 'DELETE',
+    entityType: 'suspension',
+    entityId: id,
+    entityTitle: `ลบบันทึกหยุดงานชั่วคราว`,
+  })
   
   revalidatePath('/')
   revalidatePath('/projects/[id]', 'layout')

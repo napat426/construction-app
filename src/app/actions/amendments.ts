@@ -2,6 +2,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
+import { logActivity } from '@/lib/auditLogger'
 
 export async function saveAmendment(projectId: string, formData: FormData) {
   const id = formData.get('id') as string | null
@@ -38,12 +39,29 @@ export async function saveAmendment(projectId: string, formData: FormData) {
       .eq('id', id)
       
     if (error) return { error: error.message }
+
+    logActivity({
+      projectId,
+      actionType: 'UPDATE',
+      entityType: 'amendment',
+      entityId: id,
+      entityTitle: `แก้ไขสัญญา/ขยายเวลา ครั้งที่ ${amendment_no} (+${extra_days} วัน)`,
+      details: { amendment_no, extra_days, reason, amendment_type },
+    })
   } else {
     const { error } = await supabase
       .from('contract_amendments')
       .insert(payload)
       
     if (error) return { error: error.message }
+
+    logActivity({
+      projectId,
+      actionType: 'CREATE',
+      entityType: 'amendment',
+      entityTitle: `เพิ่มการแก้ไขสัญญา/ขยายเวลา ครั้งที่ ${amendment_no} (+${extra_days} วัน)`,
+      details: { amendment_no, extra_days, reason, amendment_type },
+    })
   }
 
   revalidatePath('/')
@@ -59,7 +77,14 @@ export async function deleteAmendment(id: string) {
     .eq('id', id)
 
   if (error) return { error: error.message }
-  
+
+  logActivity({
+    actionType: 'DELETE',
+    entityType: 'amendment',
+    entityId: id,
+    entityTitle: `ลบรายการแก้ไขสัญญา/ขยายเวลา`,
+  })
+
   revalidatePath('/')
   revalidatePath('/projects/[id]', 'layout')
   return { success: true }

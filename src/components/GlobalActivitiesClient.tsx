@@ -491,6 +491,21 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                             {log.details.detected_tasks && Array.isArray(log.details.detected_tasks) && log.details.detected_tasks.length > 0 && (
                               <p>🔍 ตรวจพบงาน: {log.details.detected_tasks.join(', ')}</p>
                             )}
+                            {log.details.paid_count !== undefined && (
+                              <p>💰 งวดที่ชำระแล้ว: {log.details.paid_count} งวด (รวม ฿{Number(log.details.total_paid_amount || 0).toLocaleString()})</p>
+                            )}
+                            {log.details.element && (
+                              <p>🏗️ ตำแหน่งเทคอนกรีต: {log.details.element} ({log.details.volume || 0} ลบ.ม.)</p>
+                            )}
+                            {log.details.issue && (
+                              <p>⚠️ รายการแก้ไข: {log.details.issue} {log.details.severity ? `(ระดับ: ${log.details.severity})` : ''}</p>
+                            )}
+                            {log.details.extra_days !== undefined && (
+                              <p>⏱️ ขยายระยะเวลา: +{log.details.extra_days} วัน {log.details.reason ? `(เหตุผล: ${log.details.reason})` : ''}</p>
+                            )}
+                            {log.details.suspend_date && (
+                              <p>⏸️ หยุดงาน: {log.details.suspend_date} ถึง {log.details.resume_date || 'ยังไม่กำหนด'} {log.details.reason ? `(${log.details.reason})` : ''}</p>
+                            )}
                           </div>
                         )}
                       </div>
@@ -511,6 +526,56 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                           className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
                         >
                           <span>เปิดดูรายงาน</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'milestone' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/planning`}
+                          className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูงวดงาน</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'concrete_pour' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/reports`}
+                          className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูเทคอนกรีต</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'punchlist' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/punchlist`}
+                          className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดู Punch List</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'inspection' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/reports`}
+                          className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูการตรวจงาน</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'weekly_report' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/reports`}
+                          className="text-[11px] font-bold text-violet-600 dark:text-violet-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูรายงานสัปดาห์</span>
                           <ChevronRight size={13} />
                         </Link>
                       )}
@@ -550,7 +615,37 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                           href={`/projects/${log.project_id}/checklist`}
                           className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
                         >
-                          <span>เปิดดูตรวจงาน</span>
+                          <span>เปิดดู Checklist</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'project' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}`}
+                          className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>ไปที่โครงการ</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {(log.entity_type === 'amendment' || log.entity_type === 'suspension') && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}`}
+                          className="text-[11px] font-bold text-orange-600 dark:text-orange-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>สัญญาโครงการ</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'quick_link' && (
+                        <Link
+                          href={log.project_id ? `/projects/${log.project_id}` : '/quick-links'}
+                          className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูลิงก์/โน้ต</span>
                           <ChevronRight size={13} />
                         </Link>
                       )}
@@ -567,6 +662,7 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                     </div>
                   </div>
                 </div>
+
               )
             })}
           </div>

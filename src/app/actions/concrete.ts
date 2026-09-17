@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { ActionState } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 export async function createConcretePour(projectId: string, prevState: ActionState, formData: FormData): Promise<ActionState> {
   try {
@@ -40,6 +41,14 @@ export async function createConcretePour(projectId: string, prevState: ActionSta
       console.error('Error creating concrete pour:', error)
       return { error: 'ไม่สามารถบันทึกรายการเทคอนกรีตได้' }
     }
+
+    logActivity({
+      projectId,
+      actionType: 'CREATE',
+      entityType: 'concrete_pour',
+      entityTitle: `เพิ่มรายการเทคอนกรีต #${data.pour_no} (${data.structure_element || 'ไม่ระบุโครงสร้าง'})`,
+      details: { pour_no: data.pour_no, pour_date: data.pour_date, volume: data.volume, supplier: data.supplier },
+    })
 
     revalidatePath(`/projects/${projectId}/reports`)
     return { success: true }
@@ -85,6 +94,15 @@ export async function updateConcretePour(pourId: string, projectId: string, prev
       return { error: 'ไม่สามารถอัปเดตรายการเทคอนกรีตได้' }
     }
 
+    logActivity({
+      projectId,
+      actionType: 'UPDATE',
+      entityType: 'concrete_pour',
+      entityId: pourId,
+      entityTitle: `แก้ไขรายการเทคอนกรีต #${data.pour_no} (${data.structure_element || 'ไม่ระบุโครงสร้าง'})`,
+      details: { pour_no: data.pour_no, pour_date: data.pour_date, volume: data.volume, supplier: data.supplier },
+    })
+
     revalidatePath(`/projects/${projectId}/reports`)
     return { success: true }
   } catch (err: any) {
@@ -104,6 +122,14 @@ export async function deleteConcretePour(pourId: string, projectId: string): Pro
       console.error('Error deleting concrete pour:', error)
       return { error: 'ไม่สามารถลบรายการได้' }
     }
+
+    logActivity({
+      projectId,
+      actionType: 'DELETE',
+      entityType: 'concrete_pour',
+      entityId: pourId,
+      entityTitle: `ลบรายการเทคอนกรีต`,
+    })
 
     revalidatePath(`/projects/${projectId}/reports`)
     return { success: true }

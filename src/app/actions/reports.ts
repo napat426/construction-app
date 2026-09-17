@@ -61,6 +61,15 @@ export async function createInspection(projectId: string, formData: FormData, ph
   })
 
   if (error) return { error: error.message }
+
+  logActivity({
+    projectId,
+    actionType: 'CREATE',
+    entityType: 'inspection',
+    entityTitle: `สร้างใบแจ้งตรวจงาน ${inspection_no || ''}: ${title}`,
+    details: { inspection_no, work_type, inspector, status },
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true }
 }
@@ -89,6 +98,16 @@ export async function updateInspection(id: string, projectId: string, formData: 
     .eq('id', id)
 
   if (error) return { error: error.message }
+
+  logActivity({
+    projectId,
+    actionType: 'UPDATE',
+    entityType: 'inspection',
+    entityId: id,
+    entityTitle: `แก้ไขใบแจ้งตรวจงาน ${inspection_no || ''}: ${title} (สถานะ: ${status})`,
+    details: { inspection_no, work_type, inspector, status },
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true }
 }
@@ -96,6 +115,15 @@ export async function updateInspection(id: string, projectId: string, formData: 
 export async function deleteInspection(id: string, projectId: string) {
   const { error } = await supabase.from('inspections').delete().eq('id', id)
   if (error) return { error: error.message }
+
+  logActivity({
+    projectId,
+    actionType: 'DELETE',
+    entityType: 'inspection',
+    entityId: id,
+    entityTitle: `ลบใบแจ้งตรวจงาน`,
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true }
 }
@@ -492,6 +520,16 @@ export async function createWeeklyReport(projectId: string, payload: any) {
     .single()
 
   if (error) return { error: error.message }
+
+  logActivity({
+    projectId,
+    actionType: 'CREATE',
+    entityType: 'weekly_report',
+    entityId: data?.id,
+    entityTitle: `สร้างรายงานประจำสัปดาห์ ช่วงวันที่ ${payload.date_range || ''}`,
+    details: { date_range: payload.date_range },
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true, data }
 }
@@ -511,6 +549,16 @@ export async function updateWeeklyReport(id: string, projectId: string, payload:
     .single()
 
   if (error) return { error: error.message }
+
+  logActivity({
+    projectId,
+    actionType: 'UPDATE',
+    entityType: 'weekly_report',
+    entityId: id,
+    entityTitle: `แก้ไขรายงานประจำสัปดาห์ ช่วงวันที่ ${payload.date_range || ''}`,
+    details: { date_range: payload.date_range },
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true, data }
 }
@@ -518,6 +566,15 @@ export async function updateWeeklyReport(id: string, projectId: string, payload:
 export async function deleteWeeklyReport(id: string, projectId: string) {
   const { error } = await supabase.from('weekly_reports').delete().eq('id', id)
   if (error) return { error: error.message }
+
+  logActivity({
+    projectId,
+    actionType: 'DELETE',
+    entityType: 'weekly_report',
+    entityId: id,
+    entityTitle: `ลบรายงานประจำสัปดาห์`,
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true }
 }

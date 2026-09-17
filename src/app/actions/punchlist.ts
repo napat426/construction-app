@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { PunchList, PunchItem } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 export async function createPunchList(projectId: string) {
   if (!projectId) return { error: 'ไม่พบรหัสโครงการ' }
@@ -37,6 +38,15 @@ export async function createPunchList(projectId: string) {
     console.error('Error creating punch list:', error)
     return { error: 'ไม่สามารถสร้าง Punch List ใหม่ได้' }
   }
+
+  logActivity({
+    projectId,
+    actionType: 'CREATE',
+    entityType: 'punchlist',
+    entityId: data.id,
+    entityTitle: `สร้างรายการตรวจรับงาน (Punch List) ${plNumber}`,
+    details: { pl_number: plNumber, title: data.title },
+  })
 
   revalidatePath(`/projects/${projectId}/punchlist`)
   return { success: true, data: data as PunchList }
@@ -127,6 +137,15 @@ export async function updatePunchList(
 
   // Find projectId to revalidate paths
   if (updatedHeader) {
+    logActivity({
+      projectId: updatedHeader.project_id,
+      actionType: 'UPDATE',
+      entityType: 'punchlist',
+      entityId: punchListId,
+      entityTitle: `อัปเดต Punch List ${updatedHeader.pl_number || ''} (${updatedHeader.title})`,
+      details: { status: targetStatus, items_count: items.length },
+    })
+
     revalidatePath(`/projects/${updatedHeader.project_id}/punchlist`)
     revalidatePath('/portfolio')
   }
@@ -154,6 +173,14 @@ export async function deletePunchList(punchListId: string) {
   }
 
   if (header) {
+    logActivity({
+      projectId: header.project_id,
+      actionType: 'DELETE',
+      entityType: 'punchlist',
+      entityId: punchListId,
+      entityTitle: `ลบรายการ Punch List`,
+    })
+
     revalidatePath(`/projects/${header.project_id}/punchlist`)
     revalidatePath('/portfolio')
   }

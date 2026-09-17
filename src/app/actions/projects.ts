@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { ActionState } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 const DEFAULT_WBS_TASKS = [
   { wbs_no: '1', name: 'งานเตรียมพื้นที่ รื้อถอน เสาเข็ม', duration: 10, predecessors: null },
@@ -120,6 +121,16 @@ export async function createProject(
     console.error('Error pre-populating WBS tasks:', tasksError)
   }
 
+  logActivity({
+    projectId: newProj.id,
+    projectName: name,
+    actionType: 'CREATE',
+    entityType: 'project',
+    entityId: newProj.id,
+    entityTitle: `สร้างโครงการใหม่: ${name}`,
+    details: { supervisor, status, budget, start_date, end_date },
+  })
+
   revalidatePath('/projects')
   return { success: true }
 }
@@ -131,8 +142,16 @@ export async function deleteProject(id: string): Promise<ActionState> {
   const { error } = await supabase.from('projects').delete().eq('id', id)
 
   if (error) {
-    return { error: `ลบไม่สำเร็จ: ${error.message}` }
+    return { error: `ลบโครงการไม่สำเร็จ: ${error.message}` }
   }
+
+  logActivity({
+    projectId: id,
+    actionType: 'DELETE',
+    entityType: 'project',
+    entityId: id,
+    entityTitle: `ลบโครงการ`,
+  })
 
   revalidatePath('/projects')
   return { success: true }
@@ -218,6 +237,16 @@ export async function updateProjectBaseline(
   if (error) {
     return { error: `แก้ไขข้อมูลโครงการไม่สำเร็จ: ${error.message}` }
   }
+
+  logActivity({
+    projectId: id,
+    projectName: name,
+    actionType: 'UPDATE',
+    entityType: 'project',
+    entityId: id,
+    entityTitle: `แก้ไขข้อมูลโครงการ: ${name}`,
+    details: { status, progress, planned_progress, budget },
+  })
 
   // Trigger Red Flag threshold check asynchronously
   try {

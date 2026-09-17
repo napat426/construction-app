@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { ProjectMilestone } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 export async function saveMilestones(projectId: string, milestones: ProjectMilestone[]) {
   if (!projectId) return { error: 'ไม่พบรหัสโครงการ' }
@@ -57,6 +58,19 @@ export async function saveMilestones(projectId: string, milestones: ProjectMiles
     console.error('Error updating project paid:', projErr)
     return { error: 'ไม่สามารถอัปเดตยอดชำระเงินรวมได้' }
   }
+
+  const paidCount = milestones.filter(m => m.status === 'Paid' || m.is_paid).length
+  logActivity({
+    projectId,
+    actionType: 'UPDATE',
+    entityType: 'milestone',
+    entityTitle: `ปรับปรุงงวดงานและการชำระเงิน (${milestones.length} งวด, ชำระแล้ว ${paidCount} งวด ยอดรวม ฿${totalPaid.toLocaleString()})`,
+    details: {
+      milestone_count: milestones.length,
+      paid_count: paidCount,
+      total_paid: totalPaid,
+    },
+  })
 
   revalidatePath('/projects')
   revalidatePath(`/projects/${projectId}`)

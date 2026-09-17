@@ -211,19 +211,15 @@ export async function updateProjectBaseline(
     .eq('id', id)
     .single()
 
-  const changedFields: string[] = []
-  if (oldProj) {
-    if (oldProj.name !== name) changedFields.push('ชื่อโครงการ')
-    if (oldProj.supervisor !== supervisor) changedFields.push('ผู้ควบคุมงาน')
-    if (Number(oldProj.penalty_rate || 0) !== Number(penalty_rate || 0)) changedFields.push(`ค่าปรับรายวัน (฿${Number(penalty_rate || 0).toLocaleString()})`)
-    if (oldProj.inspection_committee !== inspection_committee) changedFields.push('กรรมการตรวจรับ')
-    if (Number(oldProj.budget || 0) !== Number(budget || 0)) changedFields.push('งบประมาณสัญญา')
-    if (oldProj.status !== status) changedFields.push(`สถานะ: ${status}`)
-    if (Number(oldProj.progress || 0) !== Number(progress || 0)) changedFields.push(`ผลงาน: ${progress}%`)
-    if (Number(oldProj.planned_progress || 0) !== Number(planned_progress || 0)) changedFields.push(`แผนงาน: ${planned_progress}%`)
-    if (oldProj.contractor !== contractor) changedFields.push('ผู้รับจ้าง')
-    if (oldProj.contract_no !== contract_no) changedFields.push('สัญญาเลขที่')
-    if (oldProj.start_date !== start_date || oldProj.end_date !== end_date) changedFields.push('ระยะเวลาสัญญา')
+  let oldCommitteeList: string[] = []
+  if (oldProj?.inspection_committee) {
+    try {
+      const parsed = JSON.parse(oldProj.inspection_committee)
+      if (Array.isArray(parsed)) oldCommitteeList = parsed.filter(Boolean)
+      else oldCommitteeList = [oldProj.inspection_committee]
+    } catch {
+      oldCommitteeList = oldProj.inspection_committee.split(',').map((s: string) => s.trim()).filter(Boolean)
+    }
   }
 
   let committeeList: string[] = []
@@ -235,6 +231,27 @@ export async function updateProjectBaseline(
     } catch {
       committeeList = inspection_committee.split(',').map(s => s.trim()).filter(Boolean)
     }
+  }
+
+  const changedFields: string[] = []
+  if (oldProj) {
+    if (oldProj.name !== name) changedFields.push('ชื่อโครงการ')
+    if (oldProj.supervisor !== supervisor) changedFields.push('ผู้ควบคุมงาน')
+    if ((oldProj.location || '') !== (location || '')) changedFields.push(`สถานที่ก่อสร้าง: ${location || 'ไม่ระบุ'}`)
+    if (oldProj.status !== status) changedFields.push(`สถานะ: ${status}`)
+    if (oldCommitteeList.join('|') !== committeeList.join('|')) {
+      changedFields.push(committeeList.length > 0 ? `กรรมการตรวจรับ (${committeeList.length} ท่าน)` : 'ล้างรายชื่อกรรมการตรวจรับ')
+    }
+    if (Number(oldProj.penalty_rate || 0) !== Number(penalty_rate || 0)) changedFields.push(`ค่าปรับรายวัน (฿${Number(penalty_rate || 0).toLocaleString()})`)
+    if (Number(oldProj.budget || 0) !== Number(budget || 0)) changedFields.push('งบประมาณสัญญา')
+    if (Number(oldProj.progress || 0) !== Number(progress || 0)) changedFields.push(`ผลงาน: ${progress}%`)
+    if (Number(oldProj.planned_progress || 0) !== Number(planned_progress || 0)) changedFields.push(`แผนงาน: ${planned_progress}%`)
+    if (oldProj.contractor !== contractor) changedFields.push('ผู้รับจ้าง')
+    if (oldProj.contract_no !== contract_no) changedFields.push('สัญญาเลขที่')
+    if (oldProj.start_date !== start_date || oldProj.end_date !== end_date) changedFields.push('ระยะเวลาสัญญา')
+    if ((oldProj.work_group || '') !== (work_group || '')) changedFields.push(`กลุ่มงาน: ${work_group || 'ไม่ระบุ'}`)
+    if ((oldProj.wbs_no || '') !== (wbs_no || '')) changedFields.push(`รหัส WBS: ${wbs_no || 'ไม่ระบุ'}`)
+    if ((oldProj.description || '') !== (description || '')) changedFields.push('รายละเอียดโครงการ')
   }
 
   const updatePayload: Record<string, any> = {
@@ -284,18 +301,20 @@ export async function updateProjectBaseline(
     entityTitle: titleSummary,
     details: {
       changes: changedFields,
+      location,
+      status,
       penalty_rate,
       inspection_committee: committeeList,
       supervisor,
       contractor,
       contract_no,
       budget,
-      status,
       progress,
       planned_progress,
       start_date,
       end_date,
       work_group,
+      wbs_no,
     },
   })
 
@@ -307,6 +326,8 @@ export async function updateProjectBaseline(
 
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
+  revalidatePath('/activities')
+  revalidatePath('/')
   return { success: true }
 }
 

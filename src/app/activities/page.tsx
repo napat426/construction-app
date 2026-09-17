@@ -21,7 +21,7 @@ export default async function GlobalActivitiesPage({ searchParams }: PageProps) 
 
   const [projectsRes, initialLogs] = await Promise.all([
     supabase.from('projects').select('id, name').order('name'),
-    getGlobalActivityLogs({ limit: 150 }),
+    getGlobalActivityLogs({ limit: 300 }),
   ])
 
   const projects = (projectsRes.data || []) as { id: string; name: string }[]

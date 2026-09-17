@@ -74,5 +74,7 @@ export async function saveMilestones(projectId: string, milestones: ProjectMiles
   revalidatePath('/projects')
   revalidatePath(`/projects/${projectId}`)
   revalidatePath(`/projects/${projectId}/planning`)
+  revalidatePath('/activities')
+  revalidatePath('/')
   return { success: true }
 }

@@ -10,6 +10,7 @@ import {
   Building2,
   Users,
   Clock,
+  Calendar,
   Sparkles,
   Layers,
   MonitorPlay,
@@ -166,6 +167,33 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
     }
   }
 
+  // Exact Thai Date & Time formatters
+  const formatExactDate = (isoString: string) => {
+    try {
+      const d = new Date(isoString)
+      return d.toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    } catch {
+      return isoString
+    }
+  }
+
+  const formatExactTime = (isoString: string) => {
+    try {
+      const d = new Date(isoString)
+      return d.toLocaleTimeString('th-TH', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }) + ' น.'
+    } catch {
+      return ''
+    }
+  }
+
   // Full Thai date formatter
   const formatFullDate = (isoString: string) => {
     try {
@@ -176,6 +204,7 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        second: '2-digit',
       })
     } catch {
       return isoString
@@ -294,6 +323,21 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
             <span>{isRefreshing ? 'กำลังโหลด...' : 'รีเฟรช'}</span>
           </button>
         </div>
+
+        {/* Project Scope Banner */}
+        {selectedProject !== 'ALL' && (
+          <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-primary-500/10 border border-primary-500/20 text-xs font-semibold text-primary-700 dark:text-primary-300">
+            <div className="flex items-center gap-2">
+              <span>📌 กำลังกรองประวัติเฉพาะ: <strong>{selectedProject === 'NONE' ? 'งานนอกโครงการ (Presentation, AI)' : (projectMap.get(selectedProject) || selectedProject)}</strong></span>
+            </div>
+            <button
+              onClick={() => setSelectedProject('ALL')}
+              className="px-3 py-1 rounded-lg bg-white dark:bg-[#1a1a36] text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-[#252548] border border-primary-200 dark:border-primary-800 font-bold transition-all shadow-sm cursor-pointer"
+            >
+              🌐 ดูประวัติทุกโครงการทั้งหมด
+            </button>
+          </div>
+        )}
 
         {/* Filters Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-slate-100 dark:border-[#1e1e38]">
@@ -484,9 +528,7 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                             {log.details.date && (
                               <p>📅 วันที่รายงาน: {log.details.date}</p>
                             )}
-                            {log.details.changes && Array.isArray(log.details.changes) && (
-                              <p>✏️ ส่วนที่แก้ไข: {log.details.changes.join(', ')}</p>
-                            )}
+
                             {log.details.photo_count !== undefined && (
                               <p>📷 รูปภาพที่วิเคราะห์: {log.details.photo_count} รูป</p>
                             )}
@@ -507,6 +549,24 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                             )}
                             {log.details.suspend_date && (
                               <p>⏸️ หยุดงาน: {log.details.suspend_date} ถึง {log.details.resume_date || 'ยังไม่กำหนด'} {log.details.reason ? `(${log.details.reason})` : ''}</p>
+                            )}
+                            {log.details.changes && Array.isArray(log.details.changes) && log.details.changes.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pt-1 pb-0.5">
+                                {log.details.changes.map((c: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                                  >
+                                    ✏️ {c}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {log.details.location && (
+                              <p className="text-slate-700 dark:text-slate-300 font-medium">📍 สถานที่ก่อสร้าง: <span className="font-semibold text-slate-900 dark:text-white">{log.details.location}</span></p>
+                            )}
+                            {log.details.status && (
+                              <p className="text-slate-700 dark:text-slate-300 font-medium">🚦 สถานะโครงการ: <span className="font-semibold text-slate-900 dark:text-white">{log.details.status}</span></p>
                             )}
                             {log.details.penalty_rate !== undefined && Number(log.details.penalty_rate) > 0 && (
                               <p>⚖️ ค่าปรับรายวัน: ฿{Number(log.details.penalty_rate).toLocaleString()} บาท/วัน</p>
@@ -532,10 +592,18 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                     </div>
 
                     {/* Right: Timestamp & Deep Link */}
-                    <div className="flex sm:flex-col items-end justify-between sm:justify-start gap-2 flex-shrink-0 text-right">
-                      <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        <span title={formatFullDate(log.created_at)}>
-                          {formatRelativeTime(log.created_at)}
+                    <div className="flex sm:flex-col items-end justify-between sm:justify-start gap-1.5 flex-shrink-0 text-right">
+                      <div className="flex flex-col items-end bg-slate-50 dark:bg-[#16162e] px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-[#252548]">
+                        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+                          <Calendar size={13} className="text-primary-500" />
+                          <span>{formatExactDate(log.created_at)}</span>
+                        </div>
+                        <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5">
+                          <Clock size={12} className="text-amber-500" />
+                          <span>{formatExactTime(log.created_at)}</span>
+                        </div>
+                        <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+                          ({formatRelativeTime(log.created_at)})
                         </span>
                       </div>
 

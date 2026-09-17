@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, Save, Loader2, Plus, Trash2 } from 'lucide-react'
 import { updateProjectBaseline } from '@/app/actions/projects'
 import { saveMilestones } from '@/app/actions/milestones'
@@ -19,6 +20,7 @@ interface EditBaselineModalProps {
 }
 
 export function EditBaselineModal({ project, milestones, amendments, onClose, workGroups }: EditBaselineModalProps) {
+  const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -134,6 +136,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
     }
 
     setLoading(false)
+    router.refresh()
     onClose()
   }
 

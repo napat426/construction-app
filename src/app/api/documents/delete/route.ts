@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { logActivity } from '@/lib/auditLogger'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,10 +11,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing document ID' }, { status: 400 })
     }
 
-    // 1. Fetch document info to get file_url
+    // 1. Fetch document info to get file_url and name
     const { data: doc, error: fetchError } = await supabase
       .from('project_documents')
-      .select('file_url, source_type')
+      .select('file_name, file_url, source_type, project_id')
       .eq('id', docId)
       .single()
       
@@ -32,9 +33,19 @@ export async function POST(req: Request) {
     const { error: deleteError } = await supabase.from('project_documents').delete().eq('id', docId)
     if (deleteError) throw deleteError
 
+    await logActivity({
+      projectId: doc.project_id || undefined,
+      actionType: 'DELETE',
+      entityType: 'document',
+      entityId: docId,
+      entityTitle: `ลบเอกสารสัญญา: ${doc.file_name}`,
+      details: { fileName: doc.file_name },
+    })
+
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Delete document error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+

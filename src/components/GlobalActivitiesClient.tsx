@@ -200,6 +200,8 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
         return { label: 'ปรึกษา AI Chat', bg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20', icon: Bot }
       case 'EXPORT':
         return { label: 'ส่งออกเอกสาร', bg: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20', icon: ExternalLink }
+      case 'IMPORT':
+        return { label: 'นำเข้าข้อมูล', bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20', icon: PlusCircle }
       default:
         return { label: action, bg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20', icon: Activity }
     }
@@ -646,6 +648,46 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                           className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
                         >
                           <span>เปิดดูลิงก์/โน้ต</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'executive_summary' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/reports`}
+                          className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูสรุปผู้บริหาร</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'default_setting' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/reports`}
+                          className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>ดูค่าเริ่มต้นหน้างาน</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'user' && (
+                        <Link
+                          href="/admin/users"
+                          className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>ดูบัญชีผู้ใช้</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'document' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}`}
+                          className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>ดูเอกสารโครงการ</span>
                           <ChevronRight size={13} />
                         </Link>
                       )}

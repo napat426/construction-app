@@ -32,6 +32,7 @@ import type {
 import type { UserSession } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { computeProjectExtension, computeTaskDates, countWorkingDays } from '@/lib/scheduler'
+import { saveExecutiveSummarySnapshot, deleteExecutiveSummarySnapshot } from '@/app/actions/reports'
 
 interface Props {
   project: Project
@@ -929,20 +930,9 @@ export function ExecutiveSummaryTab({
     setSelectedBatchIds(prev => [...prev, newSnapshot.id])
 
     const storageKey = `exec_reports_${project.id}`
-    const serialized = JSON.stringify(updated)
     try {
-      localStorage.setItem(storageKey, serialized)
-      const { data: existing } = await supabase
-        .from('system_settings')
-        .select('id')
-        .eq('key', storageKey)
-        .maybeSingle()
-
-      if (existing) {
-        await supabase.from('system_settings').update({ value: serialized }).eq('key', storageKey)
-      } else {
-        await supabase.from('system_settings').insert({ key: storageKey, value: serialized })
-      }
+      localStorage.setItem(storageKey, JSON.stringify(updated))
+      await saveExecutiveSummarySnapshot(project.id, newSnapshot, updated)
     } catch (err) {
       console.error('Error saving snapshot:', err)
     }
@@ -994,11 +984,12 @@ export function ExecutiveSummaryTab({
       handleSelectSnapshot('live')
     }
     const storageKey = `exec_reports_${project.id}`
-    const serialized = JSON.stringify(updated)
     try {
-      localStorage.setItem(storageKey, serialized)
-      await supabase.from('system_settings').update({ value: serialized }).eq('key', storageKey)
-    } catch {}
+      localStorage.setItem(storageKey, JSON.stringify(updated))
+      await deleteExecutiveSummarySnapshot(project.id, snapId, updated)
+    } catch (err) {
+      console.error('Error deleting snapshot:', err)
+    }
   }
 
   // Re-generate auto draft handler

@@ -193,7 +193,16 @@ export async function importMaterials(
 
   if (error) return { error: error.message }
 
+  logActivity({
+    projectId,
+    actionType: 'IMPORT',
+    entityType: 'material',
+    entityTitle: `นำเข้ารายการวัสดุ ${materialsList.length} รายการ (${mode === 'replace' ? 'แทนที่ทั้งหมด' : 'เพิ่มต่อท้าย'})`,
+    details: { count: materialsList.length, mode },
+  })
+
   revalidatePath(`/projects/${projectId}/materials`)
   return { success: true }
 }
+
 

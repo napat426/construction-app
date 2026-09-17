@@ -175,6 +175,19 @@ export async function upsertDailyDefaults(projectId: string, payload: any) {
         onConflict: 'project_id'
       })
     if (error) return { error: error.message }
+
+    await logActivity({
+      projectId,
+      actionType: 'UPDATE',
+      entityType: 'default_setting',
+      entityTitle: `บันทึกค่าเริ่มต้นหน้างาน (แรงงาน ${payload.manpower_defaults?.length || 0} รายการ, เครื่องจักร ${payload.machinery_defaults?.length || 0} รายการ)`,
+      details: {
+        location_name: payload.location_name,
+        manpower_count: payload.manpower_defaults?.length || 0,
+        machinery_count: payload.machinery_defaults?.length || 0,
+      }
+    })
+
     revalidatePath(`/projects/${projectId}/reports`)
     return { success: true }
   } catch (err: any) {
@@ -219,11 +232,11 @@ export async function backfillDailyReport(projectId: string, dateStr: string) {
     // 2. Fetch project
     const { data: project, error: projErr } = await supabase
       .from('projects')
-      .select('*')
+      .select('name, location')
       .eq('id', projectId)
       .single()
     if (projErr || !project) {
-      return { error: projErr?.message || 'ไม่พบโครงการ' }
+      return { error: 'ไม่พบข้อมูลโครงการ' }
     }
 
     // 3. Fetch daily defaults
@@ -233,11 +246,14 @@ export async function backfillDailyReport(projectId: string, dateStr: string) {
       .eq('project_id', projectId)
       .single()
 
-    // 4. Fetch weather info
-    let temperature = 25
+    const lat = defaults?.latitude ?? 13.7563
+    const lon = defaults?.longitude ?? 100.5018
+
+    // 4. Fetch archive weather
+    let weatherText = 'ท้องฟ้าแจ่มใส'
+    let temperature = 32
     let precipitation = 0
     let weatherCode = 0
-    let weatherText = 'แดดจัด'
 
     if (defaults && defaults.latitude && defaults.longitude) {
       try {
@@ -424,7 +440,7 @@ export async function createQuickDailyReport(projectId: string, dateStr: string)
 }
 
 export async function createDailyReport(projectId: string, payload: any) {
-  const { error } = await supabase.from('daily_reports').insert({
+  const { data, error } = await supabase.from('daily_reports').insert({
     project_id: projectId,
     report_date: payload.report_date,
     weather: payload.weather,
@@ -438,11 +454,21 @@ export async function createDailyReport(projectId: string, payload: any) {
     photos: payload.photos,
     is_auto_generated: payload.is_auto_generated || false,
     is_confirmed: payload.is_confirmed || false,
-  })
+  }).select().single()
 
   if (error) return { error: error.message }
+
+  await logActivity({
+    projectId,
+    actionType: 'CREATE',
+    entityType: 'daily_report',
+    entityId: data?.id,
+    entityTitle: `สร้างรายงานประจำวันที่ ${payload.report_date}`,
+    details: { date: payload.report_date },
+  })
+
   revalidatePath(`/projects/${projectId}/reports`)
-  return { success: true }
+  return { success: true, id: data?.id }
 }
 
 export async function updateDailyReport(id: string, projectId: string, payload: any) {
@@ -586,3 +612,69 @@ export async function updateWeeklyReportsOrder(projectId: string, updates: { id:
   revalidatePath(`/projects/${projectId}/reports`)
   return { success: true }
 }
+
+export async function saveExecutiveSummarySnapshot(
+  projectId: string,
+  snapshot: any,
+  allSnapshots: any[]
+) {
+  try {
+    const storageKey = `exec_reports_${projectId}`
+    const serialized = JSON.stringify(allSnapshots)
+    const { data: existing } = await supabase
+      .from('system_settings')
+      .select('id')
+      .eq('key', storageKey)
+      .maybeSingle()
+
+    if (existing) {
+      await supabase.from('system_settings').update({ value: serialized }).eq('key', storageKey)
+    } else {
+      await supabase.from('system_settings').insert({ key: storageKey, value: serialized })
+    }
+
+    await logActivity({
+      projectId,
+      actionType: 'CREATE',
+      entityType: 'executive_summary',
+      entityId: snapshot.id,
+      entityTitle: `บันทึกรายงานสรุปผู้บริหาร: ${snapshot.title || 'Executive Summary'}`,
+      details: {
+        report_date: snapshot.reportDate || snapshot.created_at,
+        contractStatusTag: snapshot.contractStatusTag,
+        financial: snapshot.financial,
+      },
+    })
+
+    revalidatePath(`/projects/${projectId}/reports`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message }
+  }
+}
+
+export async function deleteExecutiveSummarySnapshot(
+  projectId: string,
+  snapshotId: string,
+  remainingSnapshots: any[]
+) {
+  try {
+    const storageKey = `exec_reports_${projectId}`
+    const serialized = JSON.stringify(remainingSnapshots)
+    await supabase.from('system_settings').update({ value: serialized }).eq('key', storageKey)
+
+    await logActivity({
+      projectId,
+      actionType: 'DELETE',
+      entityType: 'executive_summary',
+      entityId: snapshotId,
+      entityTitle: `ลบรายงานสรุปผู้บริหาร`,
+    })
+
+    revalidatePath(`/projects/${projectId}/reports`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message }
+  }
+}
+

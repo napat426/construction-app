@@ -6,6 +6,7 @@ import { cookies } from 'next/headers'
 import bcrypt from 'bcryptjs'
 import { signToken, getCurrentUser } from '@/lib/auth'
 import type { ActionState } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 /**
  * Register a new user profile in the database
@@ -166,6 +167,14 @@ export async function updateUserRoleStatus(
       return { error: `ปฏิเสธบัญชีไม่สำเร็จ: ${deleteErr.message}` }
     }
 
+    logActivity({
+      actionType: 'DELETE',
+      entityType: 'user',
+      entityId: userId,
+      entityTitle: `ปฏิเสธ/ลบบัญชีผู้ใช้`,
+      details: { targetUserId: userId },
+    })
+
     revalidatePath('/admin/users')
     return { success: true }
   }
@@ -189,6 +198,14 @@ export async function updateUserRoleStatus(
   if (updateErr) {
     return { error: `ปรับปรุงข้อมูลไม่สำเร็จ: ${updateErr.message}` }
   }
+
+  logActivity({
+    actionType: status === 'approved' ? 'APPROVE' : 'UPDATE',
+    entityType: 'user',
+    entityId: userId,
+    entityTitle: `${status === 'approved' ? 'อนุมัติการใช้งานผู้ใช้' : 'ปรับสถานะ/สิทธิ์ผู้ใช้'} (${role}, ${status})`,
+    details: { targetUserId: userId, role, status },
+  })
 
   revalidatePath('/admin/users')
   return { success: true }

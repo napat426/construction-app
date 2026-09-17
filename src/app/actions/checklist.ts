@@ -363,6 +363,15 @@ export async function addMasterChecklist(payload: {
       .single()
 
     if (error) return { error: error.message }
+
+    logActivity({
+      actionType: 'CREATE',
+      entityType: 'checklist',
+      entityId: data?.id,
+      entityTitle: `เพิ่มหัวข้อตรวจงานมาตรฐาน (Master Checklist): ${payload.title}`,
+      details: { category: payload.category, title: payload.title },
+    })
+
     revalidatePath('/projects')
     return { success: true, data: data as ChecklistMaster }
   } catch (err: any) {
@@ -390,6 +399,15 @@ export async function editMasterChecklist(
       .eq('id', id)
 
     if (error) return { error: error.message }
+
+    logActivity({
+      actionType: 'UPDATE',
+      entityType: 'checklist',
+      entityId: id,
+      entityTitle: `แก้ไขหัวข้อตรวจงานมาตรฐาน (Master Checklist): ${payload.title}`,
+      details: { category: payload.category, title: payload.title },
+    })
+
     revalidatePath('/projects')
     return { success: true }
   } catch (err: any) {
@@ -402,9 +420,18 @@ export async function deleteMasterChecklist(id: string) {
   try {
     const { error } = await supabase.from('checklist_masters').delete().eq('id', id)
     if (error) return { error: error.message }
+
+    logActivity({
+      actionType: 'DELETE',
+      entityType: 'checklist',
+      entityId: id,
+      entityTitle: `ลบหัวข้อตรวจงานมาตรฐาน (Master Checklist)`,
+    })
+
     revalidatePath('/projects')
     return { success: true }
   } catch (err: any) {
     return { error: err.message || 'Unknown error' }
   }
 }
+

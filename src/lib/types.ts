@@ -336,10 +336,13 @@ export type ActivityActionType =
   | 'EXPORT'
   | 'GENERATE'
   | 'FETCH_WBS'
+  | 'IMPORT'
 
 export type ActivityEntityType = 
   | 'daily_report' 
   | 'weekly_report' 
+  | 'executive_summary'
+  | 'default_setting'
   | 'material' 
   | 'wbs_task' 
   | 'milestone'
@@ -354,6 +357,8 @@ export type ActivityEntityType =
   | 'suspension'
   | 'quick_link'
   | 'project'
+  | 'document'
+  | 'user'
   | 'system'
 
 export interface ActivityLog {

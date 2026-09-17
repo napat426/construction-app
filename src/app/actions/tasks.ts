@@ -456,10 +456,20 @@ export async function importWbsTasksBulk(
   }
 
   await recalculateProjectProgress(projectId)
+
+  logActivity({
+    projectId,
+    actionType: 'IMPORT',
+    entityType: 'wbs_task',
+    entityTitle: `นำเข้าแผนงาน WBS ${tasks.length} กิจกรรม (${mode === 'replace' ? 'แทนที่ทั้งหมด' : 'เพิ่มต่อท้าย'})`,
+    details: { count: tasks.length, mode },
+  })
+
   revalidatePath(`/projects/${projectId}/planning`)
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/projects')
 
   return { success: true }
 }
+
 

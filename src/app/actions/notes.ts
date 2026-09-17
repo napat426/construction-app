@@ -32,6 +32,8 @@ export async function getNoteFolders(projectId: string): Promise<string[]> {
   return folders
 }
 
+import { logActivity } from '@/lib/auditLogger'
+
 // ─── CREATE ────────────────────────────────────────────────────────────────
 
 export async function createNote(
@@ -59,6 +61,17 @@ export async function createNote(
 
   if (error) return { success: false, error: error.message }
 
+  // Log activity
+  logActivity({
+    projectId,
+    actionType: 'CREATE',
+    entityType: 'project_note',
+    entityId: inserted.id,
+    entityTitle: `สร้างบันทึกข้อความ: ${data.title || 'โน้ตใหม่'}`,
+    details: { folder: data.folder || 'ทั่วไป', color: data.color },
+    user,
+  })
+
   revalidatePath(`/projects/${projectId}/notes`)
   return { success: true, note: inserted as ProjectNote }
 }
@@ -82,6 +95,17 @@ export async function updateNote(
 
   if (error) return { success: false, error: error.message }
 
+  // Log activity
+  logActivity({
+    projectId,
+    actionType: 'UPDATE',
+    entityType: 'project_note',
+    entityId: noteId,
+    entityTitle: `แก้ไขบันทึกข้อความ: ${data.title || 'โน้ต'}`,
+    details: { changes: Object.keys(data) },
+    user,
+  })
+
   revalidatePath(`/projects/${projectId}/notes`)
   return { success: true }
 }
@@ -99,6 +123,16 @@ export async function deleteNote(
 
   const { error } = await supabase.from('project_notes').delete().eq('id', noteId)
   if (error) return { success: false, error: error.message }
+
+  // Log activity
+  logActivity({
+    projectId,
+    actionType: 'DELETE',
+    entityType: 'project_note',
+    entityId: noteId,
+    entityTitle: `ลบบันทึกข้อความ`,
+    user,
+  })
 
   revalidatePath(`/projects/${projectId}/notes`)
   return { success: true }

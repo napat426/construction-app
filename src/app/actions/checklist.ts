@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { ChecklistMaster, ProjectChecklistResult, ChecklistStatus } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 const DEFAULT_MASTER_CHECKLIST = [
   // หมวดที่ 1: โครงสร้างและภายนอกอาคาร (Structure & Exterior)
@@ -319,6 +320,14 @@ export async function updateChecklistResult(
       console.error('Error updating checklist result:', error)
       return { error: error.message }
     }
+
+    logActivity({
+      projectId,
+      actionType: 'UPDATE',
+      entityType: 'checklist',
+      entityTitle: `อัปเดตผลการตรวจ Checklist (สถานะ: ${status})`,
+      details: { master_id: masterId, status, note },
+    })
 
     revalidatePath(`/projects/${projectId}/checklist`)
     return { success: true }

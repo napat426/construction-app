@@ -515,6 +515,46 @@ export function GlobalActivitiesClient({ initialProjects, initialLogs, defaultPr
                         </Link>
                       )}
 
+                      {log.entity_type === 'project_note' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/notes`}
+                          className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูโน้ต</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'wbs_task' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/planning`}
+                          className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูแผนงาน</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'material' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/materials`}
+                          className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูวัสดุ</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
+                      {log.entity_type === 'checklist' && log.project_id && (
+                        <Link
+                          href={`/projects/${log.project_id}/checklist`}
+                          className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 hover:underline inline-flex items-center gap-1 opacity-90 group-hover:opacity-100"
+                        >
+                          <span>เปิดดูตรวจงาน</span>
+                          <ChevronRight size={13} />
+                        </Link>
+                      )}
+
                       {log.module_type === 'presentation' && (
                         <Link
                           href="/presentation"

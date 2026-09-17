@@ -3,6 +3,7 @@
 import { supabase } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import type { ActionState } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 // Helper function to recalculate project progress and update projects table
 async function recalculateProjectProgress(projectId: string): Promise<void> {
@@ -101,6 +102,14 @@ export async function createTask(
     return { error: `สร้างกิจกรรมย่อยไม่สำเร็จ: ${error.message}` }
   }
 
+  logActivity({
+    projectId,
+    actionType: 'CREATE',
+    entityType: 'wbs_task',
+    entityTitle: `เพิ่มกิจกรรม WBS [${wbs_no}] ${name}`,
+    details: { wbs_no, cost, duration, actual_progress },
+  })
+
   await recalculateProjectProgress(projectId)
   revalidatePath(`/projects/${projectId}/planning`)
   revalidatePath(`/projects/${projectId}`)
@@ -162,6 +171,15 @@ export async function updateTask(
     return { error: `แก้ไขกิจกรรมไม่สำเร็จ: ${error.message}` }
   }
 
+  logActivity({
+    projectId,
+    actionType: 'UPDATE',
+    entityType: 'wbs_task',
+    entityId: taskId,
+    entityTitle: `ปรับปรุงกิจกรรม [${wbs_no}] ${name} (ความคืบหน้า ${actual_progress}%)`,
+    details: { wbs_no, cost, duration, actual_progress },
+  })
+
   await recalculateProjectProgress(projectId)
   revalidatePath(`/projects/${projectId}/planning`)
   revalidatePath(`/projects/${projectId}`)
@@ -177,6 +195,14 @@ export async function deleteTask(projectId: string, taskId: string): Promise<Act
   if (error) {
     return { error: `ลบกิจกรรมไม่สำเร็จ: ${error.message}` }
   }
+
+  logActivity({
+    projectId,
+    actionType: 'DELETE',
+    entityType: 'wbs_task',
+    entityId: taskId,
+    entityTitle: `ลบกิจกรรม WBS`,
+  })
 
   await recalculateProjectProgress(projectId)
   revalidatePath(`/projects/${projectId}/planning`)
@@ -345,6 +371,14 @@ export async function insertTaskAfter(
   if (insertError) {
     return { error: `สร้างกิจกรรมย่อยไม่สำเร็จ: ${insertError.message}` }
   }
+
+  logActivity({
+    projectId,
+    actionType: 'CREATE',
+    entityType: 'wbs_task',
+    entityTitle: `แทรกกิจกรรม WBS [${newTaskWbsNo}] ${name}`,
+    details: { wbs_no: newTaskWbsNo, cost, duration, actual_progress },
+  })
 
   await recalculateProjectProgress(projectId)
   revalidatePath(`/projects/${projectId}/planning`)

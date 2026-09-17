@@ -344,6 +344,8 @@ export type ActivityEntityType =
   | 'wbs_task' 
   | 'inspection' 
   | 'punchlist' 
+  | 'project_note'
+  | 'checklist'
   | 'presentation'
   | 'ai_chat'
   | 'project'

@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import type { MaterialStatus } from '@/lib/types'
+import { logActivity } from '@/lib/auditLogger'
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 let supabaseUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) ? rawUrl : 'https://txexenqijhxtdrzgltsm.supabase.co'
@@ -73,6 +74,15 @@ export async function createMaterial(projectId: string, formData: FormData) {
     )
   }
 
+  logActivity({
+    projectId,
+    actionType: 'CREATE',
+    entityType: 'material',
+    entityId: newMat?.id,
+    entityTitle: `เพิ่มรายการวัสดุ: ${name.trim()}`,
+    details: { submission_no, submitted_date, note },
+  })
+
   revalidatePath(`/projects/${projectId}/materials`)
   return { success: true }
 }
@@ -123,6 +133,15 @@ export async function updateMaterial(
 
   if (error) return { error: error.message }
 
+  logActivity({
+    projectId,
+    actionType: 'UPDATE',
+    entityType: 'material',
+    entityId: id,
+    entityTitle: `อัปเดตรายการวัสดุ: ${name.trim()} (สถานะ: ${status})`,
+    details: { submission_no, submitted_date, approved_date, status, note },
+  })
+
   revalidatePath(`/projects/${projectId}/materials`)
   return { success: true }
 }
@@ -131,6 +150,14 @@ export async function deleteMaterial(id: string, projectId: string) {
   const { error } = await supabase.from('materials').delete().eq('id', id)
 
   if (error) return { error: error.message }
+
+  logActivity({
+    projectId,
+    actionType: 'DELETE',
+    entityType: 'material',
+    entityId: id,
+    entityTitle: `ลบรายการวัสดุ`,
+  })
 
   revalidatePath(`/projects/${projectId}/materials`)
   return { success: true }

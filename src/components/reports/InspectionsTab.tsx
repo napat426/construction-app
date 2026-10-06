@@ -17,6 +17,9 @@ import {
   UploadCloud,
   Send,
   Printer,
+  Sparkles,
+  Loader2,
+  Wand2,
 } from 'lucide-react'
 import type { Project, Inspection, InspectionStatus, ReportPhoto } from '@/lib/types'
 import { createInspection, updateInspection, deleteInspection, updateInspectionsOrder, uploadReportPhoto } from '@/app/actions/reports'
@@ -489,6 +492,13 @@ function InspectionForm({
   const [status, setStatus] = useState<InspectionStatus>(item?.status || 'submitted')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [isAnalyzingAI, setIsAnalyzingAI] = useState(false)
+
+  // Form field state for controlled manipulation & AI autofill
+  const [inspectionNo, setInspectionNo] = useState(item?.inspection_no || nextInspectionNo)
+  const [workType, setWorkType] = useState(item?.work_type || 'งานโครงสร้าง')
+  const [title, setTitle] = useState(item?.title || '')
+  const [note, setNote] = useState(item?.note || '')
 
   // Map database photo_urls (url|||caption) to ReportPhoto array
   const [photos, setPhotos] = useState<ReportPhoto[]>(() => {
@@ -501,6 +511,75 @@ function InspectionForm({
       }
     })
   })
+
+  // AI Vision analysis of uploaded photos
+  const handleAnalyzePhotosWithAI = async () => {
+    if (photos.length === 0) {
+      alert('กรุณาอัปโหลดรูปภาพประกอบการขอตรวจอย่างน้อย 1 รูปก่อนเริ่มวิเคราะห์ด้วย AI')
+      return
+    }
+
+    setIsAnalyzingAI(true)
+    setError('')
+    try {
+      const res = await fetch('/api/ai/analyze-inspection-photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          inspectionNo,
+          workType,
+          currentTitle: title,
+          photos: photos.map((p) => p.url),
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพด้วย AI')
+      }
+
+      // Auto-fill suggested title if available
+      if (data.suggestedTitle) {
+        if (!title.trim() || confirm(`AI แนะนำหัวข้อ: "${data.suggestedTitle}"\n\nต้องการใช้หัวข้อนี้แทนที่ข้อความเดิมหรือไม่?`)) {
+          setTitle(data.suggestedTitle)
+        }
+      }
+
+      // Auto-fill suggested work type if valid
+      if (data.suggestedWorkType) {
+        const validTypes = ['งานดิน/ฐานราก', 'งานโครงสร้าง', 'งานสถาปัตยกรรม', 'งานระบบไฟฟ้า', 'งานระบบประปา/สุขาภิบาล', 'อื่นๆ']
+        if (validTypes.includes(data.suggestedWorkType)) {
+          setWorkType(data.suggestedWorkType)
+        }
+      }
+
+      // Auto-fill or append inspection details to comment/note
+      if (data.inspectionDetails) {
+        if (note.trim()) {
+          setNote((prev) => prev + '\n\n' + data.inspectionDetails)
+        } else {
+          setNote(data.inspectionDetails)
+        }
+      }
+
+      // Auto-fill captions for each photo
+      if (Array.isArray(data.captions) && data.captions.length > 0) {
+        setPhotos((prev) =>
+          prev.map((photo, idx) => ({
+            ...photo,
+            caption: data.captions[idx] || photo.caption || '',
+          }))
+        )
+      }
+    } catch (err: any) {
+      console.error('AI Inspection Analysis Error:', err)
+      setError(err?.message || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพด้วย AI')
+      alert(err?.message || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพด้วย AI')
+    } finally {
+      setIsAnalyzingAI(false)
+    }
+  }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
@@ -677,7 +756,8 @@ function InspectionForm({
                 <input
                   name="inspection_no"
                   type="text"
-                  defaultValue={item?.inspection_no || nextInspectionNo}
+                  value={inspectionNo}
+                  onChange={(e) => setInspectionNo(e.target.value)}
                   className={inputCls}
                   required
                   placeholder="เช่น INSP-001"
@@ -685,7 +765,13 @@ function InspectionForm({
               </div>
               <div>
                 <label className={labelCls}>หมวดงาน <span className="text-red-500">*</span></label>
-                <select name="work_type" defaultValue={item?.work_type || 'งานโครงสร้าง'} className={inputCls} required>
+                <select
+                  name="work_type"
+                  value={workType}
+                  onChange={(e) => setWorkType(e.target.value)}
+                  className={inputCls}
+                  required
+                >
                   <option value="งานดิน/ฐานราก">งานดิน/ฐานราก</option>
                   <option value="งานโครงสร้าง">งานโครงสร้าง (เสา/คาน/พื้น)</option>
                   <option value="งานสถาปัตยกรรม">งานสถาปัตยกรรม</option>
@@ -697,11 +783,30 @@ function InspectionForm({
             </div>
 
             <div>
-              <label className={labelCls}>หัวข้อที่ขอตรวจ <span className="text-red-500">*</span></label>
+              <div className="flex items-center justify-between mb-1">
+                <label className={`${labelCls} mb-0`}>หัวข้อที่ขอตรวจ <span className="text-red-500">*</span></label>
+                {photos.length > 0 && user && (user.role === 'admin' || user.role === 'editor') && (
+                  <button
+                    type="button"
+                    onClick={handleAnalyzePhotosWithAI}
+                    disabled={isAnalyzingAI || uploading}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm shadow-indigo-500/20 disabled:opacity-40 transition-all cursor-pointer"
+                    title="ให้ Gemini AI ช่วยวิเคราะห์รูปภาพและตั้งหัวข้อ/คำอธิบายงานให้อัตโนมัติ"
+                  >
+                    {isAnalyzingAI ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={12} className="text-amber-300" />
+                    )}
+                    <span>{isAnalyzingAI ? 'AI กำลังวิเคราะห์รูปภาพ...' : '✨ วิเคราะห์งานจากรูปภาพ (AI Vision)'}</span>
+                  </button>
+                )}
+              </div>
               <input
                 name="title"
                 type="text"
-                defaultValue={item?.title || ''}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 className={inputCls}
                 required
                 placeholder="เช่น ตรวจสอบความถูกต้องของการผูกเหล็กคานคอดิน"
@@ -750,20 +855,40 @@ function InspectionForm({
             </div>
 
             <div>
-              <label className={labelCls}>หมายเหตุ / ผลการตรวจ (Comment)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className={`${labelCls} mb-0`}>หมายเหตุ / ผลการตรวจ / รายละเอียดงาน (Comment)</label>
+              </div>
               <textarea
                 name="note"
-                rows={3}
-                defaultValue={item?.note || ''}
+                rows={4}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
                 className={`${inputCls} resize-none`}
-                placeholder="ความคิดเห็นเพิ่มเติมจากผู้ตรวจ เช่น สิ่งที่ต้องแก้ไข..."
+                placeholder="ความคิดเห็นเพิ่มเติมจากผู้ตรวจ รายละเอียดจุดตรวจ หรือข้อความที่ AI วิเคราะห์ให้..."
               />
             </div>
 
             {/* Photo Upload Trigger */}
             {user && (user.role === 'admin' || user.role === 'editor') && (
               <div className="border border-dashed border-slate-300 dark:border-[#252548] rounded-xl p-4 bg-slate-50 dark:bg-[#14142a]">
-                <label className={labelCls}>รูปภาพประกอบ (อัปโหลดผ่าน Supabase Storage)</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className={`${labelCls} mb-0`}>รูปภาพประกอบ (อัปโหลดผ่าน Supabase Storage)</label>
+                  {photos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleAnalyzePhotosWithAI}
+                      disabled={isAnalyzingAI || uploading}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm shadow-indigo-500/20 disabled:opacity-40 transition-all cursor-pointer"
+                    >
+                      {isAnalyzingAI ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={12} className="text-amber-300" />
+                      )}
+                      <span>{isAnalyzingAI ? 'AI กำลังอ่านรูปภาพ...' : '✨ วิเคราะห์รูปภาพด้วย AI Vision'}</span>
+                    </button>
+                  )}
+                </div>
                 <label className="w-full h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-[#252548] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-colors text-slate-400 hover:text-primary-500">
                   {uploading ? (
                     <span className="text-[10px] font-bold animate-pulse">กำลังอัปโหลด...</span>
@@ -782,9 +907,27 @@ function InspectionForm({
           {/* --- PHOTOS GRID (Visible on Screen & Print Layout) --- */}
           {photos.length > 0 && (
             <div className="mt-4 print:mt-2 print:page-break-inside-avoid">
-              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-3 print:mb-2 print:text-[10px] print:text-black">
-                รูปภาพประกอบการขอตรวจ (Photos)
-              </h4>
+              <div className="flex items-center justify-between mb-3 print:mb-2">
+                <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 print:text-[10px] print:text-black">
+                  รูปภาพประกอบการขอตรวจ (Photos) ({photos.length} รูป)
+                </h4>
+                {user && (user.role === 'admin' || user.role === 'editor') && (
+                  <button
+                    type="button"
+                    onClick={handleAnalyzePhotosWithAI}
+                    disabled={isAnalyzingAI || uploading}
+                    className="print:hidden px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm shadow-indigo-500/20 disabled:opacity-40 transition-all cursor-pointer"
+                  >
+                    {isAnalyzingAI ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={12} className="text-amber-300" />
+                    )}
+                    <span>{isAnalyzingAI ? 'AI กำลังอ่านรูปภาพ...' : '✨ AI ใส่คำบรรยายภาพอัตโนมัติ'}</span>
+                  </button>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4 print:gap-2">
                 {photos.map((photo, idx) => (
                   <div

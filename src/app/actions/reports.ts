@@ -48,6 +48,7 @@ export async function createInspection(projectId: string, formData: FormData, ph
   const request_date = (formData.get('request_date') as string) || null
   const inspector = (formData.get('inspector') as string) || null
   const status = (formData.get('status') as InspectionStatus) || 'submitted'
+  const note = (formData.get('note') as string) || null
 
   const { error } = await supabase.from('inspections').insert({
     project_id: projectId,
@@ -57,6 +58,7 @@ export async function createInspection(projectId: string, formData: FormData, ph
     request_date,
     inspector,
     status,
+    note,
     photo_urls: photoUrls,
   })
 

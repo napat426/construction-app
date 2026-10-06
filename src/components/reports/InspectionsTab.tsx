@@ -783,25 +783,7 @@ function InspectionForm({
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className={`${labelCls} mb-0`}>หัวข้อที่ขอตรวจ <span className="text-red-500">*</span></label>
-                {photos.length > 0 && user && (user.role === 'admin' || user.role === 'editor') && (
-                  <button
-                    type="button"
-                    onClick={handleAnalyzePhotosWithAI}
-                    disabled={isAnalyzingAI || uploading}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm shadow-indigo-500/20 disabled:opacity-40 transition-all cursor-pointer"
-                    title="ให้ Gemini AI ช่วยวิเคราะห์รูปภาพและตั้งหัวข้อ/คำอธิบายงานให้อัตโนมัติ"
-                  >
-                    {isAnalyzingAI ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <Sparkles size={12} className="text-amber-300" />
-                    )}
-                    <span>{isAnalyzingAI ? 'AI กำลังวิเคราะห์รูปภาพ...' : '✨ วิเคราะห์งานจากรูปภาพ (AI Vision)'}</span>
-                  </button>
-                )}
-              </div>
+              <label className={labelCls}>หัวข้อที่ขอตรวจ <span className="text-red-500">*</span></label>
               <input
                 name="title"
                 type="text"
@@ -871,24 +853,7 @@ function InspectionForm({
             {/* Photo Upload Trigger */}
             {user && (user.role === 'admin' || user.role === 'editor') && (
               <div className="border border-dashed border-slate-300 dark:border-[#252548] rounded-xl p-4 bg-slate-50 dark:bg-[#14142a]">
-                <div className="flex items-center justify-between mb-2">
-                  <label className={`${labelCls} mb-0`}>รูปภาพประกอบ (อัปโหลดผ่าน Supabase Storage)</label>
-                  {photos.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleAnalyzePhotosWithAI}
-                      disabled={isAnalyzingAI || uploading}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm shadow-indigo-500/20 disabled:opacity-40 transition-all cursor-pointer"
-                    >
-                      {isAnalyzingAI ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <Sparkles size={12} className="text-amber-300" />
-                      )}
-                      <span>{isAnalyzingAI ? 'AI กำลังอ่านรูปภาพ...' : '✨ วิเคราะห์รูปภาพด้วย AI Vision'}</span>
-                    </button>
-                  )}
-                </div>
+                <label className={labelCls}>รูปภาพประกอบ (อัปโหลดผ่าน Supabase Storage)</label>
                 <label className="w-full h-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-[#252548] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-colors text-slate-400 hover:text-primary-500">
                   {uploading ? (
                     <span className="text-[10px] font-bold animate-pulse">กำลังอัปโหลด...</span>
@@ -916,17 +881,19 @@ function InspectionForm({
                     type="button"
                     onClick={handleAnalyzePhotosWithAI}
                     disabled={isAnalyzingAI || uploading}
-                    className="print:hidden px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm shadow-indigo-500/20 disabled:opacity-40 transition-all cursor-pointer"
+                    className="print:hidden px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md shadow-indigo-500/20 disabled:opacity-40 transition-all cursor-pointer"
+                    title="วิเคราะห์รูปภาพเพื่อช่วยตั้งหัวข้อ หมวดงาน รายละเอียด และคำบรรยายใต้ภาพอัตโนมัติ"
                   >
                     {isAnalyzingAI ? (
-                      <Loader2 size={12} className="animate-spin" />
+                      <Loader2 size={13} className="animate-spin" />
                     ) : (
-                      <Sparkles size={12} className="text-amber-300" />
+                      <Sparkles size={13} className="text-amber-300" />
                     )}
-                    <span>{isAnalyzingAI ? 'AI กำลังอ่านรูปภาพ...' : '✨ AI ใส่คำบรรยายภาพอัตโนมัติ'}</span>
+                    <span>{isAnalyzingAI ? 'AI กำลังวิเคราะห์รูปภาพ...' : '✨ วิเคราะห์งานจากรูปภาพ (AI Vision)'}</span>
                   </button>
                 )}
               </div>
+
 
               <div className="grid grid-cols-2 gap-4 print:gap-2">
                 {photos.map((photo, idx) => (

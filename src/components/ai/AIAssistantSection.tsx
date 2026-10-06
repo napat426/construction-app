@@ -29,7 +29,7 @@ interface ChatMessage {
 export function AIAssistantSection({ projects, user, aiOcrEnabled = false }: AIAssistantProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash')
+  const [selectedModel, setSelectedModel] = useState('gemini-3.6-flash')
   const [messages, setMessages] = useState<ChatMessage[]>([{
     id: '1',
     role: 'assistant',

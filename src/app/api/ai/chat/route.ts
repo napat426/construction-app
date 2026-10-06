@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     // Determine model to use
-    const modelName = selectedModel || 'gemini-2.5-flash'
+    const modelName = selectedModel || 'gemini-3.6-flash'
     const hasHistory = conversationHistory && conversationHistory.length > 0
 
     // Check cache first (skip for multi-turn conversations)

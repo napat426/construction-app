@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   FileText,
   Printer,
@@ -19,6 +19,9 @@ import {
   Check,
   CheckSquare,
   Square,
+  Upload,
+  UploadCloud,
+  Loader2,
 } from 'lucide-react'
 import type {
   Project,
@@ -32,7 +35,8 @@ import type {
 import type { UserSession } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { computeProjectExtension, computeTaskDates, countWorkingDays } from '@/lib/scheduler'
-import { saveExecutiveSummarySnapshot, deleteExecutiveSummarySnapshot } from '@/app/actions/reports'
+import { saveExecutiveSummarySnapshot, deleteExecutiveSummarySnapshot, uploadReportPhoto } from '@/app/actions/reports'
+import { compressImage } from '@/lib/image'
 
 interface Props {
   project: Project
@@ -114,6 +118,7 @@ interface ExecutiveReportA4CardProps {
   onActionsChange?: (val: string) => void
   onPhotoClick?: (slotIdx: number) => void
   onPhotoCaptionChange?: (slotIdx: number, caption: string) => void
+  onPhotoRemove?: (slotIdx: number) => void
 }
 
 function ExecutiveReportA4Card({
@@ -141,6 +146,7 @@ function ExecutiveReportA4Card({
   onActionsChange,
   onPhotoClick,
   onPhotoCaptionChange,
+  onPhotoRemove,
 }: ExecutiveReportA4CardProps) {
   const actualProg = report.actualProgress ?? 0
   const plannedProg = report.plannedProgress ?? 0
@@ -437,11 +443,11 @@ function ExecutiveReportA4Card({
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
             <ImageIcon size={13} className="text-primary-600" />
-            ภาพถ่ายความคืบหน้าหน้างานจริง (จากใบขอตรวจสอบคุณภาพ 6 ภาพ)
+            ภาพถ่ายความคืบหน้าหน้างานจริง (6 ภาพ)
           </span>
           {isInteractive && (
             <span className="text-[10px] text-slate-400 no-print">
-              (คลิกที่รูปเพื่อเลือกเปลี่ยนรูปภาพจากใบขอตรวจงาน)
+              (คลิกที่รูปเพื่อเลือกจากใบตรวจงานหรืออัพโหลดรูปเอง)
             </span>
           )}
         </div>
@@ -459,7 +465,7 @@ function ExecutiveReportA4Card({
                   className={`overflow-hidden rounded-lg bg-slate-200 dark:bg-slate-800 h-[82px] flex items-center justify-center relative border border-slate-200 dark:border-slate-700 ${
                     isInteractive ? 'cursor-pointer' : ''
                   }`}
-                  title={isInteractive ? 'คลิกเพื่อเลือกภาพจากใบขอตรวจสอบคุณภาพ' : undefined}
+                  title={isInteractive ? 'คลิกเพื่อเลือกหรืออัพโหลดรูปภาพ' : undefined}
                 >
                   {photo?.url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -481,6 +487,19 @@ function ExecutiveReportA4Card({
                         {isInteractive ? `คลิกเลือกรูปภาพ ${slotIdx + 1}` : `ไม่มีรูปภาพ ${slotIdx + 1}`}
                       </span>
                     </div>
+                  )}
+                  {isInteractive && photo?.url && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onPhotoRemove && onPhotoRemove(slotIdx)
+                      }}
+                      className="no-print absolute top-1 left-1 bg-red-600/80 hover:bg-red-700 text-white text-[8px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      title="ลบรูปภาพนี้"
+                    >
+                      ✕ ลบ
+                    </button>
                   )}
                   {isInteractive && (
                     <span className="no-print absolute top-1 right-1 bg-black/60 hover:bg-black text-white text-[8px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
@@ -808,6 +827,76 @@ export function ExecutiveSummaryTab({
 
   // Modal for changing photo
   const [pickerSlotIndex, setPickerSlotIndex] = useState<number | null>(null)
+  const [pickerTab, setPickerTab] = useState<'inspection' | 'upload'>('inspection')
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle custom photo upload for executive summary
+  const handleCustomUpload = useCallback(async (files: FileList | File[]) => {
+    if (pickerSlotIndex === null) return
+    const file = files[0]
+    if (!file || !file.type.startsWith('image/')) {
+      setUploadError('กรุณาเลือกไฟล์รูปภาพ (jpg, png, webp)')
+      return
+    }
+    setIsUploading(true)
+    setUploadError('')
+    try {
+      const compressed = await compressImage(file, 1200, 0.8)
+      const res = await uploadReportPhoto(compressed)
+      if (res.error) {
+        setUploadError(res.error)
+        setIsUploading(false)
+        return
+      }
+      if (res.url) {
+        const next = [...selectedPhotos]
+        next[pickerSlotIndex] = {
+          url: res.url,
+          caption: file.name.replace(/\.[^/.]+$/, ''),
+          inspection_no: 'อัพโหลดเอง',
+        }
+        setSelectedPhotos(next)
+        setPickerSlotIndex(null)
+        setPickerTab('inspection')
+      }
+    } catch (err: any) {
+      setUploadError(err.message || 'เกิดข้อผิดพลาดในการอัพโหลด')
+    } finally {
+      setIsUploading(false)
+    }
+  }, [pickerSlotIndex, selectedPhotos])
+
+  // Drag and Drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (e.dataTransfer.files?.length > 0) {
+      handleCustomUpload(e.dataTransfer.files)
+    }
+  }, [handleCustomUpload])
+
+  // Handle remove photo from slot
+  const handleRemovePhoto = useCallback((slotIdx: number) => {
+    const next = [...selectedPhotos]
+    next[slotIdx] = { url: '', caption: '', inspection_no: '' }
+    setSelectedPhotos(next)
+  }, [selectedPhotos])
 
   // Snapshots History Management
   const [snapshots, setSnapshots] = useState<ExecutiveReportSnapshot[]>([])
@@ -1256,7 +1345,7 @@ export function ExecutiveSummaryTab({
                   )}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  ออกแบบให้จัดพิมพ์พอดีใน 1 หน้ากระดาษ A4 • บันทึกดูย้อนหลังได้ • ดึงรูปจากใบขอตรวจสอบคุณภาพ
+                  ออกแบบให้จัดพิมพ์พอดีใน 1 หน้ากระดาษ A4 • บันทึกดูย้อนหลังได้ • ดึงรูปจากใบตรวจงานหรืออัพโหลดเอง
                 </p>
               </div>
             </div>
@@ -1332,6 +1421,7 @@ export function ExecutiveSummaryTab({
                 }
                 setSelectedPhotos(next)
               }}
+              onPhotoRemove={handleRemovePhoto}
             />
           </div>
 
@@ -1368,78 +1458,195 @@ export function ExecutiveSummaryTab({
       {pickerSlotIndex !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs no-print animate-fade-in">
           <div className="bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-2xl p-5 max-w-2xl w-full shadow-2xl flex flex-col max-h-[85vh]">
+            {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1e1e38]">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <ImageIcon size={16} className="text-primary-600" />
-                  เลือกรูปภาพจากใบขอตรวจสอบคุณภาพ (Inspections)
+                  เลือกรูปภาพสำหรับช่องที่ {pickerSlotIndex + 1}
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  สำหรับใส่ในช่องรูปภาพที่ {pickerSlotIndex + 1}
+                  เลือกจากใบขอตรวจงาน หรืออัพโหลดรูปภาพจากเครื่องของคุณ
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setPickerSlotIndex(null)}
+                onClick={() => { setPickerSlotIndex(null); setPickerTab('inspection'); setUploadError(''); }}
                 className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-[#1e1e38] text-slate-400 cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
-            {/* List of inspection photos */}
+            {/* Tab Switcher */}
+            <div className="flex gap-1 mt-3 bg-slate-100 dark:bg-[#1a1a35] rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setPickerTab('inspection')}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  pickerTab === 'inspection'
+                    ? 'bg-white dark:bg-[#252548] text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                <ImageIcon size={14} />
+                เลือกจากใบขอตรวจงาน ({allInspectionPhotos.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setPickerTab('upload')}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  pickerTab === 'upload'
+                    ? 'bg-white dark:bg-[#252548] text-primary-600 dark:text-primary-400 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                <Upload size={14} />
+                อัพโหลดรูปภาพเอง
+              </button>
+            </div>
+
+            {/* Tab Content */}
             <div className="flex-1 overflow-y-auto py-4">
-              {allInspectionPhotos.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-xs">
-                  ยังไม่มีรูปภาพในใบขอตรวจสอบคุณภาพของโครงการนี้
-                </div>
+              {pickerTab === 'inspection' ? (
+                /* ── Inspection Photos Tab ── */
+                <>
+                  {allInspectionPhotos.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-xs">
+                      <ImageIcon size={32} className="mx-auto mb-2 opacity-30" />
+                      <p>ยังไม่มีรูปภาพในใบขอตรวจสอบคุณภาพของโครงการนี้</p>
+                      <button
+                        type="button"
+                        onClick={() => setPickerTab('upload')}
+                        className="mt-3 text-primary-600 hover:underline font-bold cursor-pointer"
+                      >
+                        → อัพโหลดรูปภาพเองแทน
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-3">
+                      {allInspectionPhotos.map((item, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            const next = [...selectedPhotos]
+                            next[pickerSlotIndex] = {
+                              url: item.url,
+                              caption: `${item.inspection_no}: ${item.title}`,
+                              inspection_no: item.inspection_no,
+                            }
+                            setSelectedPhotos(next)
+                            setPickerSlotIndex(null)
+                            setPickerTab('inspection')
+                          }}
+                          className="group flex flex-col text-left rounded-xl overflow-hidden border border-slate-200 dark:border-[#252548] hover:border-primary-500 hover:ring-2 hover:ring-primary-500/20 transition-all cursor-pointer bg-slate-50 dark:bg-[#171732]"
+                        >
+                          <div className="h-28 bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={item.url}
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          </div>
+                          <div className="p-2">
+                            <span className="text-[9px] font-bold font-mono text-primary-600 dark:text-primary-400 block truncate">
+                              {item.inspection_no}
+                            </span>
+                            <p className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 line-clamp-1">
+                              {item.title}
+                            </p>
+                            <span className="text-[9px] text-slate-400 block mt-0.5">
+                              {item.work_type}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="grid grid-cols-3 gap-3">
-                  {allInspectionPhotos.map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        const next = [...selectedPhotos]
-                        next[pickerSlotIndex] = {
-                          url: item.url,
-                          caption: `${item.inspection_no}: ${item.title}`,
-                          inspection_no: item.inspection_no,
-                        }
-                        setSelectedPhotos(next)
-                        setPickerSlotIndex(null)
-                      }}
-                      className="group flex flex-col text-left rounded-xl overflow-hidden border border-slate-200 dark:border-[#252548] hover:border-primary-500 hover:ring-2 hover:ring-primary-500/20 transition-all cursor-pointer bg-slate-50 dark:bg-[#171732]"
-                    >
-                      <div className="h-28 bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.url}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <div className="p-2">
-                        <span className="text-[9px] font-bold font-mono text-primary-600 dark:text-primary-400 block truncate">
-                          {item.inspection_no}
-                        </span>
-                        <p className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 line-clamp-1">
-                          {item.title}
+                /* ── Upload Tab ── */
+                <div className="flex flex-col items-center justify-center py-6">
+                  {/* Drag & Drop Zone */}
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => !isUploading && fileInputRef.current?.click()}
+                    className={`w-full max-w-md border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                      isDragging
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10 scale-[1.02]'
+                        : 'border-slate-300 dark:border-[#353558] hover:border-primary-400 hover:bg-slate-50 dark:hover:bg-[#1a1a35]'
+                    } ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 size={40} className="text-primary-600 animate-spin mb-3" />
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">กำลังอัพโหลดรูปภาพ...</p>
+                        <p className="text-xs text-slate-400 mt-1">กรุณารอสักครู่</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-colors ${
+                          isDragging
+                            ? 'bg-primary-100 dark:bg-primary-500/20'
+                            : 'bg-slate-100 dark:bg-[#1e1e38]'
+                        }`}>
+                          <UploadCloud size={32} className={`transition-colors ${
+                            isDragging ? 'text-primary-600' : 'text-slate-400'
+                          }`} />
+                        </div>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
+                          {isDragging ? 'ปล่อยเพื่ออัพโหลด' : 'ลากไฟล์มาวาง หรือคลิกเพื่อเลือกรูป'}
                         </p>
-                        <span className="text-[9px] text-slate-400 block mt-0.5">
-                          {item.work_type}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+                        <p className="text-xs text-slate-400">
+                          รองรับ JPG, PNG, WebP • ไฟล์จะถูกบีบอัดอัตโนมัติก่อนอัพโหลด
+                        </p>
+                      </>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleCustomUpload(e.target.files)
+                        }
+                        e.target.value = ''
+                      }}
+                      disabled={isUploading}
+                    />
+                  </div>
+
+                  {/* Upload Error */}
+                  {uploadError && (
+                    <div className="mt-4 w-full max-w-md bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl p-3 text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-2">
+                      <span>⚠️</span> {uploadError}
+                    </div>
+                  )}
+
+                  {/* Tips */}
+                  <div className="mt-6 w-full max-w-md bg-slate-50 dark:bg-[#16162e] rounded-xl p-4 border border-slate-100 dark:border-[#252548]">
+                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-2">💡 คำแนะนำ</p>
+                    <ul className="text-[10px] text-slate-500 dark:text-slate-400 space-y-1">
+                      <li>• รูปจะถูกบีบอัดเหลือไม่เกิน 1200px เพื่อประหยัดพื้นที่</li>
+                      <li>• แนะนำให้ใช้รูปภาพหน้างานจริงเพื่อความน่าเชื่อถือ</li>
+                      <li>• รูปจะถูกจัดเก็บใน Supabase Storage อย่างปลอดภัย</li>
+                      <li>• สามารถแก้ไขคำบรรยายภาพได้ภายหลัง</li>
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>
 
+            {/* Footer */}
             <div className="pt-3 border-t border-slate-100 dark:border-[#1e1e38] flex justify-end">
               <button
                 type="button"
-                onClick={() => setPickerSlotIndex(null)}
+                onClick={() => { setPickerSlotIndex(null); setPickerTab('inspection'); setUploadError(''); }}
                 className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#252548] text-slate-600 dark:text-slate-300 hover:bg-slate-50 cursor-pointer"
               >
                 ปิดหน้าต่าง

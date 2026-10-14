@@ -22,6 +22,7 @@ import {
   Upload,
   UploadCloud,
   Loader2,
+  Eye,
 } from 'lucide-react'
 import type {
   Project,
@@ -37,6 +38,7 @@ import { supabase } from '@/lib/supabase'
 import { computeProjectExtension, computeTaskDates, countWorkingDays } from '@/lib/scheduler'
 import { saveExecutiveSummarySnapshot, deleteExecutiveSummarySnapshot, uploadReportPhoto } from '@/app/actions/reports'
 import { compressImage } from '@/lib/image'
+import { ReportPresentationModal } from './ReportPresentationModal'
 
 interface Props {
   project: Project
@@ -986,6 +988,31 @@ export function ExecutiveSummaryTab({
     return [liveReportObj, ...snapshots]
   }, [liveReportObj, snapshots])
 
+  // Fullscreen Presentation Mode State
+  const [isPresentationOpen, setIsPresentationOpen] = useState(false)
+  const [presentationReportId, setPresentationReportId] = useState<string>('live')
+
+  const currentPresentationReport = useMemo(() => {
+    return allAvailableReports.find(r => r.id === presentationReportId) || currentActiveReport
+  }, [allAvailableReports, presentationReportId, currentActiveReport])
+
+  const presentationIndex = useMemo(() => {
+    const idx = allAvailableReports.findIndex(r => r.id === currentPresentationReport.id)
+    return idx >= 0 ? idx : 0
+  }, [allAvailableReports, currentPresentationReport])
+
+  const handlePrevPresentation = () => {
+    if (presentationIndex > 0) {
+      setPresentationReportId(allAvailableReports[presentationIndex - 1].id)
+    }
+  }
+
+  const handleNextPresentation = () => {
+    if (presentationIndex < allAvailableReports.length - 1) {
+      setPresentationReportId(allAvailableReports[presentationIndex + 1].id)
+    }
+  }
+
   // Save current snapshot
   const handleSaveSnapshot = async () => {
     setIsSaving(true)
@@ -1102,8 +1129,8 @@ export function ExecutiveSummaryTab({
     }, 150)
   }
 
-  const handleSinglePrint = () => {
-    setBatchPrintReports([currentActiveReport])
+  const handleSinglePrint = (target?: ExecutiveReportSnapshot) => {
+    setBatchPrintReports([target || currentActiveReport])
     setTimeout(() => {
       window.print()
     }, 150)
@@ -1374,10 +1401,24 @@ export function ExecutiveSummaryTab({
                 <span>✨ ร่างข้อความอัตโนมัติ</span>
               </button>
 
+              {/* Presentation Mode Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setPresentationReportId(selectedSnapshotId)
+                  setIsPresentationOpen(true)
+                }}
+                title="เปิดโหมดนำเสนอเต็มหน้าจอ ซูมเข้า-ออก ชัดเจน สำหรับการประชุม"
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-900 text-white dark:bg-purple-600 dark:hover:bg-purple-700 shadow-xs transition-colors cursor-pointer"
+              >
+                <Eye size={14} className="text-amber-400" />
+                <span>📽 โหมดนำเสนอ / เต็มจอ</span>
+              </button>
+
               {/* Print Single Button */}
               <button
                 type="button"
-                onClick={handleSinglePrint}
+                onClick={() => handleSinglePrint()}
                 className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-primary-600 hover:bg-primary-700 text-white shadow-xs transition-colors cursor-pointer"
               >
                 <Printer size={14} />
@@ -1654,6 +1695,41 @@ export function ExecutiveSummaryTab({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Presentation Mode Modal */}
+      {isPresentationOpen && (
+        <ReportPresentationModal
+          title={`สรุปสถานะโครงการ - ${project.name}`}
+          subtitle={`${currentPresentationReport.title} • ประจำวันที่ ${currentPresentationReport.reportDate ? new Date(currentPresentationReport.reportDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}`}
+          currentIndex={presentationIndex}
+          totalCount={allAvailableReports.length}
+          onPrev={presentationIndex > 0 ? handlePrevPresentation : undefined}
+          onNext={presentationIndex < allAvailableReports.length - 1 ? handleNextPresentation : undefined}
+          onPrint={() => handleSinglePrint(currentPresentationReport)}
+          onClose={() => setIsPresentationOpen(false)}
+        >
+          <div className="w-[210mm] min-h-[297mm] bg-white p-8 shadow-2xl rounded-sm text-slate-900">
+            <ExecutiveReportA4Card
+              project={project}
+              report={currentPresentationReport}
+              contractAmount={contractAmount}
+              totalContractDays={totalContractDays}
+              daysRemaining={daysRemaining}
+              timeProgressPercent={timeProgressPercent}
+              currentEndDate={currentEndDate}
+              forecastCompletion={forecastCompletion}
+              paidMilestones={paidMilestones}
+              paidAmount={paidAmount}
+              paidPercent={paidPercent}
+              remainingDisbursement={remainingDisbursement}
+              rainyDaysCount={rainyDaysCount}
+              totalDaysObserved={totalDaysObserved}
+              rainPercentage={rainPercentage}
+              isInteractive={false}
+            />
+          </div>
+        </ReportPresentationModal>
       )}
     </div>
   )

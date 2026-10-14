@@ -20,9 +20,11 @@ import {
   Sparkles,
   Loader2,
   Wand2,
+  Eye,
 } from 'lucide-react'
 import type { Project, Inspection, InspectionStatus, ReportPhoto } from '@/lib/types'
 import { createInspection, updateInspection, deleteInspection, updateInspectionsOrder, uploadReportPhoto } from '@/app/actions/reports'
+import { ReportPresentationModal } from './ReportPresentationModal'
 
 import type { UserSession } from '@/lib/auth'
 
@@ -62,12 +64,106 @@ function StatusIcon({ status }: { status: InspectionStatus }) {
   return <Clock size={13} className="text-amber-500" />
 }
 
+export function InspectionDocumentCard({ project, item }: { project: Project; item: Inspection }) {
+  const meta = STATUS_META[item.status]
+  return (
+    <div className="insp-print-page pb-4 font-sans text-slate-900">
+      {/* --- PRINT HEADER --- */}
+      <div className="text-center border-b-2 border-slate-900 pb-3 mb-5">
+        <h1 className="text-xl font-black mb-1 tracking-tight text-slate-900">ใบขอส่งตรวจสอบคุณภาพงาน (Inspection Report)</h1>
+        <h2 className="text-xs font-bold text-slate-600">โครงการ: {project.name}</h2>
+        <div className="flex justify-between mt-3 text-xs font-semibold text-slate-800">
+          <span>เลขที่ใบตรวจ: <strong className="font-mono">{item.inspection_no}</strong></span>
+          <span>วันที่ขอตรวจ: <strong>{item.request_date ? new Date(item.request_date).toLocaleDateString('th-TH', { dateStyle: 'long' }) : '-'}</strong></span>
+        </div>
+      </div>
+
+      {/* --- PRINT TABLE --- */}
+      <div className="mb-5 overflow-hidden rounded-lg border border-slate-300">
+        <table className="w-full text-left text-xs border-collapse">
+          <tbody>
+            <tr>
+              <td className="border border-slate-300 p-2.5 font-bold w-1/4 bg-slate-100 text-slate-700">เลขที่ใบขอตรวจ</td>
+              <td className="border border-slate-300 p-2.5 font-mono font-bold text-slate-900">{item.inspection_no}</td>
+            </tr>
+            <tr>
+              <td className="border border-slate-300 p-2.5 font-bold bg-slate-100 text-slate-700">ประเภทงาน / หมวดงาน</td>
+              <td className="border border-slate-300 p-2.5 text-slate-800">{item.work_type}</td>
+            </tr>
+            <tr>
+              <td className="border border-slate-300 p-2.5 font-bold bg-slate-100 text-slate-700">หัวข้อที่ขอตรวจ</td>
+              <td className="border border-slate-300 p-2.5 font-semibold text-slate-900">{item.title}</td>
+            </tr>
+            <tr>
+              <td className="border border-slate-300 p-2.5 font-bold bg-slate-100 text-slate-700">ผู้ตรวจสอบ / ผู้ควบคุม</td>
+              <td className="border border-slate-300 p-2.5 text-slate-800">{item.inspector || '-'}</td>
+            </tr>
+            <tr>
+              <td className="border border-slate-300 p-2.5 font-bold bg-slate-100 text-slate-700">สถานะการตรวจสอบ</td>
+              <td className="border border-slate-300 p-2.5 font-bold">
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs border ${meta.badgeCls}`}>
+                  <StatusIcon status={item.status} /> {meta.label}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td className="border border-slate-300 p-2.5 font-bold bg-slate-100 text-slate-700 align-top">หมายเหตุ / ผลการตรวจ</td>
+              <td className="border border-slate-300 p-2.5 min-h-24 whitespace-pre-wrap leading-relaxed text-slate-800">{item.note || '-'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* --- PHOTOS GRID --- */}
+      {item.photo_urls && item.photo_urls.length > 0 && (
+        <div className="insp-photo-section mt-4">
+          <h4 className="text-xs font-bold text-slate-900 mb-2 flex items-center justify-between">
+            <span>รูปภาพประกอบการขอตรวจ ({item.photo_urls.length} รูป)</span>
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {item.photo_urls.map((pStr, idx) => {
+              const parts = pStr.split('|||')
+              const url = parts[0]
+              const caption = parts[1] || ''
+              return (
+                <div
+                  key={idx}
+                  className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex flex-col shadow-xs"
+                >
+                  <div className="h-44 overflow-hidden bg-slate-100 flex items-center justify-center">
+                    <img src={url} alt={`Inspection Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                  {caption && (
+                    <div className="p-2 text-[11px] font-medium text-slate-700 bg-white border-t border-slate-100 leading-tight">
+                      {caption}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function InspectionsTab({ project, data, user }: Props) {
   const [items, setItems] = useState<Inspection[]>(data)
   const [selectedId, setSelectedId] = useState<string | null>(data.length > 0 ? data[0].id : null)
   const [selectedIds, setSelectedIds] = useState<string[]>(data.map(d => d.id))
   const [isPending, startTransition] = useTransition()
   const [isCreating, setIsCreating] = useState(false)
+
+  // Fullscreen Presentation Mode State
+  const [presentingItem, setPresentingItem] = useState<Inspection | null>(null)
+  const presentingIndex = presentingItem ? items.findIndex(i => i.id === presentingItem.id) : 0
+  const handlePrevInsp = () => {
+    if (presentingIndex > 0) setPresentingItem(items[presentingIndex - 1])
+  }
+  const handleNextInsp = () => {
+    if (presentingIndex < items.length - 1) setPresentingItem(items[presentingIndex + 1])
+  }
 
   // Sync state if props change (revalidation)
   if (JSON.stringify(data) !== JSON.stringify(items) && !isPending) {
@@ -264,9 +360,22 @@ export function InspectionsTab({ project, data, user }: Props) {
                         <p className="text-xs font-bold text-primary-600 dark:text-primary-400 truncate">
                           {item.inspection_no}
                         </p>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${meta.badgeCls}`}>
-                          {meta.label}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${meta.badgeCls}`}>
+                            {meta.label}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setPresentingItem(item)
+                            }}
+                            title="เปิดดูแบบเต็มจอ / พรีเซนต์"
+                            className="p-1 rounded-md text-slate-400 hover:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <Eye size={12} />
+                          </button>
+                        </div>
                       </div>
                       <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate mt-1">
                         {item.title}
@@ -323,6 +432,7 @@ export function InspectionsTab({ project, data, user }: Props) {
             onClose={() => setIsCreating(false)}
             onDelete={handleDelete}
             onPrint={handlePrint}
+            onPresent={setPresentingItem}
             user={user}
             nextInspectionNo={getNextInspectionNo()}
           />
@@ -390,82 +500,27 @@ export function InspectionsTab({ project, data, user }: Props) {
       {items
         .filter((item) => selectedIds.includes(item.id))
         .map((item) => (
-          <div key={item.id} className="insp-print-page pb-4">
-            {/* --- PRINT HEADER --- */}
-            <div className="text-center border-b-2 border-black pb-3 mb-4">
-              <h1 className="text-lg font-black mb-1">ใบขอส่งตรวจสอบคุณภาพงาน (Inspection Report)</h1>
-              <h2 className="text-xs font-bold text-slate-600">โครงการ: {project.name}</h2>
-              <div className="flex justify-between mt-3 text-[10px] font-semibold text-slate-800">
-                <span>เลขที่ใบตรวจ: {item.inspection_no}</span>
-                <span>วันที่ขอตรวจ: {item.request_date ? new Date(item.request_date).toLocaleDateString('th-TH', { dateStyle: 'long' }) : '-'}</span>
-              </div>
-            </div>
-
-            {/* --- PRINT TABLE --- */}
-            <div className="mb-4">
-              <table className="w-full text-left text-[11px] border-collapse border border-black">
-                <tbody>
-                  <tr>
-                    <td className="border border-black p-2 font-bold w-1/4 bg-slate-100">เลขที่ใบขอตรวจ</td>
-                    <td className="border border-black p-2 font-mono font-bold">{item.inspection_no}</td>
-                  </tr>
-                  <tr>
-                    <td className="border border-black p-2 font-bold bg-slate-100">ประเภทงาน / หมวดงาน</td>
-                    <td className="border border-black p-2">{item.work_type}</td>
-                  </tr>
-                  <tr>
-                    <td className="border border-black p-2 font-bold bg-slate-100">หัวข้อที่ขอตรวจ</td>
-                    <td className="border border-black p-2 font-semibold">{item.title}</td>
-                  </tr>
-                  <tr>
-                    <td className="border border-black p-2 font-bold bg-slate-100">ผู้ตรวจสอบ / ผู้ควบคุม</td>
-                    <td className="border border-black p-2">{item.inspector || '-'}</td>
-                  </tr>
-                  <tr>
-                    <td className="border border-black p-2 font-bold bg-slate-100">สถานะการตรวจสอบ</td>
-                    <td className="border border-black p-2 font-bold">
-                      {STATUS_META[item.status].label}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="border border-black p-2 font-bold bg-slate-100">หมายเหตุ / ผลการตรวจ</td>
-                    <td className="border border-black p-2 min-h-24 whitespace-pre-wrap leading-relaxed">{item.note || '-'}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* --- PHOTOS GRID --- */}
-            {item.photo_urls && item.photo_urls.length > 0 && (
-              <div className="insp-photo-section mt-2">
-                <h4 className="text-[10px] font-bold text-black mb-1 flex-shrink-0">
-                  รูปภาพประกอบการขอตรวจ (Photos)
-                </h4>
-                <div className="insp-photo-grid">
-                  {item.photo_urls.map((pStr, idx) => {
-                    const parts = pStr.split('|||')
-                    const url = parts[0]
-                    const caption = parts[1] || ''
-                    return (
-                      <div
-                        key={idx}
-                        className="insp-photo-card"
-                      >
-                        <img src={url} alt={`Inspection Photo ${idx + 1}`} />
-                        {caption && (
-                          <div className="insp-photo-caption">
-                            {caption}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+          <InspectionDocumentCard key={item.id} project={project} item={item} />
         ))}
     </div>
+
+    {/* Presentation Mode Modal */}
+    {presentingItem && (
+      <ReportPresentationModal
+        title={`ใบขอส่งตรวจสอบคุณภาพงาน (${presentingItem.inspection_no})`}
+        subtitle={`โครงการ: ${project.name} • ${presentingItem.title}`}
+        currentIndex={presentingIndex}
+        totalCount={items.length}
+        onPrev={presentingIndex > 0 ? handlePrevInsp : undefined}
+        onNext={presentingIndex < items.length - 1 ? handleNextInsp : undefined}
+        onPrint={() => handlePrint(presentingItem)}
+        onClose={() => setPresentingItem(null)}
+      >
+        <div className="w-[210mm] min-h-[297mm] bg-white p-10 shadow-2xl rounded-sm text-slate-900">
+          <InspectionDocumentCard project={project} item={presentingItem} />
+        </div>
+      </ReportPresentationModal>
+    )}
     </>
   )
 }
@@ -477,6 +532,7 @@ function InspectionForm({
   onClose,
   onDelete,
   onPrint,
+  onPresent,
   user,
   nextInspectionNo,
 }: {
@@ -485,6 +541,7 @@ function InspectionForm({
   onClose: () => void
   onDelete: (id: string) => void
   onPrint: (item: Inspection) => void
+  onPresent?: (item: Inspection) => void
   user?: UserSession | null
   nextInspectionNo: string
 }) {
@@ -671,6 +728,17 @@ function InspectionForm({
             {item ? 'แก้ไขใบตรวจสอบคุณภาพ' : 'สร้างใบตรวจสอบคุณภาพใหม่'}
           </h3>
           <div className="flex items-center gap-2">
+            {item && onPresent && (
+              <button
+                type="button"
+                onClick={() => onPresent(item)}
+                title="เปิดโหมดนำเสนอเต็มหน้าจอ ซูมเข้า-ออก สำหรับการประชุม"
+                className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white dark:bg-purple-600 dark:hover:bg-purple-700 transition-colors shadow-xs cursor-pointer"
+              >
+                <Eye size={14} className="text-amber-400" />
+                <span>โหมดนำเสนอ</span>
+              </button>
+            )}
             {item && (
               <button
                 type="button"

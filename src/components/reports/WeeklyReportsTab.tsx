@@ -11,6 +11,7 @@ import {
   ArrowUp,
   ArrowDown,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import type {
   Project,
@@ -21,6 +22,7 @@ import type {
   DailyReport,
   Inspection,
 } from "@/lib/types";
+import { ReportPresentationModal } from "./ReportPresentationModal";
 import {
   createWeeklyReport,
   updateWeeklyReport,
@@ -197,6 +199,18 @@ export function WeeklyReportsTab({
     null,
   );
   const [isCreating, setIsCreating] = useState(false);
+
+  // Fullscreen Presentation Mode State
+  const [presentingItem, setPresentingItem] = useState<WeeklyReport | null>(null);
+  const presentingIndex = presentingItem ? items.findIndex((i: WeeklyReport) => i.id === presentingItem.id) : 0;
+
+  const handlePrevWeekly = () => {
+    if (presentingIndex > 0) setPresentingItem(items[presentingIndex - 1]);
+  };
+
+  const handleNextWeekly = () => {
+    if (presentingIndex < items.length - 1) setPresentingItem(items[presentingIndex + 1]);
+  };
 
   if (JSON.stringify(data) !== JSON.stringify(items) && !isPending) {
     setItems(data);
@@ -396,9 +410,22 @@ export function WeeklyReportsTab({
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
-                      {item.date_range || "ไม่ระบุช่วงวันที่"}
-                    </p>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {item.date_range || "ไม่ระบุช่วงวันที่"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPresentingItem(item);
+                        }}
+                        title="เปิดดูแบบเต็มจอ / พรีเซนต์"
+                        className="p-1 rounded-md text-slate-400 hover:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
+                      >
+                        <Eye size={13} />
+                      </button>
+                    </div>
                     <p className="text-xs font-medium text-slate-500 truncate mt-0.5">
                       {item.summary || "ไม่มีบทสรุป"}
                     </p>
@@ -427,6 +454,7 @@ export function WeeklyReportsTab({
             onSaveSuccess={handleSaveSuccess}
             onDelete={handleDelete}
             onPrint={handlePrint}
+            onPresent={setPresentingItem}
             userRole={userRole}
           />
         ) : (
@@ -489,6 +517,37 @@ export function WeeklyReportsTab({
           </div>
         ))}
     </div>
+
+    {/* Presentation Mode Modal */}
+    {presentingItem && (
+      <ReportPresentationModal
+        title={`รายงานประจำสัปดาห์ - ${project.name}`}
+        subtitle={`ช่วงวันที่ ${presentingItem.date_range || '-'}`}
+        currentIndex={presentingIndex}
+        totalCount={items.length}
+        onPrev={presentingIndex > 0 ? handlePrevWeekly : undefined}
+        onNext={presentingIndex < items.length - 1 ? handleNextWeekly : undefined}
+        onPrint={() => handlePrint(presentingItem)}
+        onClose={() => setPresentingItem(null)}
+      >
+        <div className="w-[210mm] min-h-[297mm] bg-white p-8 shadow-2xl rounded-sm text-slate-900">
+          <WeeklyReportForm
+            project={project}
+            item={presentingItem}
+            tasks={tasks}
+            milestones={milestones}
+            amendments={amendments}
+            dailyReports={dailyReports}
+            inspections={inspections}
+            onClose={() => {}}
+            onDelete={() => {}}
+            onPrint={() => {}}
+            userRole={null}
+            isPrintOnly={true}
+          />
+        </div>
+      </ReportPresentationModal>
+    )}
     </>
   );
 }
@@ -505,6 +564,7 @@ function WeeklyReportForm({
   onSaveSuccess,
   onDelete,
   onPrint,
+  onPresent,
   userRole,
   isPrintOnly = false,
 }: {
@@ -519,6 +579,7 @@ function WeeklyReportForm({
   onSaveSuccess?: (savedItem: WeeklyReport) => void;
   onDelete: (id: string) => void;
   onPrint: (item: WeeklyReport) => void;
+  onPresent?: (item: WeeklyReport) => void;
   userRole?: string | null;
   isPrintOnly?: boolean;
 }) {
@@ -1421,6 +1482,17 @@ function WeeklyReportForm({
               {item ? "แก้ไขรายงานประจำสัปดาห์" : "สร้างรายงานประจำสัปดาห์"}
             </h3>
             <div className="flex items-center gap-2">
+              {item && onPresent && (
+                <button
+                  type="button"
+                  onClick={() => onPresent(item)}
+                  title="เปิดโหมดนำเสนอเต็มหน้าจอ ซูมเข้า-ออก สำหรับการประชุม"
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white dark:bg-purple-600 dark:hover:bg-purple-700 transition-colors shadow-xs cursor-pointer"
+                >
+                  <Eye size={14} className="text-amber-400" />
+                  <span>โหมดนำเสนอ</span>
+                </button>
+              )}
               {item && userRole && (
                 <button
                   type="button"

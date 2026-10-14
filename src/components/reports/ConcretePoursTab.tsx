@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Edit2, Trash2, GripVertical, AlertTriangle, Printer, Calendar, Info } from 'lucide-react'
+import { Plus, Edit2, Trash2, GripVertical, AlertTriangle, Printer, Calendar, Info, Eye } from 'lucide-react'
 import type { Project, WBSTask, ConcretePour } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 import { ConcretePourModal } from './ConcretePourModal'
 import { deleteConcretePour, reorderConcretePours } from '@/app/actions/concrete'
+import { ReportPresentationModal } from './ReportPresentationModal'
 
 interface Props {
   project: Project
@@ -19,6 +20,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
   const [modalOpen, setModalOpen] = useState(false)
   const [editData, setEditData] = useState<ConcretePour | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>(() => initialPours.map((p) => p.id))
+  const [isPresentationOpen, setIsPresentationOpen] = useState(false)
   
   // Drag and Drop State
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
@@ -157,6 +159,18 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
         </div>
         
         <div className="flex items-center gap-2">
+          {user && (
+            <button
+              type="button"
+              onClick={() => setIsPresentationOpen(true)}
+              title="เปิดโหมดนำเสนอเต็มหน้าจอ ซูมเข้า-ออก สำหรับการประชุม"
+              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 dark:bg-purple-600 dark:hover:bg-purple-700 rounded-xl transition-colors shadow-sm cursor-pointer"
+            >
+              <Eye size={16} className="text-amber-400" />
+              <span>โหมดนำเสนอ</span>
+            </button>
+          )}
+
           {user && (
             <button
               onClick={() => window.print()}
@@ -441,7 +455,7 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
         </div>
       </div>
 
-      {/* ── Modal ── */}
+      {/* Modal */}
       {modalOpen && (
         <ConcretePourModal
           project_id={project.id}
@@ -450,6 +464,174 @@ export function ConcretePoursTab({ project, tasks, pours: initialPours, user }: 
           existingPoursCount={pours.length}
           onClose={() => setModalOpen(false)}
         />
+      )}
+
+      {/* Presentation Mode Modal */}
+      {isPresentationOpen && (
+        <ReportPresentationModal
+          title={`บันทึกการเทคอนกรีต (Concrete Pour Log) - ${project.name}`}
+          subtitle={`ทั้งหมด ${pours.length} รายการ • ติดตามอายุบ่มและค่า Slump`}
+          onPrint={() => window.print()}
+          onClose={() => setIsPresentationOpen(false)}
+        >
+          <div className="w-[280mm] min-h-[200mm] bg-white p-8 shadow-2xl rounded-sm text-slate-900 font-sans">
+            {/* Header */}
+            <div className="text-center border-b-2 border-slate-900 pb-4 mb-5">
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">บันทึกการเทคอนกรีต (Concrete Pour Log)</h1>
+              <h2 className="text-sm font-bold text-slate-600 mt-1">โครงการ: {project.name}</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                รายงานสถานะ ณ วันที่ {new Date().toLocaleDateString('th-TH', { dateStyle: 'long' })} • รวมทั้งหมด {pours.length} รายการ
+              </p>
+            </div>
+
+            {/* Summary KPI Cards */}
+            <div className="grid grid-cols-4 gap-3 mb-6">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                <span className="text-[11px] font-bold text-slate-500">จำนวนการเท</span>
+                <p className="text-xl font-black text-slate-900 mt-0.5">{pours.length} รายการ</p>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                <span className="text-[11px] font-bold text-slate-500">ปริมาณคอนกรีตรวม</span>
+                <p className="text-xl font-black text-blue-600 mt-0.5">
+                  {pours.reduce((sum, p) => sum + (Number(p.volume) || 0), 0).toFixed(1)} คิว
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                <span className="text-[11px] font-bold text-slate-500">บ่มครบกำหนด (28 วัน)</span>
+                <p className="text-xl font-black text-emerald-600 mt-0.5">
+                  {pours.filter(p => {
+                    const age = Math.floor((new Date().getTime() - new Date(p.pour_date).getTime()) / (1000 * 60 * 60 * 24));
+                    return age >= 28;
+                  }).length} รายการ
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                <span className="text-[11px] font-bold text-slate-500">อยู่ระหว่างการบ่ม</span>
+                <p className="text-xl font-black text-amber-600 mt-0.5">
+                  {pours.filter(p => {
+                    const age = Math.floor((new Date().getTime() - new Date(p.pour_date).getTime()) / (1000 * 60 * 60 * 24));
+                    return age < 28;
+                  }).length} รายการ
+                </p>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="border border-slate-300 rounded-lg overflow-hidden mb-6">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-slate-300">
+                  <tr>
+                    <th className="p-2.5 text-center">ลำดับ</th>
+                    <th className="p-2.5 text-center">เลขที่ / วันที่เท</th>
+                    <th className="p-2.5">ส่วนโครงสร้าง / กำลังอัด</th>
+                    <th className="p-2.5 text-center">ปริมาณ (m³)</th>
+                    <th className="p-2.5 text-center">สลัมป์ (จริง/สเปก)</th>
+                    <th className="p-2.5 text-center min-w-[240px]">สถานะการบ่ม (28 วัน)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {pours.map((pour, idx) => {
+                    const curing28 = calculateCuring(pour.pour_date, 28)
+                    const curing7 = calculateCuring(pour.pour_date, 7)
+                    let slumpWarning = false
+                    if (pour.slump_actual != null && pour.slump_spec != null) {
+                      const tolerance = pour.slump_tolerance ?? 2.5
+                      if (Math.abs(pour.slump_actual - pour.slump_spec) > tolerance) {
+                        slumpWarning = true
+                      }
+                    }
+
+                    return (
+                      <tr key={pour.id} className="hover:bg-slate-50/50">
+                        <td className="p-2.5 text-center font-bold text-slate-500">{idx + 1}</td>
+                        <td className="p-2.5 text-center">
+                          <p className="font-mono font-bold text-slate-900">{pour.pour_no}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {new Date(pour.pour_date).toLocaleDateString('th-TH', { dateStyle: 'medium' })}
+                          </p>
+                        </td>
+                        <td className="p-2.5">
+                          <p className="font-bold text-slate-900">{pour.structure_element}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {pour.concrete_grade || '-'} • {pour.supplier || '-'}
+                          </p>
+                        </td>
+                        <td className="p-2.5 text-center font-mono font-bold text-slate-900">
+                          {pour.volume ? `${Number(pour.volume).toFixed(1)}` : '-'}
+                        </td>
+                        <td className="p-2.5 text-center">
+                          {pour.slump_actual != null ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                              slumpWarning ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}>
+                              {slumpWarning ? '⚠️ ' : ''}{pour.slump_actual} / {pour.slump_spec ?? '-'}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className="p-2.5">
+                          <div className="flex flex-col gap-1 min-w-[220px]">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="font-bold text-slate-500">7 วัน:</span>
+                              <span className="font-mono text-slate-600">
+                                {curing7.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
+                                curing7.status === 'passed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {curing7.status === 'passed' ? '✓ ผ่านแล้ว' : `เหลือ ${curing7.diffDays} วัน`}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="font-bold text-slate-500">28 วัน:</span>
+                              <span className="font-mono text-slate-600">
+                                {curing28.targetDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                              </span>
+                              <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
+                                curing28.status === 'passed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                              }`}>
+                                {curing28.status === 'passed' ? '✓ ผ่านแล้ว' : `เหลือ ${curing28.diffDays} วัน`}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Attached Photos */}
+            {pours.some(p => p.photos && p.photos.length > 0) && (
+              <div className="mt-6 border-t border-slate-200 pt-4">
+                <h4 className="text-xs font-bold text-slate-900 mb-3">รูปภาพประกอบการเทคอนกรีต</h4>
+                <div className="grid grid-cols-4 gap-3">
+                  {pours.flatMap(p => (p.photos || []).map((url, i) => ({ url, pour_no: p.pour_no, name: p.structure_element, idx: i }))).slice(0, 8).map((photo, pIdx) => (
+                    <div key={pIdx} className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 shadow-xs">
+                      <div className="h-28 overflow-hidden bg-slate-100">
+                        <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="p-1.5 text-[10px] text-slate-600 font-medium truncate bg-white border-t border-slate-100">
+                        {photo.pour_no} - {photo.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Signature */}
+            <div className="mt-8 flex justify-end text-center text-xs font-bold border-t border-slate-200 pt-4">
+              <div className="w-[220px]">
+                <p className="mb-8">ผู้ควบคุมงาน</p>
+                <p className="text-slate-400">________________________</p>
+                <p className="text-[10px] text-slate-600 mt-1.5">
+                  ( {project.supervisor || '...........................................'} )
+                </p>
+              </div>
+            </div>
+          </div>
+        </ReportPresentationModal>
       )}
     </div>
   )

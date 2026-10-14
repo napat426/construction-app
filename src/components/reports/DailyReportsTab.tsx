@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useEffect, useRef } from 'react'
+import { useState, useTransition, useEffect, useRef, useMemo } from 'react'
 import {
   FileClock,
   Plus,
@@ -20,7 +20,8 @@ import {
   ClipboardPaste,
   Loader2,
   Sparkles,
-  ListTodo
+  ListTodo,
+  Eye,
 } from 'lucide-react'
 import type { Project, DailyReport, ResourceItem, ReportPhoto } from '@/lib/types'
 import { 
@@ -38,7 +39,8 @@ import { getWeatherText, getWeatherIcon } from '@/lib/weatherUtils'
 import type { UserSession } from '@/lib/auth'
 
 import { DefaultSettingsModal } from './DefaultSettingsModal'
-import { BatchPrintPreview } from './BatchPrintPreview'
+import { BatchPrintPreview, DailyReportDocumentCard } from './BatchPrintPreview'
+import { ReportPresentationModal } from './ReportPresentationModal'
 
 interface Props {
   project: Project
@@ -109,6 +111,29 @@ export function DailyReportsTab({ project, data, user }: Props) {
   const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false)
   
   const [isPending, startTransition] = useTransition()
+
+  // Fullscreen Presentation Mode State
+  const [presentingReport, setPresentingReport] = useState<DailyReport | null>(null)
+
+  const sortedDailyReports = useMemo(() => {
+    return [...items].sort((a, b) => new Date(a.report_date).getTime() - new Date(b.report_date).getTime())
+  }, [items])
+
+  const presentingIndex = presentingReport
+    ? sortedDailyReports.findIndex((r: DailyReport) => r.id === presentingReport.id)
+    : 0
+
+  const handlePrevDaily = () => {
+    if (presentingIndex > 0) {
+      setPresentingReport(sortedDailyReports[presentingIndex - 1])
+    }
+  }
+
+  const handleNextDaily = () => {
+    if (presentingIndex < sortedDailyReports.length - 1) {
+      setPresentingReport(sortedDailyReports[presentingIndex + 1])
+    }
+  }
 
   // Sync props data with local items
   useEffect(() => {
@@ -383,6 +408,7 @@ export function DailyReportsTab({ project, data, user }: Props) {
             item={selectedItem}
             allItems={items}
             onDelete={handleDelete}
+            onPresent={setPresentingReport}
             user={user}
           />
         ) : (
@@ -409,6 +435,27 @@ export function DailyReportsTab({ project, data, user }: Props) {
         />
       )}
 
+      {/* Presentation Mode Modal */}
+      {presentingReport && (
+        <ReportPresentationModal
+          title="รายงานปฏิบัติงานก่อสร้างประจำวัน"
+          subtitle={`โครงการ: ${project.name} • วันที่ ${new Date(presentingReport.report_date).toLocaleDateString('th-TH', { dateStyle: 'long' })}`}
+          currentIndex={presentingIndex}
+          totalCount={sortedDailyReports.length}
+          onPrev={presentingIndex > 0 ? handlePrevDaily : undefined}
+          onNext={presentingIndex < sortedDailyReports.length - 1 ? handleNextDaily : undefined}
+          onPrint={() => window.print()}
+          onClose={() => setPresentingReport(null)}
+        >
+          <div className="w-[210mm] min-h-[297mm] shadow-2xl rounded-sm">
+            <DailyReportDocumentCard
+              project={project}
+              report={presentingReport}
+            />
+          </div>
+        </ReportPresentationModal>
+      )}
+
     </div>
   )
 }
@@ -418,12 +465,14 @@ function DailyReportForm({
   item, 
   allItems,
   onDelete,
+  onPresent,
   user
 }: { 
   project: Project
   item: DailyReport
   allItems: DailyReport[]
   onDelete: (id: string) => void
+  onPresent?: (item: DailyReport) => void
   user?: UserSession | null
 }) {
   const [isPending, startTransition] = useTransition()
@@ -637,6 +686,18 @@ function DailyReportForm({
         </div>
 
         <div className="flex items-center gap-2">
+          {onPresent && (
+            <button
+              type="button"
+              onClick={() => onPresent(item)}
+              title="เปิดโหมดนำเสนอเต็มหน้าจอ ซูมเข้า-ออก ชัดเจน สำหรับการประชุม"
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white dark:bg-purple-600 dark:hover:bg-purple-700 font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Eye size={14} className="text-amber-400" />
+              <span>โหมดนำเสนอ</span>
+            </button>
+          )}
+
           {user && (user.role === 'admin' || user.role === 'editor') && (
             <>
               <button 

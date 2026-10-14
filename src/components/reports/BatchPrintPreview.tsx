@@ -95,146 +95,16 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
 
       {/* A4 Print Layout container */}
       <div className="flex-1 p-6 flex flex-col items-center gap-6 print:p-0 print:gap-0 print:block bg-slate-100 print:bg-white">
-        
-        {selectedReports.map((report) => {
-          const photoPages = getPhotoPages(report.photos || [])
-          
-          return (
-            <div 
-              key={report.id} 
-              className="print-day-container w-[210mm] min-h-[297mm] bg-white p-[12mm] border border-slate-300 shadow-xl print:shadow-none print:border-none print:p-0 print:w-full print:min-h-0 print:bg-white flex flex-col justify-between" 
-              style={{ pageBreakAfter: 'always' }}
-            >
-              <div>
-                {/* Report Header */}
-                <div className="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-end">
-                  <div>
-                    <h1 className="text-xl font-black text-slate-900 tracking-tight">DAILY CONSTRUCTION REPORT</h1>
-                    <h2 className="text-base font-bold text-slate-700">รายงานปฏิบัติงานก่อสร้างประจำวัน</h2>
-                    <p className="text-xs font-semibold text-slate-500 mt-1">โครงการ: {project.name}</p>
-                    {showSupervisor && (
-                      <p className="text-xs font-semibold text-slate-500 mt-0.5">
-                        ผู้ควบคุมงาน: {supervisorName ? supervisorName : '___________________________'}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-slate-800">วันที่รายงาน: {formatPrintDate(report.report_date)}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      สถานะ: {report.is_confirmed ? '✓ ยืนยันแล้ว' : 'ร่าง (Auto-generated)'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Grid 1: Weather + Manpower + Machinery (Side-by-side) */}
-                <div className="grid grid-cols-3 gap-4 mb-4 items-stretch">
-                  
-                  {/* Weather card */}
-                  <div className="border border-slate-300 rounded-2xl p-3 bg-slate-50/50 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">สภาพอากาศ</span>
-                      <span className="text-2xl">{getWeatherIcon(report.weather_code || 0, report.weather || '')}</span>
-                    </div>
-                    <div className="mt-2">
-                      <p className="text-sm font-black text-slate-900 leading-tight">{report.weather || 'แดดจัด'}</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        อุณหภูมิ: {report.temperature || 25}°C | ฝน: {report.precipitation || 0} มม.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Manpower Card */}
-                  <div className="border border-slate-300 rounded-2xl p-3 bg-slate-50/50 flex flex-col justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1">ข้อมูลกำลังพล (Manpower)</span>
-                    <div className="flex-1 flex flex-col justify-center text-xs font-semibold space-y-0.5">
-                      {(!report.manpower || report.manpower.length === 0) ? (
-                        <p className="text-[10px] text-slate-400 italic text-center my-auto">ไม่มีข้อมูลกำลังพล</p>
-                      ) : (
-                        report.manpower.map((m: any, idx: number) => (
-                          <div key={idx} className="flex justify-between border-b border-slate-200/60 pb-0.5">
-                            <span className="text-slate-600 truncate max-w-[90px]">{m.name}</span>
-                            <span className="text-slate-900 font-bold flex-shrink-0">{m.quantity} คน</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Machinery Card */}
-                  <div className="border border-slate-300 rounded-2xl p-3 bg-slate-50/50 flex flex-col justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1">เครื่องจักร (Machinery)</span>
-                    <div className="flex-1 flex flex-col justify-center text-xs font-semibold space-y-0.5">
-                      {(!report.machinery || report.machinery.length === 0) ? (
-                        <p className="text-[10px] text-slate-400 italic text-center my-auto">ไม่มีการใช้เครื่องจักร</p>
-                      ) : (
-                        report.machinery.map((m: any, idx: number) => (
-                          <div key={idx} className="flex justify-between border-b border-slate-200/60 pb-0.5">
-                            <span className="text-slate-600 truncate max-w-[90px]">{m.name}</span>
-                            <span className="text-slate-900 font-bold flex-shrink-0">{m.quantity} เครื่อง</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Work Done Card */}
-                <div className="border border-slate-300 rounded-2xl p-4 mb-4">
-                  <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1.5">รายละเอียดความคืบหน้างานวันนี้ (Work Done)</span>
-                  <div className="text-xs text-slate-800 whitespace-pre-line leading-relaxed font-semibold">
-                    {report.work_done || 'ไม่มีข้อมูลบันทึกความคืบหน้า'}
-                  </div>
-                </div>
-
-                {/* Issues Card (Always visible, show "-ไม่มี-" if empty) */}
-                <div className="border border-slate-300 rounded-2xl p-4 mb-4 bg-red-50/5">
-                  <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1.5">ปัญหาและอุปสรรคในการปฏิบัติงาน (Issues & Roadblocks)</span>
-                  <div className="text-xs text-slate-800 whitespace-pre-line leading-relaxed font-semibold">
-                    {report.issues ? report.issues : '-ไม่มี-'}
-                  </div>
-                </div>
-
-                {/* Photos Pages (Max 6 per page) - 3 Column Grid (Larger) */}
-                {photoPages.length > 0 && photoPages.map((pagePhotos, pageIndex) => (
-                  <div key={pageIndex} className={`mt-4 border-t border-slate-200 pt-4 ${pageIndex > 0 ? 'print-new-page' : ''}`}>
-                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-3">
-                      รูปภาพและภาพถ่ายหน้างาน (Photos) {photoPages.length > 1 ? `(หน้าที่ ${pageIndex + 1}/${photoPages.length})` : ''}
-                    </span>
-                    <div className="grid grid-cols-3 gap-3">
-                      {pagePhotos.map((photo: any, idx: number) => (
-                        <div key={idx} className="flex flex-col gap-1">
-                          <div className="aspect-[4/3] w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative">
-                            <img src={photo.url} alt={photo.caption || `Site image ${idx + 1}`} className="object-cover w-full h-full" />
-                          </div>
-                          {photo.caption && (
-                            <p className="text-[9px] text-slate-500 text-center font-bold truncate px-1 mt-0.5">
-                              {photo.caption}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Signature Block (Rendered at the bottom of page 1) */}
-              {showSignature && (
-                <div className="mt-8 flex justify-end text-center text-xs font-bold border-t border-slate-200 pt-4 mb-2">
-                  <div className="w-[220px]">
-                    <p className="mb-8">ผู้ควบคุมงาน</p>
-                    <p className="text-slate-400">________________________</p>
-                    <p className="text-[10px] text-slate-600 mt-1.5">
-                      ( {supervisorName ? supervisorName : '...........................................'} )
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-
+        {selectedReports.map((report) => (
+          <DailyReportDocumentCard
+            key={report.id}
+            project={project}
+            report={report}
+            showSupervisor={showSupervisor}
+            supervisorName={supervisorName}
+            showSignature={showSignature}
+          />
+        ))}
       </div>
 
       <style jsx global>{`
@@ -332,6 +202,174 @@ export function BatchPrintPreview({ project, selectedReports, onClose }: BatchPr
         }
       `}</style>
 
+    </div>
+  )
+}
+
+export function DailyReportDocumentCard({
+  project,
+  report,
+  showSupervisor = true,
+  supervisorName = project.supervisor || '',
+  showSignature = true,
+}: {
+  project: Project
+  report: DailyReport
+  showSupervisor?: boolean
+  supervisorName?: string
+  showSignature?: boolean
+}) {
+  const getPhotoPages = (photos: any[]) => {
+    const list = Array.isArray(photos) ? photos : []
+    const chunks = []
+    for (let i = 0; i < list.length; i += 6) {
+      chunks.push(list.slice(i, i + 6))
+    }
+    return chunks
+  }
+
+  const formatPrintDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('th-TH', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  }
+
+  const photoPages = getPhotoPages(report.photos || [])
+
+  return (
+    <div 
+      className="print-day-container w-[210mm] min-h-[297mm] bg-white p-[12mm] border border-slate-300 shadow-xl print:shadow-none print:border-none print:p-0 print:w-full print:min-h-0 print:bg-white flex flex-col justify-between text-slate-900" 
+      style={{ pageBreakAfter: 'always' }}
+    >
+      <div>
+        {/* Report Header */}
+        <div className="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-end">
+          <div>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">DAILY CONSTRUCTION REPORT</h1>
+            <h2 className="text-base font-bold text-slate-700">รายงานปฏิบัติงานก่อสร้างประจำวัน</h2>
+            <p className="text-xs font-semibold text-slate-500 mt-1">โครงการ: {project.name}</p>
+            {showSupervisor && (
+              <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                ผู้ควบคุมงาน: {supervisorName ? supervisorName : '___________________________'}
+              </p>
+            )}
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-bold text-slate-800">วันที่รายงาน: {formatPrintDate(report.report_date)}</p>
+            <p className="text-[10px] text-slate-500 mt-1">
+              สถานะ: {report.is_confirmed ? '✓ ยืนยันแล้ว' : 'ร่าง (Auto-generated)'}
+            </p>
+          </div>
+        </div>
+
+        {/* Grid 1: Weather + Manpower + Machinery (Side-by-side) */}
+        <div className="grid grid-cols-3 gap-4 mb-4 items-stretch">
+          
+          {/* Weather card */}
+          <div className="border border-slate-300 rounded-2xl p-3 bg-slate-50/50 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">สภาพอากาศ</span>
+              <span className="text-2xl">{getWeatherIcon(report.weather_code || 0, report.weather || '')}</span>
+            </div>
+            <div className="mt-2">
+              <p className="text-sm font-black text-slate-900 leading-tight">{report.weather || 'แดดจัด'}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                อุณหภูมิ: {report.temperature || 25}°C | ฝน: {report.precipitation || 0} มม.
+              </p>
+            </div>
+          </div>
+
+          {/* Manpower Card */}
+          <div className="border border-slate-300 rounded-2xl p-3 bg-slate-50/50 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1">ข้อมูลกำลังพล (Manpower)</span>
+            <div className="flex-1 flex flex-col justify-center text-xs font-semibold space-y-0.5">
+              {(!report.manpower || report.manpower.length === 0) ? (
+                <p className="text-[10px] text-slate-400 italic text-center my-auto">ไม่มีข้อมูลกำลังพล</p>
+              ) : (
+                report.manpower.map((m: any, idx: number) => (
+                  <div key={idx} className="flex justify-between border-b border-slate-200/60 pb-0.5">
+                    <span className="text-slate-600 truncate max-w-[90px]">{m.name}</span>
+                    <span className="text-slate-900 font-bold flex-shrink-0">{m.quantity} คน</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Machinery Card */}
+          <div className="border border-slate-300 rounded-2xl p-3 bg-slate-50/50 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1">เครื่องจักร (Machinery)</span>
+            <div className="flex-1 flex flex-col justify-center text-xs font-semibold space-y-0.5">
+              {(!report.machinery || report.machinery.length === 0) ? (
+                <p className="text-[10px] text-slate-400 italic text-center my-auto">ไม่มีการใช้เครื่องจักร</p>
+              ) : (
+                report.machinery.map((m: any, idx: number) => (
+                  <div key={idx} className="flex justify-between border-b border-slate-200/60 pb-0.5">
+                    <span className="text-slate-600 truncate max-w-[90px]">{m.name}</span>
+                    <span className="text-slate-900 font-bold flex-shrink-0">{m.quantity} เครื่อง</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Work Done Card */}
+        <div className="border border-slate-300 rounded-2xl p-4 mb-4">
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1.5">รายละเอียดความคืบหน้างานวันนี้ (Work Done)</span>
+          <div className="text-xs text-slate-800 whitespace-pre-line leading-relaxed font-semibold">
+            {report.work_done || 'ไม่มีข้อมูลบันทึกความคืบหน้า'}
+          </div>
+        </div>
+
+        {/* Issues Card (Always visible, show "-ไม่มี-" if empty) */}
+        <div className="border border-slate-300 rounded-2xl p-4 mb-4 bg-red-50/5">
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1.5">ปัญหาและอุปสรรคในการปฏิบัติงาน (Issues & Roadblocks)</span>
+          <div className="text-xs text-slate-800 whitespace-pre-line leading-relaxed font-semibold">
+            {report.issues ? report.issues : '-ไม่มี-'}
+          </div>
+        </div>
+
+        {/* Photos Pages (Max 6 per page) - 3 Column Grid (Larger) */}
+        {photoPages.length > 0 && photoPages.map((pagePhotos, pageIndex) => (
+          <div key={pageIndex} className={`mt-4 border-t border-slate-200 pt-4 ${pageIndex > 0 ? 'print-new-page' : ''}`}>
+            <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-3">
+              รูปภาพและภาพถ่ายหน้างาน (Photos) {photoPages.length > 1 ? `(หน้าที่ ${pageIndex + 1}/${photoPages.length})` : ''}
+            </span>
+            <div className="grid grid-cols-3 gap-3">
+              {pagePhotos.map((photo: any, idx: number) => (
+                <div key={idx} className="flex flex-col gap-1">
+                  <div className="aspect-[4/3] w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative">
+                    <img src={photo.url} alt={photo.caption || `Site image ${idx + 1}`} className="object-cover w-full h-full" />
+                  </div>
+                  {photo.caption && (
+                    <p className="text-[9px] text-slate-500 text-center font-bold truncate px-1 mt-0.5">
+                      {photo.caption}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Signature Block (Rendered at the bottom of page 1) */}
+      {showSignature && (
+        <div className="mt-8 flex justify-end text-center text-xs font-bold border-t border-slate-200 pt-4 mb-2">
+          <div className="w-[220px]">
+            <p className="mb-8">ผู้ควบคุมงาน</p>
+            <p className="text-slate-400">________________________</p>
+            <p className="text-[10px] text-slate-600 mt-1.5">
+              ( {supervisorName ? supervisorName : '...........................................'} )
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

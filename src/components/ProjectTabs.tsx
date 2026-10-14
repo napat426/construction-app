@@ -63,7 +63,7 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
   ]
 
   return (
-    <div id="project-tabs-nav" className="flex border-b border-slate-200 dark:border-[#1c1c34] mb-6 gap-2 print:hidden no-print">
+    <div id="project-tabs-nav" className="flex items-center border-b border-slate-200 dark:border-[#1c1c34] mb-6 gap-2 print:hidden no-print overflow-x-auto pb-1">
       {tabs.map((tab) => {
         const Icon = tab.icon
         return (
@@ -71,7 +71,7 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
             key={tab.href}
             href={tab.href}
             className={[
-              'flex items-center gap-2 px-5 py-3 text-sm font-bold transition-all border-b-2 -mb-[2px]',
+              'flex items-center gap-2 px-5 py-3 text-sm font-bold transition-all border-b-2 -mb-[2px] whitespace-nowrap',
               tab.active
                 ? 'border-primary-600 text-primary-700 dark:text-primary-400 font-extrabold'
                 : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200',
@@ -85,3 +85,4 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
     </div>
   )
 }
+

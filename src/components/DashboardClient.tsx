@@ -257,16 +257,8 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/projects"
-            className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            กลับไปหน้าโครงการทั้งหมด
-          </Link>
-
-          {user && (user.role === 'admin' || user.role === 'editor') && (
+        {user && (user.role === 'admin' || user.role === 'editor') && (
+          <div className="flex items-center justify-end">
             <button
               id="open-baseline-btn"
               onClick={() => setShowEditModal(true)}
@@ -275,8 +267,8 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
               <Settings size={15} />
               แก้ไข Baseline / ค่าเริ่มต้น
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="card rounded-2xl p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
           <div className="space-y-2">

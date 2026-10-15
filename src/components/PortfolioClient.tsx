@@ -1065,7 +1065,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                 {!isCollapsed && (
                   <div className="card rounded-2xl border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] overflow-hidden print:overflow-visible print:border-none print:shadow-none print:card shadow-sm">
                     <div className="overflow-x-auto w-full print:overflow-visible pb-1">
-                      <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0 print:min-w-0 print:text-[10px] print-safe-table">
+                      <table className="w-full table-fixed text-left border-collapse min-w-[1280px] print:min-w-0 print:text-[10px] print-safe-table">
                         <PortfolioTableHeader sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
                         <tbody className="text-xs font-bold text-slate-700 dark:text-slate-300 print:border-slate-300">
                           {section.projects.map((p) => (
@@ -1102,28 +1102,28 @@ function PortfolioTableHeader({
     <thead>
       <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider print:bg-transparent print:text-[9px]">
         {/* traffic light indicator empty label */}
-        <th className="py-4 pl-5 pr-1 w-8"></th>
-        <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('name')}>
+        <th className="py-4 pl-4 pr-1 w-8 text-center"></th>
+        <th className="py-4 px-3 w-[460px] min-w-[420px] cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('name')}>
           ชื่อโครงการ {sortBy === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
         </th>
-        <th className="py-4 px-3 w-32">สถานะ</th>
-        <th className="py-4 px-3 w-32 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('remaining')}>
+        <th className="py-4 px-3 w-36 min-w-[140px] whitespace-nowrap">สถานะ</th>
+        <th className="py-4 px-3 w-24 min-w-[85px] whitespace-nowrap cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('remaining')}>
           วันคงเหลือ {sortBy === 'remaining' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
         </th>
-        <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300 w-[180px]" onClick={() => onSort('ev')}>
+        <th className="py-4 px-3 w-32 min-w-[115px] cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('ev')}>
           <div className="flex flex-wrap items-center gap-1.5">
             <span>ความก้าวหน้า {sortBy === 'ev' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1 flex-shrink-0" />}</span>
           </div>
         </th>
-        <th className="py-4 px-3 w-20 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('sv')}>
+        <th className="py-4 px-3 w-20 min-w-[75px] whitespace-nowrap cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('sv')}>
           SV {sortBy === 'sv' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
         </th>
-        <th className="py-4 px-3 w-16">SPI</th>
-        <th className="py-4 px-3 w-24 hidden md:table-cell print:table-cell">CV</th>
-        <th className="py-4 px-3 w-16 hidden md:table-cell print:table-cell">CPI</th>
-        <th className="py-4 px-3 w-28 hidden md:table-cell print:table-cell">งบรวม</th>
-        <th className="py-4 px-3 w-32 hidden md:table-cell print:table-cell">การจ่ายเงิน (% Paid)</th>
-        <th className="py-4 px-5 pr-5 w-20 text-center no-print">เปิด</th>
+        <th className="py-4 px-3 w-14 min-w-[50px] whitespace-nowrap">SPI</th>
+        <th className="py-4 px-3 w-14 min-w-[55px] hidden md:table-cell print:table-cell whitespace-nowrap">CV</th>
+        <th className="py-4 px-3 w-14 min-w-[50px] hidden md:table-cell print:table-cell whitespace-nowrap">CPI</th>
+        <th className="py-4 px-3 w-20 min-w-[75px] hidden md:table-cell print:table-cell whitespace-nowrap">งบรวม</th>
+        <th className="py-4 px-3 w-28 min-w-[110px] hidden md:table-cell print:table-cell">การจ่ายเงิน (% Paid)</th>
+        <th className="py-4 px-3 w-14 min-w-[50px] text-center no-print">เปิด</th>
       </tr>
     </thead>
   )
@@ -1136,7 +1136,7 @@ function PortfolioTableRow({
   p: any
   formatBudget: (amount: number) => string
 }) {
-  const svIcon = p.SV >= 0 ? <ArrowUp size={12} className="text-emerald-500 inline mr-0.5" /> : <ArrowDown size={12} className="text-red-500 inline mr-0.5" />
+  const svIcon = p.SV >= 0 ? <ArrowUp size={12} className="text-emerald-500 inline mr-0.5 flex-shrink-0" /> : <ArrowDown size={12} className="text-red-500 inline mr-0.5 flex-shrink-0" />
   const cvColor = p.CV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'
 
   // Remaining days badge formatting
@@ -1167,7 +1167,7 @@ function PortfolioTableRow({
   return (
     <tr className="border-b border-slate-100 dark:border-[#1c1c34] print:border-slate-300 hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/10 print:hover:bg-transparent [page-break-inside:avoid]">
       {/* Traffic Light Dot Column */}
-      <td className="py-4 pl-5 pr-1 text-center">
+      <td className="py-4 pl-4 pr-1 text-center">
         <div className={`w-3 h-3 rounded-full ${trafficLightDot}`} title={
           p.trafficLight === 'red' ? 'วิกฤต (SPI หรือ CPI ต่ำกว่า 0.90)' :
           p.trafficLight === 'yellow' ? 'เฝ้าระวัง (SPI หรือ CPI ต่ำกว่า 1.00)' :
@@ -1175,31 +1175,31 @@ function PortfolioTableRow({
         } />
       </td>
 
-      {/* Project Name */}
-      <td className="py-4 px-3 truncate max-w-[200px]" title={p.name}>
-        <Link href={`/projects/${p.id}`} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1">
-          {p.name}
-          <ExternalLink size={10} className="text-slate-400 print:hidden" />
+      {/* Project Name - Full display, guaranteed no truncation or awkward wrapping */}
+      <td className="py-4 px-3 whitespace-nowrap" title={p.name}>
+        <Link href={`/projects/${p.id}`} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors inline-flex items-center gap-1.5 font-bold whitespace-nowrap">
+          <span>{p.name}</span>
+          <ExternalLink size={10} className="text-slate-400 print:hidden flex-shrink-0" />
         </Link>
       </td>
 
       {/* Status */}
-      <td className="py-4 px-3">
-        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${statusCls}`}>
+      <td className="py-4 px-3 whitespace-nowrap">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${statusCls}`}>
           {p.status}
         </span>
       </td>
 
       {/* Remaining Days */}
-      <td className="py-4 px-3">
-        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${remainingCls}`}>
+      <td className="py-4 px-3 whitespace-nowrap">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${remainingCls}`}>
           {remainingText}
         </span>
       </td>
 
       {/* Stacked Progress Bar (PV and EV in separate tracks) */}
       <td className="py-3 px-3 pr-4">
-        <div className="flex flex-col gap-1 w-full min-w-[120px]">
+        <div className="flex flex-col gap-1 w-full min-w-[100px]">
           {/* PV Bar (Planned) */}
           <div className="flex items-center gap-1.5">
             <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 w-4 tracking-wider">PV</span>
@@ -1226,15 +1226,16 @@ function PortfolioTableRow({
       </td>
 
       {/* SV */}
-      <td className="py-4 px-3 font-mono">
-        <span className={p.SV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>
-          {svIcon} {p.SV >= 0 ? '+' : ''}{p.SV.toFixed(1)}%
+      <td className="py-4 px-3 font-mono whitespace-nowrap">
+        <span className={`inline-flex items-center whitespace-nowrap ${p.SV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+          {svIcon}
+          <span>{p.SV >= 0 ? '+' : ''}{p.SV.toFixed(1)}%</span>
         </span>
       </td>
 
       {/* SPI */}
-      <td className="py-4 px-3 font-mono">
-        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
+      <td className="py-4 px-3 font-mono whitespace-nowrap">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider whitespace-nowrap ${
           p.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
           p.SPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
           'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
@@ -1244,13 +1245,13 @@ function PortfolioTableRow({
       </td>
 
       {/* CV */}
-      <td className={`py-4 px-3 font-mono hidden md:table-cell print:table-cell ${cvColor}`}>
+      <td className={`py-4 px-3 font-mono whitespace-nowrap hidden md:table-cell print:table-cell ${cvColor}`}>
         {p.CV >= 0 ? '+' : ''}{p.CV.toFixed(1)}%
       </td>
 
       {/* CPI */}
-      <td className="py-4 px-3 font-mono hidden md:table-cell print:table-cell">
-        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
+      <td className="py-4 px-3 font-mono whitespace-nowrap hidden md:table-cell print:table-cell">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider whitespace-nowrap ${
           p.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
           p.CPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
           'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
@@ -1260,13 +1261,13 @@ function PortfolioTableRow({
       </td>
 
       {/* Budget */}
-      <td className="py-4 px-3 hidden md:table-cell print:table-cell font-mono text-slate-600 dark:text-slate-400">
+      <td className="py-4 px-3 hidden md:table-cell print:table-cell font-mono whitespace-nowrap text-slate-600 dark:text-slate-400">
         {formatBudget(p.budget || 0)}
       </td>
 
       {/* Milestones Paid Progress Bar */}
       <td className="py-4 px-3 hidden md:table-cell print:table-cell">
-        <div className="space-y-1">
+        <div className="space-y-1 w-full min-w-[100px]">
           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
             <span>จ่ายแล้ว {p.acPercent.toFixed(0)}%</span>
             <span>{p.paidCount}/{p.totalMilestones} งวด</span>
@@ -1281,7 +1282,7 @@ function PortfolioTableRow({
       </td>
 
       {/* Open dashboard link button */}
-      <td className="py-4 px-5 pr-5 text-center no-print">
+      <td className="py-4 px-3 text-center no-print">
         <Link
           href={`/projects/${p.id}`}
           className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-[#1a1a36] dark:hover:bg-[#252548] text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider transition-colors inline-block cursor-pointer"

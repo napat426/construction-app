@@ -14,15 +14,16 @@ export const metadata = {
 export default async function PortfolioPage() {
   const user = await getCurrentUser()
 
-  // Fetch all projects, tasks, milestones, punch lists, and punch items in parallel
-  const [projectsRes, tasksRes, milestonesRes, punchListsRes, punchItemsRes, amendmentsRes, workGroupsRes] = await Promise.all([
+  // Fetch all projects, tasks, milestones, punch lists, punch items, amendments, work groups, and project order
+  const [projectsRes, tasksRes, milestonesRes, punchListsRes, punchItemsRes, amendmentsRes, workGroupsRes, projectOrderRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('project_milestones').select('*').order('milestone_no', { ascending: true }),
     supabase.from('punch_lists').select('*'),
     supabase.from('punch_items').select('*').order('sequence', { ascending: true }),
     supabase.from('contract_amendments').select('*').order('amendment_no', { ascending: true }),
-    supabase.from('system_settings').select('*').eq('key', 'work_groups').single()
+    supabase.from('system_settings').select('*').eq('key', 'work_groups').single(),
+    supabase.from('system_settings').select('*').eq('key', 'project_order').single()
   ])
 
   const projects: Project[] = (projectsRes.data as Project[]) ?? []
@@ -36,6 +37,13 @@ export default async function PortfolioPage() {
   try {
     if (workGroupsRes.data?.value) {
       workGroups = JSON.parse(workGroupsRes.data.value)
+    }
+  } catch {}
+
+  let initialProjectOrder: string[] = []
+  try {
+    if (projectOrderRes.data?.value) {
+      initialProjectOrder = JSON.parse(projectOrderRes.data.value)
     }
   } catch {}
 
@@ -59,6 +67,7 @@ export default async function PortfolioPage() {
             amendments={amendments}
             user={user}
             workGroups={workGroups}
+            initialProjectOrder={initialProjectOrder}
           />
         </main>
       </div>

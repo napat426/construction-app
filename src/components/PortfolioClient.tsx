@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck, SlidersHorizontal, FileSpreadsheet } from 'lucide-react'
+import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTriangle, CheckCircle, ExternalLink, ArrowUp, ArrowDown, ClipboardCheck, SlidersHorizontal, FileSpreadsheet, Layers, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractAmendment } from '@/lib/types'
 import * as XLSX from 'xlsx'
 
@@ -20,6 +20,7 @@ interface Props {
   amendments: ContractAmendment[]
   user?: UserSession | null
   workGroups?: string[]
+  initialProjectOrder?: string[]
 }
 
 const ALL_STATUSES = [
@@ -31,10 +32,10 @@ const ALL_STATUSES = [
   'เสร็จสิ้น',
 ] as const
 
-type SortField = 'name' | 'remaining' | 'ev' | 'sv'
+type SortField = 'default' | 'name' | 'remaining' | 'ev' | 'sv'
 type SortDir = 'asc' | 'desc'
 
-export function PortfolioClient({ projects, tasks, milestones, amendments = [], punchLists = [], punchItems = [], user, workGroups = [] }: Props) {
+export function PortfolioClient({ projects, tasks, milestones, amendments = [], punchLists = [], punchItems = [], user, workGroups = [], initialProjectOrder = [] }: Props) {
   const supervisorsList = useMemo(
     () => [...new Set(projects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort(),
     [projects]
@@ -53,9 +54,12 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
   const [statusOpen, setStatusOpen] = useState(false)
   const [workGroupOpen, setWorkGroupOpen] = useState(false)
 
-  // Sorting states
-  const [sortBy, setBy] = useState<SortField>('sv')
-  const [sortDir, setDir] = useState<SortDir>('asc') // Default SV ascending (most delayed first)
+  // Sorting states: default to matching the main page order
+  const [sortBy, setBy] = useState<SortField>('default')
+  const [sortDir, setDir] = useState<SortDir>('asc')
+
+  // Group collapse states
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
 
 
 
@@ -241,10 +245,18 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
     })
   }, [computedProjects, supervisorsList, selectedSupervisors, selectedStatuses, selectedWorkGroups, allWorkGroupKeys, workGroups])
 
-  // 3. Sort projects
-  const sortedProjects = useMemo(() => {
-    const sorted = [...filteredProjects]
-    sorted.sort((a, b) => {
+  // Helper to sort a list of projects based on current sort settings
+  const sortProjectList = (list: typeof computedProjects) => {
+    return [...list].sort((a, b) => {
+      if (sortBy === 'default') {
+        const idxA = (initialProjectOrder || []).indexOf(a.id)
+        const idxB = (initialProjectOrder || []).indexOf(b.id)
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB
+        if (idxA !== -1) return -1
+        if (idxB !== -1) return 1
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+
       let valA: any = 0
       let valB: any = 0
 
@@ -265,8 +277,75 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
       if (valA > valB) return sortDir === 'asc' ? 1 : -1
       return 0
     })
-    return sorted
-  }, [filteredProjects, sortBy, sortDir])
+  }
+
+  // 3. Group projects by work groups matching the main page order
+  const groupedSections = useMemo(() => {
+    const sections: {
+      groupName: string
+      isSpecial?: boolean
+      projects: typeof computedProjects
+      totalBudget: number
+      totalEVWeighted: number
+      totalPVWeighted: number
+      avgProgress: number
+      totalAC: number
+    }[] = []
+
+    // Defined work groups in order from system_settings
+    workGroups.forEach((wg) => {
+      const groupProjs = filteredProjects.filter(p => (p.work_group || '').trim() === wg.trim())
+      if (groupProjs.length > 0) {
+        const sorted = sortProjectList(groupProjs)
+        const totalBudget = sorted.reduce((sum, p) => sum + (p.budget || 0), 0)
+        const totalEVWeighted = sorted.reduce((sum, p) => sum + (p.evCumulative * (p.budget || 0)), 0)
+        const totalPVWeighted = sorted.reduce((sum, p) => sum + (p.pvCumulative * (p.budget || 0)), 0)
+        const totalAC = sorted.reduce((sum, p) => sum + ((p.acPercent / 100) * (p.budget || 0)), 0)
+        const avgProgress = totalBudget > 0 ? Math.round((totalEVWeighted / totalBudget) * 10) / 10 : 0
+
+        sections.push({
+          groupName: wg,
+          projects: sorted,
+          totalBudget,
+          totalEVWeighted,
+          totalPVWeighted,
+          avgProgress,
+          totalAC,
+        })
+      }
+    })
+
+    // Unassigned or other work groups not in workGroups
+    const unassignedProjs = filteredProjects.filter(
+      p => !p.work_group || !workGroups.some(wg => wg.trim() === (p.work_group || '').trim())
+    )
+    if (unassignedProjs.length > 0) {
+      const sorted = sortProjectList(unassignedProjs)
+      const totalBudget = sorted.reduce((sum, p) => sum + (p.budget || 0), 0)
+      const totalEVWeighted = sorted.reduce((sum, p) => sum + (p.evCumulative * (p.budget || 0)), 0)
+      const totalPVWeighted = sorted.reduce((sum, p) => sum + (p.pvCumulative * (p.budget || 0)), 0)
+      const totalAC = sorted.reduce((sum, p) => sum + ((p.acPercent / 100) * (p.budget || 0)), 0)
+      const avgProgress = totalBudget > 0 ? Math.round((totalEVWeighted / totalBudget) * 10) / 10 : 0
+
+      sections.push({
+        groupName: 'หมวดงานอื่นๆ / ไม่ระบุกลุ่มงาน',
+        isSpecial: true,
+        projects: sorted,
+        totalBudget,
+        totalEVWeighted,
+        totalPVWeighted,
+        avgProgress,
+        totalAC,
+      })
+    }
+
+    return sections
+  }, [filteredProjects, workGroups, sortBy, sortDir, initialProjectOrder])
+
+  // Flat list of sorted projects across all groups for easy export / stats
+  const allGroupedProjects = useMemo(() => {
+    return groupedSections.flatMap(s => s.projects)
+  }, [groupedSections])
 
   // 4. Calculate Portfolio Summary Cards KPIs
   const summaryKpis = useMemo(() => {
@@ -316,7 +395,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
   }
 
   const handleExportExcel = () => {
-    const dataForExcel = sortedProjects.map((p) => {
+    const dataForExcel = allGroupedProjects.map((p) => {
       let statusText = 'ปกติ'
       let statusRemark = ''
       if (p.SV < 0 && p.SV >= -5) {
@@ -330,6 +409,7 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
       const budget = p.budget || 0
       
       return {
+        'กลุ่มงาน': p.work_group || 'ไม่ระบุกลุ่มงาน',
         'ชื่อโครงการ': p.name,
         'สถานะ': statusText,
         'หมายเหตุ': statusRemark,
@@ -353,10 +433,15 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
 
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
-      setDir((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+      if (sortDir === 'asc') {
+        setDir('desc')
+      } else {
+        setBy('default')
+        setDir('asc')
+      }
     } else {
       setBy(field)
-      setDir(field === 'sv' ? 'asc' : 'desc') // default ascending for SV, descending for others
+      setDir(field === 'sv' || field === 'name' ? 'asc' : 'desc')
     }
   }
 
@@ -859,204 +944,141 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
 
 
 
-      {/* ── PART 3: COMPARISON TABLE (Moved to top) ── */}
-      <div className="card rounded-2xl border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] overflow-hidden print:overflow-visible print:border-none print:shadow-none print:card shadow-sm">
-        {filteredProjects.length === 0 ? (
-          <div className="text-center py-20">
+      {/* ── PART 3: COMPARISON TABLES (GROUPED BY WORK GROUPS) ── */}
+      <div className="space-y-6">
+        {/* Section Header Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-[#14142a] border border-slate-200 dark:border-[#1c1c34] shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+              <Layers size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  ตารางเปรียบเทียบทุกโครงการ
+                </h3>
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-primary-100/70 dark:bg-primary-950/70 text-primary-700 dark:text-primary-300">
+                  แยกตามกลุ่มงาน ({groupedSections.length} กลุ่ม, {filteredProjects.length} โครงการ)
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                จัดหมวดหมู่และลำดับโครงการตามหน้าหลัก
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap no-print">
+            {/* Sorting indicator / Reset button */}
+            {sortBy !== 'default' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBy('default')
+                  setDir('asc')
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 transition-colors cursor-pointer"
+                title="คลิกเพื่อคืนค่าการจัดเรียงตามลำดับหน้าหลัก"
+              >
+                <RotateCcw size={12} />
+                <span>
+                  เรียงตาม: {sortBy === 'name' ? 'ชื่อโครงการ' : sortBy === 'remaining' ? 'วันคงเหลือ' : sortBy === 'ev' ? 'ผลงาน' : 'SV'} ({sortDir === 'asc' ? 'น้อยไปมาก' : 'มากไปน้อย'}) — <u>คืนค่าหน้าหลัก</u>
+                </span>
+              </button>
+            )}
+
+            {/* Expand / Collapse All buttons */}
+            {groupedSections.length > 1 && (
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1a1a36] p-1 rounded-xl border border-slate-200 dark:border-[#252548]">
+                <button
+                  type="button"
+                  onClick={() => setCollapsedGroups({})}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#252548] transition-colors cursor-pointer"
+                >
+                  ขยายทั้งหมด
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allCol: Record<string, boolean> = {}
+                    groupedSections.forEach(s => { allCol[s.groupName] = true })
+                    setCollapsedGroups(allCol)
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#252548] transition-colors cursor-pointer"
+                >
+                  ยุบทั้งหมด
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {groupedSections.length === 0 ? (
+          <div className="card rounded-2xl border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] p-12 text-center shadow-sm">
             <Folder size={40} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />
             <p className="text-sm font-bold text-slate-500">ไม่พบโครงการตรงตามเงื่อนไขตัวกรอง</p>
           </div>
         ) : (
-          <div className="overflow-x-auto w-full print:overflow-visible pb-1 print:pb-8 print:mb-8">
-            <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0 print:min-w-0 print:text-[10px] print-safe-table">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider print:bg-transparent print:text-[9px]">
-                  {/* traffic light indicator empty label */}
-                  <th className="py-4 pl-5 pr-1 w-8"></th>
-                  <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('name')}>
-                    ชื่อโครงการ {sortBy === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
-                  </th>
-                  <th className="py-4 px-3 w-32">สถานะ</th>
-                  <th className="py-4 px-3 w-32 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('remaining')}>
-                    วันคงเหลือ {sortBy === 'remaining' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
-                  </th>
-                  <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300 w-[180px]" onClick={() => handleSort('ev')}>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span>ความก้าวหน้า {sortBy === 'ev' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1 flex-shrink-0" />}</span>
+          groupedSections.map((section, sIdx) => {
+            const isCollapsed = !!collapsedGroups[section.groupName]
+            return (
+              <div key={section.groupName} className="space-y-2.5 [page-break-inside:avoid]">
+                {/* Group Header Card */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:px-5 sm:py-3.5 rounded-2xl bg-white dark:bg-[#141428] border border-slate-200/90 dark:border-[#252548] shadow-xs">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="w-8 h-8 rounded-xl bg-primary-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      {section.isSpecial ? '★' : sIdx + 1}
                     </div>
-                  </th>
-                  <th className="py-4 px-3 w-20 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => handleSort('sv')}>
-                    SV {sortBy === 'sv' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
-                  </th>
-                  <th className="py-4 px-3 w-16">SPI</th>
-                  <th className="py-4 px-3 w-24 hidden md:table-cell print:table-cell">CV</th>
-                  <th className="py-4 px-3 w-16 hidden md:table-cell print:table-cell">CPI</th>
-                  <th className="py-4 px-3 w-28 hidden md:table-cell print:table-cell">งบรวม</th>
-                  <th className="py-4 px-3 w-32 hidden md:table-cell print:table-cell">การจ่ายเงิน (% Paid)</th>
-                  <th className="py-4 px-5 pr-5 w-20 text-center no-print">เปิด</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs font-bold text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-[#1c1c34] print:border-slate-300">
-                {sortedProjects.map((p) => {
-                  const svIcon = p.SV >= 0 ? <ArrowUp size={12} className="text-emerald-500 inline mr-0.5" /> : <ArrowDown size={12} className="text-red-500 inline mr-0.5" />
-                  const cvColor = p.CV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'
-
-                  // Remaining days badge formatting
-                  let remainingText = ''
-                  let remainingCls = 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
-                  if (p.start_date && p.end_date) {
-                    if (p.remainingDays < 0) {
-                      remainingText = `เกิน ${Math.abs(p.remainingDays)} วัน`
-                      remainingCls = 'text-red-600 bg-red-100 dark:bg-red-950/20'
-                    } else {
-                      remainingText = `เหลือ ${p.remainingDays} วัน`
-                    }
-                  } else {
-                    remainingText = '-'
-                  }
-
-                  // Status badge style
-                  let statusCls = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                  if (p.status === 'กำลังดำเนินการ') statusCls = 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                  if (p.status === 'เสร็จสิ้น') statusCls = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                  if (p.status === 'ระงับ') statusCls = 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-
-                  // Traffic light dot style
-                  let trafficLightDot = 'bg-emerald-500'
-                  if (p.trafficLight === 'red') trafficLightDot = 'bg-red-500 animate-pulse'
-                  if (p.trafficLight === 'yellow') trafficLightDot = 'bg-amber-500'
-
-                  return (
-                    <tr key={p.id} className="border-b border-slate-100 dark:border-[#1c1c34] print:border-slate-300 hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/10 print:hover:bg-transparent [page-break-inside:avoid]">
-                      {/* Traffic Light Dot Column */}
-                      <td className="py-4 pl-5 pr-1 text-center">
-                        <div className={`w-3 h-3 rounded-full ${trafficLightDot}`} title={
-                          p.trafficLight === 'red' ? 'วิกฤต (SPI หรือ CPI ต่ำกว่า 0.90)' :
-                          p.trafficLight === 'yellow' ? 'เฝ้าระวัง (SPI หรือ CPI ต่ำกว่า 1.00)' :
-                          'ปกติ (ดัชนีชี้วัดแผนงานและงบประมาณราบรื่น >= 1.00)'
-                        } />
-                      </td>
-
-                      {/* Project Name */}
-                      <td className="py-4 px-3 truncate max-w-[200px]" title={p.name}>
-                        <Link href={`/projects/${p.id}`} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1">
-                          {p.name}
-                          <ExternalLink size={10} className="text-slate-400 print:hidden" />
-                        </Link>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4 px-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${statusCls}`}>
-                          {p.status}
+                    <div>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                          {section.groupName}
+                        </h2>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 border border-primary-200/60 dark:border-primary-800/40">
+                          {section.projects.length} โครงการ
                         </span>
-                      </td>
+                        {section.totalBudget > 0 && (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40">
+                            งบรวม {formatBudget(section.totalBudget)}
+                          </span>
+                        )}
+                        {section.projects.length > 0 && (
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40">
+                            ความก้าวหน้าเฉลี่ย {section.avgProgress}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-                      {/* Remaining Days */}
-                      <td className="py-4 px-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${remainingCls}`}>
-                          {remainingText}
-                        </span>
-                      </td>
+                  <button
+                    type="button"
+                    onClick={() => setCollapsedGroups(prev => ({ ...prev, [section.groupName]: !isCollapsed }))}
+                    className="p-1.5 px-3 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#1f1f3a] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold no-print"
+                    title={isCollapsed ? 'แสดงตาราง' : 'ซ่อนตาราง'}
+                  >
+                    <span className="text-[11px]">{isCollapsed ? 'แสดงตาราง' : 'ซ่อนตาราง'}</span>
+                    {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                  </button>
+                </div>
 
-                      {/* Stacked Progress Bar (PV and EV in separate tracks) */}
-                      <td className="py-3 px-3 pr-4">
-                        <div className="flex flex-col gap-1 w-full min-w-[120px]">
-                          {/* PV Bar (Planned) */}
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 w-4 tracking-wider">PV</span>
-                            <div className="relative flex-1 h-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]/30">
-                              <div
-                                className="absolute top-0 bottom-0 left-0 bg-slate-400 dark:bg-slate-500 rounded-full"
-                                style={{ width: `${Math.min(100, p.pvCumulative)}%` }}
-                              />
-                            </div>
-                            <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 w-7 text-right">{p.pvCumulative.toFixed(0)}%</span>
-                          </div>
-                          {/* EV Bar (Actual) */}
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[8px] font-bold text-purple-600 dark:text-purple-400 w-4 tracking-wider">EV</span>
-                            <div className="relative flex-1 h-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]/30">
-                              <div
-                                className="absolute top-0 bottom-0 left-0 bg-purple-600 dark:bg-purple-500 rounded-full"
-                                style={{ width: `${Math.min(100, p.evCumulative)}%` }}
-                              />
-                            </div>
-                            <span className="text-[9px] font-mono text-purple-600 dark:text-purple-400 w-7 text-right">{p.evCumulative.toFixed(0)}%</span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* SV */}
-                      <td className="py-4 px-3 font-mono">
-                        <span className={p.SV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>
-                          {svIcon} {p.SV >= 0 ? '+' : ''}{p.SV.toFixed(1)}%
-                        </span>
-                      </td>
-
-                      {/* SPI */}
-                      <td className="py-4 px-3 font-mono">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
-                          p.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
-                          p.SPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
-                          'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
-                        }`}>
-                          {p.SPI.toFixed(2)}
-                        </span>
-                      </td>
-
-                      {/* CV */}
-                      <td className={`py-4 px-3 font-mono hidden md:table-cell print:table-cell ${cvColor}`}>
-                        {p.CV >= 0 ? '+' : ''}{p.CV.toFixed(1)}%
-                      </td>
-
-                      {/* CPI */}
-                      <td className="py-4 px-3 font-mono hidden md:table-cell print:table-cell">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
-                          p.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
-                          p.CPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
-                          'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
-                        }`}>
-                          {p.CPI.toFixed(2)}
-                        </span>
-                      </td>
-
-                      {/* Budget */}
-                      <td className="py-4 px-3 hidden md:table-cell print:table-cell font-mono text-slate-600 dark:text-slate-400">
-                        {formatBudget(p.budget || 0)}
-                      </td>
-
-                      {/* Milestones Paid Progress Bar */}
-                      <td className="py-4 px-3 hidden md:table-cell print:table-cell">
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                            <span>จ่ายแล้ว {p.acPercent.toFixed(0)}%</span>
-                            <span>{p.paidCount}/{p.totalMilestones} งวด</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]">
-                            <div
-                              className="h-full bg-emerald-500 rounded-full"
-                              style={{ width: `${Math.min(100, p.acPercent)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Open dashboard link button */}
-                      <td className="py-4 px-5 pr-5 text-center no-print">
-                        <Link
-                          href={`/projects/${p.id}`}
-                          className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-[#1a1a36] dark:hover:bg-[#252548] text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider transition-colors inline-block cursor-pointer"
-                        >
-                          เปิด
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                {/* Group Table Card */}
+                {!isCollapsed && (
+                  <div className="card rounded-2xl border border-slate-200 dark:border-[#1c1c34] bg-white dark:bg-[#14142a] overflow-hidden print:overflow-visible print:border-none print:shadow-none print:card shadow-sm">
+                    <div className="overflow-x-auto w-full print:overflow-visible pb-1">
+                      <table className="w-full text-left border-collapse min-w-[900px] md:min-w-0 print:min-w-0 print:text-[10px] print-safe-table">
+                        <PortfolioTableHeader sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+                        <tbody className="text-xs font-bold text-slate-700 dark:text-slate-300 print:border-slate-300">
+                          {section.projects.map((p) => (
+                            <PortfolioTableRow key={p.id} p={p} formatBudget={formatBudget} />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })
         )}
       </div>
 
@@ -1064,5 +1086,209 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
 
 
     </div>
+  )
+}
+
+function PortfolioTableHeader({
+  sortBy,
+  sortDir,
+  onSort,
+}: {
+  sortBy: SortField
+  sortDir: SortDir
+  onSort: (field: SortField) => void
+}) {
+  return (
+    <thead>
+      <tr className="border-b border-slate-100 dark:border-[#1c1c34] bg-slate-50/50 dark:bg-[#1b1b36]/30 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider print:bg-transparent print:text-[9px]">
+        {/* traffic light indicator empty label */}
+        <th className="py-4 pl-5 pr-1 w-8"></th>
+        <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('name')}>
+          ชื่อโครงการ {sortBy === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
+        </th>
+        <th className="py-4 px-3 w-32">สถานะ</th>
+        <th className="py-4 px-3 w-32 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('remaining')}>
+          วันคงเหลือ {sortBy === 'remaining' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
+        </th>
+        <th className="py-4 px-3 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300 w-[180px]" onClick={() => onSort('ev')}>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span>ความก้าวหน้า {sortBy === 'ev' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1 flex-shrink-0" />}</span>
+          </div>
+        </th>
+        <th className="py-4 px-3 w-20 cursor-pointer select-none hover:text-slate-600 dark:hover:text-slate-300" onClick={() => onSort('sv')}>
+          SV {sortBy === 'sv' ? (sortDir === 'asc' ? '▲' : '▼') : <ArrowUpDown size={10} className="inline ml-1" />}
+        </th>
+        <th className="py-4 px-3 w-16">SPI</th>
+        <th className="py-4 px-3 w-24 hidden md:table-cell print:table-cell">CV</th>
+        <th className="py-4 px-3 w-16 hidden md:table-cell print:table-cell">CPI</th>
+        <th className="py-4 px-3 w-28 hidden md:table-cell print:table-cell">งบรวม</th>
+        <th className="py-4 px-3 w-32 hidden md:table-cell print:table-cell">การจ่ายเงิน (% Paid)</th>
+        <th className="py-4 px-5 pr-5 w-20 text-center no-print">เปิด</th>
+      </tr>
+    </thead>
+  )
+}
+
+function PortfolioTableRow({
+  p,
+  formatBudget,
+}: {
+  p: any
+  formatBudget: (amount: number) => string
+}) {
+  const svIcon = p.SV >= 0 ? <ArrowUp size={12} className="text-emerald-500 inline mr-0.5" /> : <ArrowDown size={12} className="text-red-500 inline mr-0.5" />
+  const cvColor = p.CV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'
+
+  // Remaining days badge formatting
+  let remainingText = ''
+  let remainingCls = 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
+  if (p.start_date && p.end_date) {
+    if (p.remainingDays < 0) {
+      remainingText = `เกิน ${Math.abs(p.remainingDays)} วัน`
+      remainingCls = 'text-red-600 bg-red-100 dark:bg-red-950/20'
+    } else {
+      remainingText = `เหลือ ${p.remainingDays} วัน`
+    }
+  } else {
+    remainingText = '-'
+  }
+
+  // Status badge style
+  let statusCls = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+  if (p.status === 'กำลังดำเนินการ') statusCls = 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+  if (p.status === 'เสร็จสิ้น') statusCls = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+  if (p.status === 'ระงับ') statusCls = 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+
+  // Traffic light dot style
+  let trafficLightDot = 'bg-emerald-500'
+  if (p.trafficLight === 'red') trafficLightDot = 'bg-red-500 animate-pulse'
+  if (p.trafficLight === 'yellow') trafficLightDot = 'bg-amber-500'
+
+  return (
+    <tr className="border-b border-slate-100 dark:border-[#1c1c34] print:border-slate-300 hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/10 print:hover:bg-transparent [page-break-inside:avoid]">
+      {/* Traffic Light Dot Column */}
+      <td className="py-4 pl-5 pr-1 text-center">
+        <div className={`w-3 h-3 rounded-full ${trafficLightDot}`} title={
+          p.trafficLight === 'red' ? 'วิกฤต (SPI หรือ CPI ต่ำกว่า 0.90)' :
+          p.trafficLight === 'yellow' ? 'เฝ้าระวัง (SPI หรือ CPI ต่ำกว่า 1.00)' :
+          'ปกติ (ดัชนีชี้วัดแผนงานและงบประมาณราบรื่น >= 1.00)'
+        } />
+      </td>
+
+      {/* Project Name */}
+      <td className="py-4 px-3 truncate max-w-[200px]" title={p.name}>
+        <Link href={`/projects/${p.id}`} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1">
+          {p.name}
+          <ExternalLink size={10} className="text-slate-400 print:hidden" />
+        </Link>
+      </td>
+
+      {/* Status */}
+      <td className="py-4 px-3">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${statusCls}`}>
+          {p.status}
+        </span>
+      </td>
+
+      {/* Remaining Days */}
+      <td className="py-4 px-3">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${remainingCls}`}>
+          {remainingText}
+        </span>
+      </td>
+
+      {/* Stacked Progress Bar (PV and EV in separate tracks) */}
+      <td className="py-3 px-3 pr-4">
+        <div className="flex flex-col gap-1 w-full min-w-[120px]">
+          {/* PV Bar (Planned) */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 w-4 tracking-wider">PV</span>
+            <div className="relative flex-1 h-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]/30">
+              <div
+                className="absolute top-0 bottom-0 left-0 bg-slate-400 dark:bg-slate-500 rounded-full"
+                style={{ width: `${Math.min(100, p.pvCumulative)}%` }}
+              />
+            </div>
+            <span className="text-[9px] font-mono text-slate-500 dark:text-slate-400 w-7 text-right">{p.pvCumulative.toFixed(0)}%</span>
+          </div>
+          {/* EV Bar (Actual) */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] font-bold text-purple-600 dark:text-purple-400 w-4 tracking-wider">EV</span>
+            <div className="relative flex-1 h-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]/30">
+              <div
+                className="absolute top-0 bottom-0 left-0 bg-purple-600 dark:bg-purple-500 rounded-full"
+                style={{ width: `${Math.min(100, p.evCumulative)}%` }}
+              />
+            </div>
+            <span className="text-[9px] font-mono text-purple-600 dark:text-purple-400 w-7 text-right">{p.evCumulative.toFixed(0)}%</span>
+          </div>
+        </div>
+      </td>
+
+      {/* SV */}
+      <td className="py-4 px-3 font-mono">
+        <span className={p.SV >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>
+          {svIcon} {p.SV >= 0 ? '+' : ''}{p.SV.toFixed(1)}%
+        </span>
+      </td>
+
+      {/* SPI */}
+      <td className="py-4 px-3 font-mono">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
+          p.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+          p.SPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+          'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+        }`}>
+          {p.SPI.toFixed(2)}
+        </span>
+      </td>
+
+      {/* CV */}
+      <td className={`py-4 px-3 font-mono hidden md:table-cell print:table-cell ${cvColor}`}>
+        {p.CV >= 0 ? '+' : ''}{p.CV.toFixed(1)}%
+      </td>
+
+      {/* CPI */}
+      <td className="py-4 px-3 font-mono hidden md:table-cell print:table-cell">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider ${
+          p.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+          p.CPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
+          'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+        }`}>
+          {p.CPI.toFixed(2)}
+        </span>
+      </td>
+
+      {/* Budget */}
+      <td className="py-4 px-3 hidden md:table-cell print:table-cell font-mono text-slate-600 dark:text-slate-400">
+        {formatBudget(p.budget || 0)}
+      </td>
+
+      {/* Milestones Paid Progress Bar */}
+      <td className="py-4 px-3 hidden md:table-cell print:table-cell">
+        <div className="space-y-1">
+          <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+            <span>จ่ายแล้ว {p.acPercent.toFixed(0)}%</span>
+            <span>{p.paidCount}/{p.totalMilestones} งวด</span>
+          </div>
+          <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-[#252548]">
+            <div
+              className="h-full bg-emerald-500 rounded-full"
+              style={{ width: `${Math.min(100, p.acPercent)}%` }}
+            />
+          </div>
+        </div>
+      </td>
+
+      {/* Open dashboard link button */}
+      <td className="py-4 px-5 pr-5 text-center no-print">
+        <Link
+          href={`/projects/${p.id}`}
+          className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-[#1a1a36] dark:hover:bg-[#252548] text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider transition-colors inline-block cursor-pointer"
+        >
+          เปิด
+        </Link>
+      </td>
+    </tr>
   )
 }

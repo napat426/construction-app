@@ -156,14 +156,15 @@ export function PaymentForecastChart({ milestones, projects, exVatEnabled = fals
     })
   }, [projects, selectedSupervisors, selectedStatuses, selectedWorkGroups])
 
-  // Get active project names matching metadata filters
+  // Get active project names matching metadata filters (preserving input project order)
   const allProjectNames = useMemo(() => {
-    const names = new Set<string>()
-    allMilestones.forEach(m => {
-      const p = filteredProjectsByMetaData.find(proj => proj.id === m.project_id)
-      if (p) names.add(p.name)
+    const names: string[] = []
+    filteredProjectsByMetaData.forEach(p => {
+      if (allMilestones.some(m => m.project_id === p.id) && !names.includes(p.name)) {
+        names.push(p.name)
+      }
     })
-    return Array.from(names).sort()
+    return names
   }, [allMilestones, filteredProjectsByMetaData])
 
   // Initialize and synchronize selected project checkboxes

@@ -389,11 +389,11 @@ export function DisbursementsView({
 
       {/* Spreadsheet grid */}
       <div className="overflow-x-auto border border-slate-200 dark:border-[#1e1e38] rounded-2xl bg-white dark:bg-[#13132a] shadow-sm print:border-none print:shadow-none print:overflow-visible">
-        <table className="w-full border-collapse text-left text-xs min-w-[1200px] print-safe-table print:text-[10px]">
+        <table className="w-full border-collapse text-left text-xs min-w-[1380px] print-safe-table print:text-[10px]">
           <thead>
             <tr className="bg-slate-50 dark:bg-[#15152c] text-slate-400 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-[#1e1e38] print:bg-transparent print:text-black">
               <th className="p-3 w-10 print:hidden"></th>
-              <th className="p-3 w-56">โครงการ / รายการ</th>
+              <th className="p-3 w-[420px] min-w-[380px] whitespace-nowrap">โครงการ / รายการ</th>
               <th className="p-3">หมายเลขงาน (WBS)</th>
               <th className="p-3">
                 <div>งบประมาณ</div>
@@ -461,7 +461,7 @@ export function DisbursementsView({
                     <td className="p-3 text-center print:hidden">
                       {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </td>
-                    <td className="p-3 font-bold text-slate-900 dark:text-white truncate max-w-[220px]" title={r.project.name}>
+                    <td className="p-3 font-bold text-slate-900 dark:text-white whitespace-nowrap" title={r.project.name}>
                       {r.project.name}
                     </td>
                     <td className="p-3 font-mono font-bold text-indigo-600 dark:text-indigo-400">

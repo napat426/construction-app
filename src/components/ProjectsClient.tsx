@@ -21,6 +21,7 @@ interface ProjectsClientProps {
   aiOcrEnabled?: boolean
   workGroups?: string[]
   initialProjectOrder?: string[]
+  supervisorsList?: string[]
 }
 
 const ALL_STATUSES = [
@@ -41,7 +42,8 @@ export function ProjectsClient({
   aiEnabled = false, 
   aiOcrEnabled = false, 
   workGroups = [],
-  initialProjectOrder = []
+  initialProjectOrder = [],
+  supervisorsList = [],
 }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createModalWorkGroup, setCreateModalWorkGroup] = useState<string | undefined>(undefined)
@@ -49,15 +51,15 @@ export function ProjectsClient({
 
   /* ── Derived master filter options ── */
   const supervisors = useMemo(
-    () => [...new Set(initialProjects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort(),
-    [initialProjects]
+    () => [...new Set([...(supervisorsList || []), ...initialProjects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean))])].sort(),
+    [initialProjects, supervisorsList]
   )
 
   const allWorkGroupKeys = useMemo(() => ['', ...workGroups], [workGroups])
 
   // Filters default to ALL checked
   const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>(() => {
-    return [...new Set(initialProjects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort()
+    return [...new Set([...(supervisorsList || []), ...initialProjects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean))])].sort()
   })
 
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([...ALL_STATUSES])
@@ -854,6 +856,7 @@ export function ProjectsClient({
           }} 
           workGroups={currentWorkGroups} 
           defaultWorkGroup={createModalWorkGroup}
+          supervisorsList={supervisorsList}
         />
       )}
 

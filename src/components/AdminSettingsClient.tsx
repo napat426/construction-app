@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight, Settings, ArrowUp, ArrowDown, RotateCcw, X, CalendarRange } from 'lucide-react'
 import { AdminChecklistMasterModal } from '@/components/AdminChecklistMasterModal'
 import { LineGroupSettingsModal } from '@/components/LineGroupSettingsModal'
-import { saveSystemSetting, updateWorkGroupsSetting, updateDefaultWbsTasksSetting } from '@/app/actions/settings'
+import { saveSystemSetting, updateWorkGroupsSetting, updateDefaultWbsTasksSetting, updateSupervisorsSetting } from '@/app/actions/settings'
 import type { LineChannelTarget } from '@/lib/line'
 
 interface DefaultWbsItem {
@@ -68,6 +68,20 @@ export function AdminSettingsClient({
     } catch {}
     return ['งานงบลงทุนเร่งด่วน', 'งานแผนสนับสนุน']
   })
+
+  const [supervisorsList, setSupervisorsList] = useState<string[]>(() => {
+    try {
+      const val = initialSettings['supervisors']
+      if (val) {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {}
+    const discovered = [...new Set(projects.flatMap(p => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))]
+    return discovered.length > 0 ? discovered : ['ณภัทร ชัยสิทธิ์สงวน', 'อดิศักดิ์  กอลีซอ พชง.4 ผยธ.กรย.ก3']
+  })
+  const [newSupervisorName, setNewSupervisorName] = useState('')
+  const [isSupervisorSaving, setIsSupervisorSaving] = useState(false)
 
   const [slotDay, setSlotDay] = useState('Mon')
   const [slotTime, setSlotTime] = useState('08:30')
@@ -208,6 +222,53 @@ export function AdminSettingsClient({
     updated[index] = updated[targetIndex]
     updated[targetIndex] = temp
     saveWorkGroups(updated)
+  }
+
+  const saveSupervisors = async (updated: string[]) => {
+    setSupervisorsList(updated)
+    setIsSupervisorSaving(true)
+    try {
+      await updateSupervisorsSetting(updated)
+      setSettings(prev => ({ ...prev, supervisors: JSON.stringify(updated) }))
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsSupervisorSaving(false)
+    }
+  }
+
+  const handleAddSupervisor = () => {
+    const trimmed = newSupervisorName.trim()
+    if (!trimmed) return
+    if (supervisorsList.includes(trimmed)) return
+    const updated = [...supervisorsList, trimmed]
+    saveSupervisors(updated)
+    setNewSupervisorName('')
+  }
+
+  const handleDeleteSupervisor = (nameToDelete: string) => {
+    const inUseCount = projects.filter(p => (p.supervisor || '').split(',').map(s => s.trim()).includes(nameToDelete)).length
+    if (inUseCount > 0) {
+      if (!confirm(`ผู้ควบคุมงาน "${nameToDelete}" มีโครงการที่กำลังดูแลอยู่ ${inUseCount} โครงการ\nคุณต้องการลบออกจากรายชื่อตัวเลือกใช่หรือไม่? (ข้อมูลในโครงการเดิมจะไม่สูญหาย)`)) {
+        return
+      }
+    }
+    const updated = supervisorsList.filter(s => s !== nameToDelete)
+    saveSupervisors(updated)
+  }
+
+  const handleMoveSupervisor = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= supervisorsList.length) return
+    const updated = [...supervisorsList]
+    const temp = updated[index]
+    updated[index] = updated[targetIndex]
+    updated[targetIndex] = temp
+    saveSupervisors(updated)
+  }
+
+  const getSupervisorProjectCount = (name: string) => {
+    return projects.filter(p => (p.supervisor || '').split(',').map(s => s.trim()).includes(name)).length
   }
 
   const saveWbsTasks = async (updated: DefaultWbsItem[]) => {
@@ -429,6 +490,119 @@ export function AdminSettingsClient({
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      <hr className="border-slate-200 dark:border-[#252548]" />
+
+      {/* ── SUPERVISORS MANAGEMENT SECTION ── */}
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="text-xl">👷</span> จัดการรายชื่อผู้ควบคุมงาน (Supervisors)
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              กำหนดรายชื่อผู้ควบคุมงานประจำแผนก สำหรับใช้เป็นตัวเลือก Dropdown ในการสร้างและแก้ไขโครงการ เพื่อป้องกันการสะกดชื่อผิดพลาด
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-900/50">
+            ทั้งหมด {supervisorsList.length} ท่าน
+          </span>
+        </div>
+
+        {isSupervisorSaving && (
+          <div className="flex items-center gap-2 text-xs font-bold text-primary-500 mb-3">
+            <Loader2 className="animate-spin" size={14} />
+            กำลังบันทึกข้อมูลตั้งค่าผู้ควบคุมงาน...
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {/* Add new supervisor input */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="ระบุชื่อ-นามสกุล หรือตำแหน่งผู้ควบคุมงานใหม่..."
+              value={newSupervisorName}
+              onChange={e => setNewSupervisorName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleAddSupervisor()
+              }}
+              className="input-base text-sm font-semibold flex-1"
+            />
+            <button
+              onClick={handleAddSupervisor}
+              disabled={isSupervisorSaving || !newSupervisorName.trim()}
+              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+            >
+              <Plus size={16} /> เพิ่มผู้ควบคุมงาน
+            </button>
+          </div>
+
+          {/* List of current supervisors */}
+          <div className="border border-slate-100 dark:border-[#252548] rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-[#252548] bg-white dark:bg-[#13132a]">
+            {supervisorsList.length === 0 ? (
+              <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500 italic">
+                ยังไม่มีการระบุรายชื่อผู้ควบคุมงาน
+              </div>
+            ) : (
+              supervisorsList.map((sup, idx) => {
+                const count = getSupervisorProjectCount(sup)
+                return (
+                  <div key={sup} className="flex items-center justify-between p-3.5 hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/20 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-full bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 text-xs font-bold flex items-center justify-center shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{sup}</span>
+                        {count > 0 ? (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                            ดูแล {count} โครงการ
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400">
+                            ยังไม่มีโครงการ
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveSupervisor(idx, 'up')}
+                        disabled={idx === 0 || isSupervisorSaving}
+                        className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/30 rounded transition-all disabled:opacity-20 cursor-pointer"
+                        title="เลื่อนขึ้น"
+                      >
+                        <ArrowUp size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveSupervisor(idx, 'down')}
+                        disabled={idx === supervisorsList.length - 1 || isSupervisorSaving}
+                        className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/30 rounded transition-all disabled:opacity-20 cursor-pointer"
+                        title="เลื่อนลง"
+                      >
+                        <ArrowDown size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSupervisor(sup)}
+                        disabled={isSupervisorSaving}
+                        className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-red-500/5 transition-all cursor-pointer ml-1"
+                        title="ลบผู้ควบคุมงาน"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })
             )}
           </div>
         </div>

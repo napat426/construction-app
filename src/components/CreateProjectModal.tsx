@@ -9,14 +9,18 @@ interface CreateProjectModalProps {
   onClose: () => void
   workGroups: string[]
   defaultWorkGroup?: string
+  supervisorsList?: string[]
 }
 
 const INITIAL_STATE: ActionState = null
 
-export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup }: CreateProjectModalProps) {
+const DEFAULT_SUPERVISORS = ['ณภัทร ชัยสิทธิ์สงวน', 'อดิศักดิ์  กอลีซอ พชง.4 ผยธ.กรย.ก3']
+
+export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup, supervisorsList }: CreateProjectModalProps) {
   const [state, formAction, pending] = useActionState(createProject, INITIAL_STATE)
   const formRef = useRef<HTMLFormElement>(null)
 
+  const activeSupervisorsList = (supervisorsList && supervisorsList.length > 0) ? supervisorsList : DEFAULT_SUPERVISORS
   const [supervisors, setSupervisors] = useState<string[]>([''])
 
   // Close modal on success
@@ -119,8 +123,7 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup }: Cr
               <input type="hidden" name="supervisor" value={supervisors.filter(Boolean).join(', ')} />
               {supervisors.map((sup, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <input
-                    type="text"
+                  <select
                     required
                     value={sup}
                     onChange={(e) => {
@@ -128,14 +131,23 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup }: Cr
                       updated[idx] = e.target.value
                       setSupervisors(updated)
                     }}
-                    placeholder={`ชื่อ-นามสกุล คนที่ ${idx + 1}`}
                     className={inputCls}
-                  />
+                  >
+                    <option value="">-- เลือกผู้ควบคุมงานคนที่ {idx + 1} --</option>
+                    {activeSupervisorsList.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                    {sup && !activeSupervisorsList.includes(sup) && (
+                      <option value={sup}>{sup} (เดิม)</option>
+                    )}
+                  </select>
                   {supervisors.length > 1 && (
                     <button
                       type="button"
                       onClick={() => setSupervisors(supervisors.filter((_, i) => i !== idx))}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors cursor-pointer"
                       title="ลบ"
                     >
                       <Trash2 size={16} />
@@ -146,7 +158,7 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup }: Cr
               <button
                 type="button"
                 onClick={() => setSupervisors([...supervisors, ''])}
-                className="text-xs text-primary-600 dark:text-primary-400 font-bold self-start mt-1 hover:underline"
+                className="text-xs text-primary-600 dark:text-primary-400 font-bold self-start mt-1 hover:underline cursor-pointer"
               >
                 + เพิ่มผู้ควบคุมงาน
               </button>

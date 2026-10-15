@@ -36,6 +36,7 @@ export async function saveSystemSetting(key: string, value: string, title?: stri
       line_channels: 'กลุ่มแจ้งเตือน LINE',
       work_groups: 'กลุ่มงานโครงการ',
       default_wbs_tasks: 'กิจกรรม WBS เริ่มต้น',
+      supervisors: 'รายชื่อผู้ควบคุมงาน',
     }
 
     const label = title || keyLabels[key] || key
@@ -88,6 +89,43 @@ export async function updateWorkGroupsSetting(groups: string[]) {
     revalidatePath('/admin/settings')
     revalidatePath('/projects')
     revalidatePath('/activities')
+
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message }
+  }
+}
+
+export async function updateSupervisorsSetting(supervisors: string[]) {
+  try {
+    const cleaned = Array.from(new Set(supervisors.map(s => s.trim()).filter(Boolean)))
+    const serialized = JSON.stringify(cleaned)
+    const { data: existing } = await supabase
+      .from('system_settings')
+      .select('id')
+      .eq('key', 'supervisors')
+      .maybeSingle()
+
+    if (existing) {
+      await supabase.from('system_settings').update({ value: serialized }).eq('key', 'supervisors')
+    } else {
+      await supabase.from('system_settings').insert({ key: 'supervisors', value: serialized })
+    }
+
+    await logActivity({
+      actionType: 'UPDATE',
+      entityType: 'system_setting',
+      entityTitle: `ปรับปรุงรายชื่อผู้ควบคุมงาน (${cleaned.length} ท่าน)`,
+      details: {
+        supervisors: cleaned,
+        count: cleaned.length,
+      },
+    })
+
+    revalidatePath('/admin/settings')
+    revalidatePath('/projects')
+    revalidatePath('/activities')
+    revalidatePath('/')
 
     return { success: true }
   } catch (err: any) {

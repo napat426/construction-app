@@ -17,11 +17,15 @@ interface EditBaselineModalProps {
   amendments: ContractAmendment[]
   onClose: () => void
   workGroups: string[]
+  supervisorsList?: string[]
 }
 
-export function EditBaselineModal({ project, milestones, amendments, onClose, workGroups }: EditBaselineModalProps) {
+const DEFAULT_SUPERVISORS = ['ณภัทร ชัยสิทธิ์สงวน', 'อดิศักดิ์  กอลีซอ พชง.4 ผยธ.กรย.ก3']
+
+export function EditBaselineModal({ project, milestones, amendments, onClose, workGroups, supervisorsList }: EditBaselineModalProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const activeSupervisorsList = (supervisorsList && supervisorsList.length > 0) ? supervisorsList : DEFAULT_SUPERVISORS
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [startDate, setStartDate] = useState(project.start_date || '')
@@ -207,8 +211,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
               <input type="hidden" name="supervisor" value={supervisors.filter(Boolean).join(', ')} />
               {supervisors.map((sup, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <input
-                    type="text"
+                  <select
                     required
                     value={sup}
                     onChange={(e) => {
@@ -216,14 +219,23 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                       updated[idx] = e.target.value
                       setSupervisors(updated)
                     }}
-                    placeholder={`ผู้ควบคุมงานคนที่ ${idx + 1}`}
                     className={inputCls}
-                  />
+                  >
+                    <option value="">-- เลือกผู้ควบคุมงานคนที่ {idx + 1} --</option>
+                    {activeSupervisorsList.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                    {sup && !activeSupervisorsList.includes(sup) && (
+                      <option value={sup}>{sup} (เดิม)</option>
+                    )}
+                  </select>
                   {supervisors.length > 1 && (
                     <button
                       type="button"
                       onClick={() => setSupervisors(supervisors.filter((_, i) => i !== idx))}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors cursor-pointer"
                       title="ลบ"
                     >
                       <Trash2 size={16} />
@@ -234,7 +246,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
               <button
                 type="button"
                 onClick={() => setSupervisors([...supervisors, ''])}
-                className="text-xs text-primary-600 dark:text-primary-400 font-bold self-start mt-1 hover:underline"
+                className="text-xs text-primary-600 dark:text-primary-400 font-bold self-start mt-1 hover:underline cursor-pointer"
               >
                 + เพิ่มผู้ควบคุมงาน
               </button>

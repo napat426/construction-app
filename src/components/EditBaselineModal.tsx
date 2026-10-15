@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Save, Loader2, Plus, Trash2 } from 'lucide-react'
 import { updateProjectBaseline } from '@/app/actions/projects'
@@ -26,6 +26,20 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
   const [error, setError] = useState('')
   const [startDate, setStartDate] = useState(project.start_date || '')
   const [endDate, setEndDate] = useState(project.end_date || '')
+  const [description, setDescription] = useState(project.description || '')
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const adjustDescHeight = useCallback(() => {
+    const el = descTextareaRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = `${Math.max(68, el.scrollHeight)}px`
+    }
+  }, [])
+
+  useEffect(() => {
+    adjustDescHeight()
+  }, [description, adjustDescHeight])
 
   const hasDateError = !!(startDate && endDate && new Date(startDate) >= new Date(endDate))
 
@@ -272,13 +286,24 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
           </div>
 
           <div>
-            <label className={labelCls} htmlFor="description">รายละเอียดโครงการ</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className={labelCls} htmlFor="description">รายละเอียดโครงการ</label>
+              <span className="text-[10px] text-slate-400 font-medium">ขยายตามความยาวข้อความอัตโนมัติ</span>
+            </div>
             <textarea
+              ref={descTextareaRef}
               id="description"
               name="description"
-              rows={2}
-              defaultValue={project.description || ''}
-              className={`${inputCls} resize-none`}
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value)
+                const target = e.target
+                target.style.height = 'auto'
+                target.style.height = `${Math.max(68, target.scrollHeight)}px`
+              }}
+              className={`${inputCls} resize-none overflow-hidden transition-[height] duration-75 leading-relaxed`}
+              style={{ minHeight: '68px' }}
+              placeholder="ระบุรายละเอียดโครงการ เช่น อาคาร, สิ่งก่อสร้าง, ขอบเขตงาน..."
             />
           </div>
 

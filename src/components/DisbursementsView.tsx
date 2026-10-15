@@ -96,27 +96,14 @@ export function DisbursementsView({
       // Remaining PR (PR คงเหลือ) = Budget - Opening PR
       const remainingPr = Math.max(0, budget - openingPr)
 
-      // Cumulative planned payout up to the current month (August 2026 / today's month)
-      const now = new Date()
-      const currentYear = now.getFullYear()
-      const currentMonth = now.getMonth()
-
-      const plannedUpToNowMilestones = pMilestones.filter(m => {
-        const dateStr = m.expected_payment_date || m.payment_date
-        if (!dateStr) return false
-        const d = new Date(dateStr)
-        if (isNaN(d.getTime())) return false
-        
-        const dYear = d.getFullYear()
-        const dMonth = d.getMonth()
-        
-        if (dYear < currentYear) return true
-        if (dYear === currentYear && dMonth <= currentMonth) return true
-        return false
+      // Unpaid milestones awaiting disbursement (รอเบิกจ่าย)
+      const unpaidMilestones = pMilestones.filter(m => {
+        const status = m.status || (m.is_paid ? 'Paid' : 'Pending')
+        return status !== 'Paid'
       })
 
-      const planAmount = plannedUpToNowMilestones.reduce((sum, m) => sum + val(m.amount), 0)
-      const planPercent = budget > 0 ? (planAmount / budget) * 100 : 0
+      const pendingAmount = unpaidMilestones.reduce((sum, m) => sum + val(m.amount), 0)
+      const pendingPercent = budget > 0 ? (pendingAmount / budget) * 100 : 0
 
       // Paid percent of total budget
       const paidPercent = budget > 0 ? (paidTotal / budget) * 100 : 0
@@ -127,8 +114,10 @@ export function DisbursementsView({
         budget,
         openingPr,
         remainingPr,
-        planAmount,
-        planPercent,
+        pendingAmount,
+        pendingPercent,
+        planAmount: pendingAmount,
+        planPercent: pendingPercent,
         paidTotal,
         paidPercent,
         prTotal,
@@ -192,8 +181,8 @@ export function DisbursementsView({
       `งบประมาณ (${exVatEnabled ? 'ไม่รวม VAT 7%' : 'รวม VAT'})`,
       'วงเงินจ้างก่อสร้าง',
       'PR คงเหลือ (Cost Saving)',
-      'แผนเบิกจ่าย (วงเงิน)',
-      'แผนเบิกจ่าย (%)',
+      'รอเบิกจ่าย (วงเงิน)',
+      'รอเบิกจ่าย (%)',
       'เบิกจ่ายจริง (วงเงิน)',
       'เบิกจ่ายจริง (%)',
       'อยู่ระหว่างดำเนินการ (PR)',
@@ -412,7 +401,7 @@ export function DisbursementsView({
                 <span className="text-[9px]">(Cost Saving)</span>
               </th>
               <th className="p-3 text-center bg-blue-500/5" colSpan={2}>
-                <div>แผนเบิกจ่าย</div>
+                <div>รอเบิกจ่าย</div>
                 <div className={`text-[9px] font-semibold ${exVatEnabled ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
                   ({exVatEnabled ? 'ไม่รวม VAT' : 'รวม VAT'})
                 </div>

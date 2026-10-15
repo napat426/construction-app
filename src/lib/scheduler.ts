@@ -405,3 +405,30 @@ export function computeProjectExtension(project: Project, amendments: ContractAm
     currentSuspension
   }
 }
+
+export function computeProjectActualProgress(
+  project: Project,
+  tasks: WBSTask[] = []
+): number {
+  const projectTasks = tasks.filter(t => t.project_id === project.id)
+  if (projectTasks.length === 0) {
+    return Math.max(0, Math.min(100, project.progress ?? 0))
+  }
+
+  const totalWbsCost = projectTasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0)
+  if (totalWbsCost > 0) {
+    let totalWeightedActual = 0
+    for (const t of projectTasks) {
+      const tCost = Number(t.cost) || 0
+      const weight = tCost / totalWbsCost
+      totalWeightedActual += weight * (t.actual_progress || 0)
+    }
+    return Math.max(0, Math.min(100, Math.round(totalWeightedActual * 10) / 10))
+  } else {
+    let totalActual = 0
+    for (const t of projectTasks) {
+      totalActual += t.actual_progress || 0
+    }
+    return Math.max(0, Math.min(100, Math.round((totalActual / projectTasks.length) * 10) / 10))
+  }
+}

@@ -18,7 +18,7 @@ import { Bookmark } from 'lucide-react'
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
 
-  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes, milestonesRes] = await Promise.all([
+  const [projectsRes, tasksRes, settingsRes, ocrSettingsRes, amendmentsRes, workGroupsRes, milestonesRes, projectOrderRes] = await Promise.all([
     supabase.from('projects').select('*').order('created_at', { ascending: false }),
     supabase.from('tasks').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'ai_assistant_enabled').single(),
@@ -26,6 +26,7 @@ export default async function ProjectsPage() {
     supabase.from('contract_amendments').select('*'),
     supabase.from('system_settings').select('*').eq('key', 'work_groups').single(),
     supabase.from('project_milestones').select('*'),
+    supabase.from('system_settings').select('*').eq('key', 'project_order').single(),
   ])
 
   const projects: Project[] = (projectsRes.data as Project[]) ?? []
@@ -40,6 +41,13 @@ export default async function ProjectsPage() {
   try {
     if (workGroupsRes.data?.value) {
       workGroups = JSON.parse(workGroupsRes.data.value)
+    }
+  } catch {}
+
+  let initialProjectOrder: string[] = []
+  try {
+    if (projectOrderRes.data?.value) {
+      initialProjectOrder = JSON.parse(projectOrderRes.data.value)
     }
   } catch {}
 
@@ -95,6 +103,7 @@ export default async function ProjectsPage() {
             aiEnabled={aiEnabled} 
             aiOcrEnabled={aiOcrEnabled} 
             workGroups={workGroups}
+            initialProjectOrder={initialProjectOrder}
           />
         </main>
       </div>

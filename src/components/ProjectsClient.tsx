@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, Search, SlidersHorizontal, FolderOpen, Building2, TrendingUp, DollarSign, ChevronDown, ChevronUp, Download } from 'lucide-react'
+import { Plus, Search, SlidersHorizontal, FolderOpen, Building2, TrendingUp, DollarSign, ChevronDown, ChevronUp, Download, ArrowUp, ArrowDown, ArrowUpDown, Layers, LayoutGrid, Check, Sparkles, FolderKanban, Settings, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { ProjectCard } from './ProjectCard'
 import { CreateProjectModal } from './CreateProjectModal'
 import { AIAssistantSection } from './ai/AIAssistantSection'
 import { DisbursementsView } from './DisbursementsView'
+import { updateWorkGroupsSetting, updateProjectOrderSetting } from '@/app/actions/settings'
+import { computeProjectActualProgress } from '@/lib/scheduler'
 import type { Project, WBSTask, ContractAmendment, ProjectMilestone } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
 
@@ -19,6 +21,7 @@ interface ProjectsClientProps {
   aiEnabled?: boolean
   aiOcrEnabled?: boolean
   workGroups?: string[]
+  initialProjectOrder?: string[]
 }
 
 export function ProjectsClient({ 
@@ -27,11 +30,13 @@ export function ProjectsClient({
   initialMilestones,
   amendments = [], 
   user, 
-  aiEnabled = false,
-  aiOcrEnabled = false,
-  workGroups = []
+  aiEnabled = false, 
+  aiOcrEnabled = false, 
+  workGroups = [],
+  initialProjectOrder = []
 }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createModalWorkGroup, setCreateModalWorkGroup] = useState<string | undefined>(undefined)
   const [showDisbursements, setShowDisbursements] = useState(false)
   const [exVatEnabled, setExVatEnabled] = useState(true)
   const [expandedProjects, setExpandedProjects] = useState<string[]>([])
@@ -48,6 +53,14 @@ export function ProjectsClient({
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>([])
   const [workGroupOpen, setWorkGroupOpen] = useState(false)
+
+  // ── Work Groups & Project Reordering States ──
+  const [currentWorkGroups, setCurrentWorkGroups] = useState<string[]>(workGroups)
+  const [projectOrder, setProjectOrder] = useState<string[]>(initialProjectOrder)
+  const [isReorderMode, setIsReorderMode] = useState(false)
+  const [viewMode, setViewMode] = useState<'grouped' | 'flat'>('grouped')
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
+  const [isSavingOrder, setIsSavingOrder] = useState(false)
 
   /* ── Derived data ── */
   const supervisors = useMemo(
@@ -88,6 +101,122 @@ export function ProjectsClient({
     }),
     [initialProjects]
   )
+
+  /* ── Reordering Handlers ── */
+  const handleMoveGroup = async (groupIndex: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? groupIndex - 1 : groupIndex + 1
+    if (targetIndex < 0 || targetIndex >= currentWorkGroups.length) return
+    const updated = [...currentWorkGroups]
+    const temp = updated[groupIndex]
+    updated[groupIndex] = updated[targetIndex]
+    updated[targetIndex] = temp
+    setCurrentWorkGroups(updated)
+    setIsSavingOrder(true)
+    try {
+      await updateWorkGroupsSetting(updated)
+    } finally {
+      setIsSavingOrder(false)
+    }
+  }
+
+  const handleMoveProject = async (projectId: string, groupProjects: Project[], direction: 'left' | 'right') => {
+    const currentIndex = groupProjects.findIndex(p => p.id === projectId)
+    if (currentIndex === -1) return
+    const targetIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= groupProjects.length) return
+
+    const newGroupProjects = [...groupProjects]
+    const temp = newGroupProjects[currentIndex]
+    newGroupProjects[currentIndex] = newGroupProjects[targetIndex]
+    newGroupProjects[targetIndex] = temp
+
+    const newGroupIds = newGroupProjects.map(p => p.id)
+    const allKnownIds = [...new Set([...projectOrder, ...initialProjects.map(p => p.id)])]
+    const remainingGroupIds = [...newGroupIds]
+    const updatedFullOrder = allKnownIds.map(id => {
+      if (groupProjects.some(p => p.id === id)) {
+        return remainingGroupIds.shift()!
+      }
+      return id
+    })
+
+    setProjectOrder(updatedFullOrder)
+    setIsSavingOrder(true)
+    try {
+      await updateProjectOrderSetting(updatedFullOrder)
+    } finally {
+      setIsSavingOrder(false)
+    }
+  }
+
+  const toggleCollapseGroup = (groupName: string) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupName]: !prev[groupName]
+    }))
+  }
+
+  /* ── Sorted & Grouped Projects ── */
+  const sortedFilteredProjects = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const idxA = projectOrder.indexOf(a.id)
+      const idxB = projectOrder.indexOf(b.id)
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      if (idxA !== -1) return -1
+      if (idxB !== -1) return 1
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+  }, [filtered, projectOrder])
+
+  const groupedSections = useMemo(() => {
+    const sections: {
+      groupName: string
+      isSpecial?: boolean
+      projects: Project[]
+      totalBudget: number
+      avgProgress: number
+    }[] = []
+
+    // Defined work groups in order
+    currentWorkGroups.forEach((wg) => {
+      const groupProjs = sortedFilteredProjects.filter(p => (p.work_group || '').trim() === wg.trim())
+      const totalBudget = groupProjs.reduce((sum, p) => sum + (p.budget || 0), 0)
+      const totalProgress = groupProjs.reduce((sum, p) => sum + computeProjectActualProgress(p, initialTasks), 0)
+      const rawAvg = groupProjs.length > 0 ? totalProgress / groupProjs.length : 0
+      const avgProgress = Math.round(rawAvg * 10) / 10
+
+      // Only filter out empty if search/filters are active
+      const isSearching = searchQuery.trim().length > 0 || selectedSupervisors.length > 0 || selectedStatuses.length > 0 || selectedWorkGroups.length > 0
+      if (!isSearching || groupProjs.length > 0) {
+        sections.push({
+          groupName: wg,
+          projects: groupProjs,
+          totalBudget,
+          avgProgress
+        })
+      }
+    })
+
+    // Unassigned or other work groups not in currentWorkGroups
+    const unassignedProjs = sortedFilteredProjects.filter(
+      p => !p.work_group || !currentWorkGroups.some(wg => wg.trim() === (p.work_group || '').trim())
+    )
+    if (unassignedProjs.length > 0) {
+      const totalBudget = unassignedProjs.reduce((sum, p) => sum + (p.budget || 0), 0)
+      const totalProgress = unassignedProjs.reduce((sum, p) => sum + computeProjectActualProgress(p, initialTasks), 0)
+      const rawAvg = unassignedProjs.length > 0 ? totalProgress / unassignedProjs.length : 0
+      const avgProgress = Math.round(rawAvg * 10) / 10
+      sections.push({
+        groupName: 'หมวดงานอื่นๆ / ไม่ระบุกลุ่มงาน',
+        isSpecial: true,
+        projects: unassignedProjs,
+        totalBudget,
+        avgProgress
+      })
+    }
+
+    return sections
+  }, [currentWorkGroups, sortedFilteredProjects, searchQuery, selectedSupervisors, selectedStatuses, selectedWorkGroups])
 
   return (
     <>
@@ -362,38 +491,109 @@ export function ProjectsClient({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* View Mode Toggle */}
+          <div className="flex items-center p-1 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode('grouped')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'grouped'
+                  ? 'bg-primary-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="แสดงตามหมวดงาน"
+            >
+              <Layers size={14} />
+              <span>แยกตามหมวดงาน</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('flat')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'flat'
+                  ? 'bg-primary-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="แสดงโครงการทั้งหมด"
+            >
+              <LayoutGrid size={14} />
+              <span>รวมทั้งหมด</span>
+            </button>
+          </div>
+
+          {/* Admin Reorder Mode Toggle */}
+          {user && user.role === 'admin' && (
+            <button
+              type="button"
+              onClick={() => setIsReorderMode(!isReorderMode)}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                isReorderMode
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-400/30'
+                  : 'bg-white dark:bg-[#1a1a36] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#202042]'
+              }`}
+              title="เปิด/ปิดโหมดปรับลำดับโครงการและหมวดงาน"
+            >
+              <ArrowUpDown size={14} className={isReorderMode ? 'animate-bounce' : ''} />
+              <span>{isReorderMode ? '✓ กำลังจัดลำดับ' : 'จัดลำดับงาน'}</span>
+            </button>
+          )}
+
           <button
             onClick={() => setShowDisbursements(!showDisbursements)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold border transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
               showDisbursements
                 ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600'
                 : 'bg-white dark:bg-[#1a1a36] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-[#252548] hover:bg-slate-50'
             }`}
           >
-            <DollarSign size={16} className={showDisbursements ? 'text-white' : 'text-amber-500'} />
+            <DollarSign size={14} className={showDisbursements ? 'text-white' : 'text-amber-500'} />
             การเบิกจ่าย
           </button>
 
           <Link
             href="/portfolio"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#252548] transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#252548] transition-colors cursor-pointer"
           >
-            <TrendingUp size={16} className="text-primary-600 dark:text-primary-400" />
+            <TrendingUp size={14} className="text-primary-600 dark:text-primary-400" />
             ภาพรวมทุกโครงการ
           </Link>
 
           {user && (user.role === 'admin' || user.role === 'editor') && (
             <button
               id="create-project-btn"
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white btn-primary flex-shrink-0 cursor-pointer"
+              onClick={() => {
+                setCreateModalWorkGroup(undefined)
+                setShowCreateModal(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white btn-primary flex-shrink-0 cursor-pointer shadow-sm"
             >
-              <Plus size={16} />
+              <Plus size={15} />
               สร้างโครงการใหม่
             </button>
           )}
         </div>
       </div>
+
+      {/* ── Reorder Mode Tip Banner ── */}
+      {isReorderMode && user && user.role === 'admin' && (
+        <div className="mb-5 p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between text-xs text-indigo-900 dark:text-indigo-200 animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base">💡</span>
+            <div>
+              <p className="font-bold">โหมดจัดลำดับโครงการ & หมวดงานกำลังทำงาน</p>
+              <p className="text-[11px] opacity-80 mt-0.5">
+                กดปุ่ม <strong>◀ ก่อน</strong> หรือ <strong>หลัง ▶</strong> บนการ์ดแต่ละโครงการ หรือกดปุ่ม <strong>▲ / ▼</strong> บนหัวข้อหมวดงานเพื่อเลื่อนสลับลำดับก่อน-หลังได้ทันที ระบบจะบันทึกอัตโนมัติ
+              </p>
+            </div>
+          </div>
+          {isSavingOrder && (
+            <div className="flex items-center gap-1.5 font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
+              <RefreshCw size={13} className="animate-spin" />
+              <span>กำลังบันทึก...</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Filter result count ── */}
       {(searchQuery || selectedSupervisors.length > 0 || selectedStatuses.length > 0 || selectedWorkGroups.length > 0) && (
@@ -416,15 +616,159 @@ export function ProjectsClient({
             exVatEnabled={exVatEnabled}
             setExVatEnabled={setExVatEnabled}
           />
+        ) : viewMode === 'grouped' ? (
+          /* ── Grouped by Work Category (ตามรูปวาด) ── */
+          <div className="space-y-8">
+            {groupedSections.map((section, sIdx) => {
+              const isCollapsed = !!collapsedGroups[section.groupName]
+              return (
+                <section key={section.groupName} className="scroll-mt-6">
+                  {/* Section Header Card */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:px-5 sm:py-3.5 rounded-2xl bg-white dark:bg-[#141428] border border-slate-200/90 dark:border-[#252548] shadow-xs mb-4">
+                    {/* Left: Index badge, Title, and Stats */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="w-8 h-8 rounded-xl bg-primary-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                        {section.isSpecial ? '★' : sIdx + 1}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                            {section.groupName}
+                          </h2>
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 border border-primary-200/60 dark:border-primary-800/40">
+                            {section.projects.length} โครงการ
+                          </span>
+                          {section.totalBudget > 0 && (
+                            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40 hidden sm:inline-block">
+                              งบรวม {(section.totalBudget / 1e6).toFixed(2)} ล้านบาท
+                            </span>
+                          )}
+                          {section.projects.length > 0 && (
+                            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 hidden md:inline-block">
+                              {section.projects.length === 1 ? 'ความก้าวหน้า' : 'ความก้าวหน้าเฉลี่ย'} {section.avgProgress}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Reorder actions and collapse */}
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      {/* Admin Reorder Move Up / Down for this group */}
+                      {user && user.role === 'admin' && !section.isSpecial && (
+                        <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-[#1e1e38] p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveGroup(sIdx, 'up')}
+                            disabled={sIdx === 0 || isSavingOrder}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-primary-600 hover:bg-white dark:hover:bg-[#282848] disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer"
+                            title="เลื่อนหมวดงานขึ้น"
+                          >
+                            <ArrowUp size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveGroup(sIdx, 'down')}
+                            disabled={sIdx === currentWorkGroups.length - 1 || isSavingOrder}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-primary-600 hover:bg-white dark:hover:bg-[#282848] disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer"
+                            title="เลื่อนหมวดงานลง"
+                          >
+                            <ArrowDown size={15} />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Add project in this specific group */}
+                      {user && (user.role === 'admin' || user.role === 'editor') && !section.isSpecial && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCreateModalWorkGroup(section.groupName)
+                            setShowCreateModal(true)
+                          }}
+                          className="px-3 py-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                          title={`เพิ่มโครงการในหมวด ${section.groupName}`}
+                        >
+                          <Plus size={14} />
+                          <span className="hidden sm:inline">เพิ่มในหมวดนี้</span>
+                        </button>
+                      )}
+
+                      {/* Collapse / Expand toggle */}
+                      <button
+                        type="button"
+                        onClick={() => toggleCollapseGroup(section.groupName)}
+                        className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
+                        title={isCollapsed ? 'กางออก' : 'พับเก็บ'}
+                      >
+                        {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Projects Grid for this section (3 columns according to sketch) */}
+                  {!isCollapsed && (
+                    section.projects.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {section.projects.map((project, pIdx) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            tasks={initialTasks.filter((t) => t.project_id === project.id)}
+                            amendments={amendments.filter((a) => a.project_id === project.id)}
+                            user={user}
+                            index={pIdx}
+                            totalInGroup={section.projects.length}
+                            isReorderMode={isReorderMode && user?.role === 'admin'}
+                            canMoveLeft={pIdx > 0}
+                            canMoveRight={pIdx < section.projects.length - 1}
+                            onMoveLeft={() => handleMoveProject(project.id, section.projects, 'left')}
+                            onMoveRight={() => handleMoveProject(project.id, section.projects, 'right')}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-8 rounded-2xl border border-dashed border-slate-200 dark:border-[#252548] text-center bg-slate-50/50 dark:bg-[#141428]/40">
+                        <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-2">
+                          ยังไม่มีโครงการในหมวดนี้
+                        </p>
+                        {user && (user.role === 'admin' || user.role === 'editor') && !section.isSpecial && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreateModalWorkGroup(section.groupName)
+                              setShowCreateModal(true)
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary-600 bg-primary-50 dark:bg-primary-950/50 hover:bg-primary-100 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Plus size={13} />
+                            สร้างโครงการแรกในหมวดนี้
+                          </button>
+                        )}
+                      </div>
+                    )
+                  )}
+                </section>
+              )
+            })}
+          </div>
         ) : (
+          /* Flat grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map((project) => (
+            {sortedFilteredProjects.map((project, pIdx) => (
               <ProjectCard
                 key={project.id}
                 project={project}
                 tasks={initialTasks.filter((t) => t.project_id === project.id)}
                 amendments={amendments.filter((a) => a.project_id === project.id)}
                 user={user}
+                index={pIdx}
+                totalInGroup={sortedFilteredProjects.length}
+                isReorderMode={isReorderMode && user?.role === 'admin'}
+                canMoveLeft={pIdx > 0}
+                canMoveRight={pIdx < sortedFilteredProjects.length - 1}
+                onMoveLeft={() => handleMoveProject(project.id, sortedFilteredProjects, 'left')}
+                onMoveRight={() => handleMoveProject(project.id, sortedFilteredProjects, 'right')}
               />
             ))}
           </div>
@@ -451,7 +795,10 @@ export function ProjectsClient({
           </p>
           {!searchQuery && selectedSupervisors.length === 0 && selectedStatuses.length === 0 && selectedWorkGroups.length === 0 && user && (user.role === 'admin' || user.role === 'editor') && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                setCreateModalWorkGroup(undefined)
+                setShowCreateModal(true)
+              }}
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold text-white btn-primary cursor-pointer"
             >
               <Plus size={15} />
@@ -463,7 +810,14 @@ export function ProjectsClient({
 
       {/* ── Create modal ── */}
       {showCreateModal && (
-        <CreateProjectModal onClose={() => setShowCreateModal(false)} workGroups={workGroups} />
+        <CreateProjectModal 
+          onClose={() => {
+            setShowCreateModal(false)
+            setCreateModalWorkGroup(undefined)
+          }} 
+          workGroups={currentWorkGroups} 
+          defaultWorkGroup={createModalWorkGroup}
+        />
       )}
 
       {/* ── AI Assistant Section ── */}

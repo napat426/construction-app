@@ -8,11 +8,12 @@ import type { ActionState } from '@/lib/types'
 interface CreateProjectModalProps {
   onClose: () => void
   workGroups: string[]
+  defaultWorkGroup?: string
 }
 
 const INITIAL_STATE: ActionState = null
 
-export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalProps) {
+export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup }: CreateProjectModalProps) {
   const [state, formAction, pending] = useActionState(createProject, INITIAL_STATE)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -217,7 +218,7 @@ export function CreateProjectModal({ onClose, workGroups }: CreateProjectModalPr
             </div>
             <div>
               <label className={labelCls} htmlFor="work_group">กลุ่มงาน (Work Group)</label>
-              <select id="work_group" name="work_group" className={inputCls}>
+              <select id="work_group" name="work_group" defaultValue={defaultWorkGroup || ''} className={inputCls}>
                 <option value="">-- ไม่ระบุกลุ่มงาน --</option>
                 {workGroups.map((group) => (
                   <option key={group} value={group}>{group}</option>

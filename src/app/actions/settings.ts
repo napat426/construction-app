@@ -127,3 +127,36 @@ export async function updateDefaultWbsTasksSetting(tasks: any[]) {
     return { error: err.message }
   }
 }
+
+export async function updateProjectOrderSetting(projectIds: string[]) {
+  try {
+    const serialized = JSON.stringify(projectIds)
+    const { data: existing } = await supabase
+      .from('system_settings')
+      .select('id')
+      .eq('key', 'project_order')
+      .maybeSingle()
+
+    if (existing) {
+      await supabase.from('system_settings').update({ value: serialized }).eq('key', 'project_order')
+    } else {
+      await supabase.from('system_settings').insert({ key: 'project_order', value: serialized })
+    }
+
+    await logActivity({
+      actionType: 'UPDATE',
+      entityType: 'system_setting',
+      entityTitle: `ปรับปรุงลำดับการแสดงผลโครงการ (${projectIds.length} รายการ)`,
+      details: {
+        project_count: projectIds.length,
+      },
+    })
+
+    revalidatePath('/projects')
+    revalidatePath('/')
+
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message }
+  }
+}

@@ -73,9 +73,28 @@ interface ProjectCardProps {
   tasks?: WBSTask[]
   amendments?: ContractAmendment[]
   user?: UserSession | null
+  index?: number
+  totalInGroup?: number
+  isReorderMode?: boolean
+  onMoveLeft?: () => void
+  onMoveRight?: () => void
+  canMoveLeft?: boolean
+  canMoveRight?: boolean
 }
 
-export function ProjectCard({ project, tasks = [], amendments = [], user }: ProjectCardProps) {
+export function ProjectCard({ 
+  project, 
+  tasks = [], 
+  amendments = [], 
+  user,
+  index,
+  totalInGroup,
+  isReorderMode = false,
+  onMoveLeft,
+  onMoveRight,
+  canMoveLeft = false,
+  canMoveRight = false,
+}: ProjectCardProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -189,6 +208,46 @@ export function ProjectCard({ project, tasks = [], amendments = [], user }: Proj
           style={{ width: `${progressClamped}%` }}
         />
       </div>
+
+      {/* Reorder control strip (Admin reorder mode) */}
+      {isReorderMode && (
+        <div className="flex items-center justify-between px-3.5 py-1.5 bg-primary-50 dark:bg-primary-950/40 border-b border-primary-100 dark:border-primary-900/40 text-xs font-bold text-primary-700 dark:text-primary-300">
+          <span className="flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-full bg-primary-600 text-white flex items-center justify-center text-[10px] font-black">
+              {((index ?? 0) + 1)}
+            </span>
+            <span>ลำดับที่ {((index ?? 0) + 1)}{totalInGroup ? ` / ${totalInGroup}` : ''}</span>
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onMoveLeft?.()
+              }}
+              disabled={!canMoveLeft}
+              className="px-2 py-0.5 rounded bg-white dark:bg-[#1a1a38] border border-primary-200 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/60 disabled:opacity-25 disabled:cursor-not-allowed flex items-center gap-0.5 text-[11px] cursor-pointer shadow-2xs"
+              title="เลื่อนก่อนหน้า"
+            >
+              ◀ ก่อน
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onMoveRight?.()
+              }}
+              disabled={!canMoveRight}
+              className="px-2 py-0.5 rounded bg-white dark:bg-[#1a1a38] border border-primary-200 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/60 disabled:opacity-25 disabled:cursor-not-allowed flex items-center gap-0.5 text-[11px] cursor-pointer shadow-2xs"
+              title="เลื่อนถัดไป"
+            >
+              หลัง ▶
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col p-5">
         {/* Header row */}

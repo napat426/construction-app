@@ -200,6 +200,16 @@ export function AdminSettingsClient({
     saveWorkGroups(updated)
   }
 
+  const handleMoveWorkGroup = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= workGroups.length) return
+    const updated = [...workGroups]
+    const temp = updated[index]
+    updated[index] = updated[targetIndex]
+    updated[targetIndex] = temp
+    saveWorkGroups(updated)
+  }
+
   const saveWbsTasks = async (updated: DefaultWbsItem[]) => {
     const normalized = updated.map(item => ({
       ...item,
@@ -379,21 +389,44 @@ export function AdminSettingsClient({
                 ยังไม่มีการระบุกลุ่มงาน
               </div>
             ) : (
-              workGroups.map((group) => (
+              workGroups.map((group, idx) => (
                 <div key={group} className="flex items-center justify-between p-3.5 hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/20 transition-colors">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary-500" />
+                    <span className="w-5 h-5 rounded-full bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 text-xs font-bold flex items-center justify-center">
+                      {idx + 1}
+                    </span>
                     <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{group}</span>
                   </div>
                   
-                  <button
-                    onClick={() => handleDeleteWorkGroup(group)}
-                    disabled={isSaving}
-                    className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-red-500/5 transition-all cursor-pointer"
-                    title="ลบกลุ่มงาน"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveWorkGroup(idx, 'up')}
+                      disabled={idx === 0 || isSaving}
+                      className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/30 rounded transition-all disabled:opacity-20 cursor-pointer"
+                      title="เลื่อนขึ้น"
+                    >
+                      <ArrowUp size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveWorkGroup(idx, 'down')}
+                      disabled={idx === workGroups.length - 1 || isSaving}
+                      className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/30 rounded transition-all disabled:opacity-20 cursor-pointer"
+                      title="เลื่อนลง"
+                    >
+                      <ArrowDown size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteWorkGroup(group)}
+                      disabled={isSaving}
+                      className="p-1.5 text-slate-400 hover:text-red-500 rounded hover:bg-red-500/5 transition-all cursor-pointer ml-1"
+                      title="ลบกลุ่มงาน"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               ))
             )}

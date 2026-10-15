@@ -6,7 +6,6 @@ import { Folder, Printer, ArrowUpDown, TrendingUp, DollarSign, Calendar, AlertTr
 import type { Project, WBSTask, ProjectMilestone, PunchList, PunchItem, ContractAmendment } from '@/lib/types'
 import * as XLSX from 'xlsx'
 
-import { ProgressComparisonChart } from './portfolio/ProgressComparisonChart'
 import { StatusDonutChart } from './portfolio/StatusDonutChart'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
@@ -824,13 +823,8 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
       </div>
 
       {/* ── PART 2.2: PORTFOLIO CHARTS (Hidden in print) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
-        <div className="lg:col-span-2">
-          <ProgressComparisonChart data={filteredProjects} />
-        </div>
-        <div className="lg:col-span-1">
-          <StatusDonutChart data={filteredProjects} />
-        </div>
+      <div className="no-print">
+        <StatusDonutChart data={filteredProjects} workGroups={workGroups} />
       </div>
 
 

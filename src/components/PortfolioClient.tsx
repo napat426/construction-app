@@ -22,33 +22,36 @@ interface Props {
   workGroups?: string[]
 }
 
+const ALL_STATUSES = [
+  'ออกแบบ สำรวจ ประมาณการ',
+  'จัดซื้อจัดจ้าง',
+  'รอดำเนินการ',
+  'กำลังดำเนินการ',
+  'ระงับ',
+  'เสร็จสิ้น',
+] as const
+
 type SortField = 'name' | 'remaining' | 'ev' | 'sv'
 type SortDir = 'asc' | 'desc'
 
 export function PortfolioClient({ projects, tasks, milestones, amendments = [], punchLists = [], punchItems = [], user, workGroups = [] }: Props) {
-  // Checkbox status filter states
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
-    'ออกแบบ สำรวจ ประมาณการ',
-    'จัดซื้อจัดจ้าง',
-    'รอดำเนินการ',
-    'กำลังดำเนินการ',
-    'ระงับ',
-  ])
-  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>(() =>
-    [...new Set(projects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort()
-  )
-  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>(() =>
-    [...new Set(projects.map((p) => p.work_group || ''))].sort()
-  )
-
-  const [supervisorOpen, setSupervisorOpen] = useState(false)
-  const [statusOpen, setStatusOpen] = useState(false)
-  const [workGroupOpen, setWorkGroupOpen] = useState(false)
-
   const supervisorsList = useMemo(
     () => [...new Set(projects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort(),
     [projects]
   )
+
+  const allWorkGroupKeys = useMemo(() => ['', ...workGroups], [workGroups])
+
+  // Checkbox status filter states - default to ALL checked
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([...ALL_STATUSES])
+  const [selectedSupervisors, setSelectedSupervisors] = useState<string[]>(() =>
+    [...new Set(projects.flatMap((p) => (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)))].sort()
+  )
+  const [selectedWorkGroups, setSelectedWorkGroups] = useState<string[]>(() => ['', ...workGroups])
+
+  const [supervisorOpen, setSupervisorOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [workGroupOpen, setWorkGroupOpen] = useState(false)
 
   // Sorting states
   const [sortBy, setBy] = useState<SortField>('sv')
@@ -217,20 +220,26 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
 
   // 2. Filter projects
   const filteredProjects = useMemo(() => {
+    const allSupervisorsSelected = supervisorsList.length === 0 || selectedSupervisors.length === supervisorsList.length
+    const allStatusesSelected = selectedStatuses.length === ALL_STATUSES.length
+    const allWorkGroupsSelected = selectedWorkGroups.length === allWorkGroupKeys.length
+
     return computedProjects.filter((p) => {
       const pSupervisors = (p.supervisor || '').split(',').map(s => s.trim()).filter(Boolean)
       const matchSupervisor =
-        selectedSupervisors.length === 0 ||
-        pSupervisors.some((s) => selectedSupervisors.includes(s))
+        allSupervisorsSelected ||
+        (selectedSupervisors.length > 0 && pSupervisors.some((s) => selectedSupervisors.includes(s)))
       const matchStatus =
-        selectedStatuses.length === 0 ||
+        allStatusesSelected ||
         selectedStatuses.includes(p.status)
+      const pGroup = (p.work_group || '').trim()
+      const isUnassigned = !pGroup || !workGroups.includes(pGroup)
       const matchWorkGroup =
-        selectedWorkGroups.length === 0 ||
-        selectedWorkGroups.includes(p.work_group || '')
+        allWorkGroupsSelected ||
+        (isUnassigned ? selectedWorkGroups.includes('') : selectedWorkGroups.includes(pGroup))
       return matchSupervisor && matchStatus && matchWorkGroup
     })
-  }, [computedProjects, selectedStatuses, selectedSupervisors, selectedWorkGroups])
+  }, [computedProjects, supervisorsList, selectedSupervisors, selectedStatuses, selectedWorkGroups, allWorkGroupKeys, workGroups])
 
   // 3. Sort projects
   const sortedProjects = useMemo(() => {
@@ -513,8 +522,10 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none"
               />
               <span className="truncate">
-                {selectedSupervisors.length === 0
+                {selectedSupervisors.length === supervisorsList.length
                   ? "ผู้ควบคุมทั้งหมด"
+                  : selectedSupervisors.length === 0
+                  ? "ไม่ได้เลือกผู้ควบคุม"
                   : `ผู้ควบคุม (${selectedSupervisors.length} คน)`}
               </span>
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
@@ -526,13 +537,21 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                 <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
                   <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
                     <span className="text-[10px] font-black uppercase text-slate-400">เลือกผู้ควบคุม</span>
-                    {selectedSupervisors.length > 0 && (
+                    {selectedSupervisors.length === supervisorsList.length ? (
                       <button
                         type="button"
                         onClick={() => setSelectedSupervisors([])}
-                        className="text-[10px] font-bold text-red-500 hover:underline"
+                        className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
                       >
                         ล้างค่า
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSupervisors([...supervisorsList])}
+                        className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                      >
+                        เลือกทั้งหมด
                       </button>
                     )}
                   </div>
@@ -580,8 +599,10 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none"
               />
               <span className="truncate">
-                {selectedStatuses.length === 0
+                {selectedStatuses.length === ALL_STATUSES.length
                   ? "สถานะทั้งหมด"
+                  : selectedStatuses.length === 0
+                  ? "ไม่ได้เลือกสถานะ"
                   : `สถานะ (${selectedStatuses.length})`}
               </span>
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
@@ -593,27 +614,26 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                 <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
                   <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
                     <span className="text-[10px] font-black uppercase text-slate-400">เลือกสถานะ</span>
-                    {selectedStatuses.length > 0 && (
+                    {selectedStatuses.length === ALL_STATUSES.length ? (
                       <button
                         type="button"
                         onClick={() => setSelectedStatuses([])}
-                        className="text-[10px] font-bold text-red-500 hover:underline"
+                        className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
                       >
                         ล้างค่า
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStatuses([...ALL_STATUSES])}
+                        className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                      >
+                        เลือกทั้งหมด
                       </button>
                     )}
                   </div>
                   <div className="space-y-2">
-                    {(
-                      [
-                        'ออกแบบ สำรวจ ประมาณการ',
-                        'จัดซื้อจัดจ้าง',
-                        'รอดำเนินการ',
-                        'กำลังดำเนินการ',
-                        'ระงับ',
-                        'เสร็จสิ้น',
-                      ] as const
-                    ).map((st) => {
+                    {ALL_STATUSES.map((st) => {
                       const checked = selectedStatuses.includes(st)
                       return (
                         <label key={st} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
@@ -656,8 +676,10 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none"
               />
               <span className="truncate">
-                {selectedWorkGroups.length === 0
+                {selectedWorkGroups.length === allWorkGroupKeys.length
                   ? "กลุ่มงานทั้งหมด"
+                  : selectedWorkGroups.length === 0
+                  ? "ไม่ได้เลือกกลุ่มงาน"
                   : `กลุ่มงาน (${selectedWorkGroups.length})`}
               </span>
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]">▼</span>
@@ -669,13 +691,21 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
                 <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
                   <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
                     <span className="text-[10px] font-black uppercase text-slate-400">เลือกกลุ่มงาน</span>
-                    {selectedWorkGroups.length > 0 && (
+                    {selectedWorkGroups.length === allWorkGroupKeys.length ? (
                       <button
                         type="button"
                         onClick={() => setSelectedWorkGroups([])}
-                        className="text-[10px] font-bold text-red-500 hover:underline"
+                        className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
                       >
                         ล้างค่า
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedWorkGroups([...allWorkGroupKeys])}
+                        className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                      >
+                        เลือกทั้งหมด
                       </button>
                     )}
                   </div>

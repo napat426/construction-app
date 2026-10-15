@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect, useCallback } from 'react'
 import {
   ClipboardCheck,
   Plus,
@@ -556,6 +556,19 @@ function InspectionForm({
   const [workType, setWorkType] = useState(item?.work_type || 'งานโครงสร้าง')
   const [title, setTitle] = useState(item?.title || '')
   const [note, setNote] = useState(item?.note || '')
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const adjustNoteHeight = useCallback(() => {
+    const el = noteTextareaRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = `${Math.max(100, el.scrollHeight)}px`
+    }
+  }, [])
+
+  useEffect(() => {
+    adjustNoteHeight()
+  }, [note, adjustNoteHeight])
 
   // Map database photo_urls (url|||caption) to ReportPhoto array
   const [photos, setPhotos] = useState<ReportPhoto[]>(() => {
@@ -907,13 +920,20 @@ function InspectionForm({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className={`${labelCls} mb-0`}>หมายเหตุ / ผลการตรวจ / รายละเอียดงาน (Comment)</label>
+                <span className="text-[10px] text-slate-400 font-medium">ขยายตามความยาวข้อความอัตโนมัติ</span>
               </div>
               <textarea
+                ref={noteTextareaRef}
                 name="note"
-                rows={4}
                 value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className={`${inputCls} resize-none`}
+                onChange={(e) => {
+                  setNote(e.target.value)
+                  const target = e.target
+                  target.style.height = 'auto'
+                  target.style.height = `${Math.max(100, target.scrollHeight)}px`
+                }}
+                className={`${inputCls} resize-none overflow-hidden transition-[height] duration-75 leading-relaxed`}
+                style={{ minHeight: '100px' }}
                 placeholder="ความคิดเห็นเพิ่มเติมจากผู้ตรวจ รายละเอียดจุดตรวจ หรือข้อความที่ AI วิเคราะห์ให้..."
               />
             </div>

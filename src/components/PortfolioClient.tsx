@@ -840,6 +840,12 @@ export function PortfolioClient({ projects, tasks, milestones, amendments = [], 
         </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/disbursements"
+              className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 hover:border-amber-200 dark:hover:border-amber-500/30"
+            >
+              <DollarSign size={14} /> การเบิกจ่าย
+            </Link>
             <button
               onClick={handleExportExcel}
               className="btn-secondary px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border-slate-200 cursor-pointer text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/30"

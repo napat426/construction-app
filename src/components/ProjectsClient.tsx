@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { ProjectCard } from './ProjectCard'
 import { CreateProjectModal } from './CreateProjectModal'
 import { AIAssistantSection } from './ai/AIAssistantSection'
-import { DisbursementsView } from './DisbursementsView'
 import { updateWorkGroupsSetting, updateProjectOrderSetting } from '@/app/actions/settings'
 import { computeProjectActualProgress } from '@/lib/scheduler'
 import type { Project, WBSTask, ContractAmendment, ProjectMilestone } from '@/lib/types'
@@ -46,8 +45,6 @@ export function ProjectsClient({
 }: ProjectsClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createModalWorkGroup, setCreateModalWorkGroup] = useState<string | undefined>(undefined)
-  const [showDisbursements, setShowDisbursements] = useState(false)
-  const [exVatEnabled, setExVatEnabled] = useState(true)
   const [expandedProjects, setExpandedProjects] = useState<string[]>([])
 
   /* ── Derived master filter options ── */
@@ -590,17 +587,13 @@ export function ProjectsClient({
             </button>
           )}
 
-          <button
-            onClick={() => setShowDisbursements(!showDisbursements)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
-              showDisbursements
-                ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600'
-                : 'bg-white dark:bg-[#1a1a36] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-[#252548] hover:bg-slate-50'
-            }`}
+          <Link
+            href="/disbursements"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#252548] transition-colors cursor-pointer"
           >
-            <DollarSign size={14} className={showDisbursements ? 'text-white' : 'text-amber-500'} />
+            <DollarSign size={14} className="text-amber-500" />
             การเบิกจ่าย
-          </button>
+          </Link>
 
           <Link
             href="/portfolio"
@@ -658,17 +651,9 @@ export function ProjectsClient({
         </p>
       )}
 
-      {/* ── Projects grid or Disbursements ── */}
+      {/* ── Projects grid ── */}
       {filtered.length > 0 ? (
-        showDisbursements ? (
-          <DisbursementsView
-            projects={filtered}
-            milestones={initialMilestones}
-            tasks={initialTasks}
-            exVatEnabled={exVatEnabled}
-            setExVatEnabled={setExVatEnabled}
-          />
-        ) : viewMode === 'grouped' ? (
+        viewMode === 'grouped' ? (
           /* ── Grouped by Work Category (ตามรูปวาด) ── */
           <div className="space-y-8">
             {groupedSections.map((section, sIdx) => {

@@ -82,10 +82,11 @@ export default async function ProjectsPage() {
               </Link>
               <Link
                 href="/quick-links"
-                className="p-2.5 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] text-amber-500 hover:bg-amber-50 dark:hover:bg-[#1e1e38] rounded-xl shadow-xs transition-all flex items-center justify-center cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-2 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 hover:bg-amber-100/70 dark:hover:bg-amber-900/40 rounded-xl shadow-xs transition-all text-xs font-bold cursor-pointer"
                 title="คลังลิงก์ & โน้ตสำคัญ"
               >
-                <Bookmark size={18} className="fill-amber-500/20" />
+                <Bookmark size={15} className="fill-amber-500/30 text-amber-600 dark:text-amber-400" />
+                <span>บันทึก</span>
               </Link>
               <Link
                 href="/presentation"

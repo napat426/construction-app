@@ -27,6 +27,28 @@ interface Props {
   onDelete: (taskId: string) => void
 }
 
+function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return 'ไม่ได้ระบุ'
+  try {
+    const clean = dateStr.split('T')[0]
+    const parts = clean.split('-')
+    if (parts.length === 3) {
+      const [y, m, d] = parts
+      const yearNum = parseInt(y, 10)
+      const beYear = yearNum > 2400 ? yearNum : yearNum + 543
+      return `${d}-${m}-${beYear}`
+    }
+    const dt = new Date(dateStr)
+    if (isNaN(dt.getTime())) return dateStr
+    const d = String(dt.getDate()).padStart(2, '0')
+    const m = String(dt.getMonth() + 1).padStart(2, '0')
+    const y = dt.getFullYear() + 543
+    return `${d}-${m}-${y}`
+  } catch {
+    return dateStr || 'ไม่ได้ระบุ'
+  }
+}
+
 export function SupervisorCardDetailModal({
   task,
   group,
@@ -192,14 +214,14 @@ export function SupervisorCardDetailModal({
                 <Calendar size={12} /> ระยะเวลาปฏิบัติงาน
               </span>
               <p className="font-semibold text-slate-800 dark:text-slate-200">
-                เริ่ม: {task.start_date || 'ไม่ได้ระบุ'}
+                เริ่ม: {formatDate(task.start_date)}
               </p>
               <p className="font-semibold text-slate-800 dark:text-slate-200">
-                กำหนดเสร็จ: {task.due_date || 'ไม่ได้ระบุ'}
+                กำหนดเสร็จ: {formatDate(task.due_date)}
               </p>
               {task.completed_date && (
                 <p className="font-bold text-emerald-600 dark:text-emerald-400">
-                  เสร็จจริง: {task.completed_date}
+                  เสร็จจริง: {formatDate(task.completed_date)}
                 </p>
               )}
             </div>

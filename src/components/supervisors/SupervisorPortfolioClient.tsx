@@ -104,6 +104,29 @@ export function SupervisorPortfolioClient({
     return isNaN(ceYear) ? '' : String(ceYear + 543)
   }
 
+  // Helper to format date as วัน-เดือน-ปี (DD-MM-YYYY in Thai Buddhist Era)
+  const formatDate = (dateStr?: string | null): string => {
+    if (!dateStr) return '-'
+    try {
+      const clean = dateStr.split('T')[0]
+      const parts = clean.split('-')
+      if (parts.length === 3) {
+        const [y, m, d] = parts
+        const yearNum = parseInt(y, 10)
+        const beYear = yearNum > 2400 ? yearNum : yearNum + 543
+        return `${d}-${m}-${beYear}`
+      }
+      const dt = new Date(dateStr)
+      if (isNaN(dt.getTime())) return dateStr
+      const d = String(dt.getDate()).padStart(2, '0')
+      const m = String(dt.getMonth() + 1).padStart(2, '0')
+      const y = dt.getFullYear() + 543
+      return `${d}-${m}-${y}`
+    } catch {
+      return dateStr || '-'
+    }
+  }
+
   // Dynamic available years: automatically adapts to the current year and any years from tasks
   const availableYears = useMemo(() => {
     const currentBE = new Date().getFullYear() + 543
@@ -837,7 +860,8 @@ export function SupervisorPortfolioClient({
                                   <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
                                     <Calendar size={11} className="shrink-0" />
                                     <span>
-                                      {t.start_date ? t.start_date.slice(5) : '-'} ถึง {t.due_date ? t.due_date.slice(5) : '-'}
+                                      {t.start_date ? formatDate(t.start_date) : '-'}
+                                      {t.due_date && t.due_date !== t.start_date ? ` ถึง ${formatDate(t.due_date)}` : ''}
                                     </span>
                                   </div>
                                 </div>

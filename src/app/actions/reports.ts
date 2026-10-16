@@ -8,7 +8,7 @@ import { getWeatherText } from '@/lib/weatherUtils'
 import { logActivity } from '@/lib/auditLogger'
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-let supabaseUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) ? rawUrl : 'https://txexenqijhxtdrzgltsm.supabase.co'
+let supabaseUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) ? rawUrl : 'https://kkocxjgdkwddgcbkzhwp.supabase.co'
 if (supabaseUrl.startsWith('"') && supabaseUrl.endsWith('"')) supabaseUrl = supabaseUrl.slice(1, -1)
 let supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
 if (supabaseKey.startsWith('"') && supabaseKey.endsWith('"')) supabaseKey = supabaseKey.slice(1, -1)

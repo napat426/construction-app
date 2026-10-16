@@ -3,9 +3,9 @@ import { getCurrentUser, type UserSession } from './auth'
 import type { ActivityActionType, ActivityEntityType, ActivityModuleType, ActivityLog } from './types'
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-let supabaseUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) ? rawUrl : 'https://txexenqijhxtdrzgltsm.supabase.co'
+let supabaseUrl = rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) ? rawUrl : 'https://kkocxjgdkwddgcbkzhwp.supabase.co'
 if (supabaseUrl.startsWith('"') && supabaseUrl.endsWith('"')) supabaseUrl = supabaseUrl.slice(1, -1)
-let supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_q3APA2Io-DD6j8ig-cJWfg_6tr77c2P'
+let supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtrb2N4amdka3dkZGdjYmt6aHdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczOTg0NDcsImV4cCI6MjEwMjk3NDQ0N30.EDkIrVklsi-XuZuIyDHt0llE_HBB4wwkgTJHAtu_QLQ'
 if (supabaseKey.startsWith('"') && supabaseKey.endsWith('"')) supabaseKey = supabaseKey.slice(1, -1)
 
 const supabase = createClient(supabaseUrl, supabaseKey)

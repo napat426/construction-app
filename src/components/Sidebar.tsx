@@ -14,10 +14,12 @@ import {
   ChevronRight,
   MonitorPlay,
   History,
+  Award,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/projects',    icon: Building2,      label: 'โครงการทั้งหมด' },
+  { href: '/supervisors', icon: Award,          label: 'แฟ้มผลงานบุคคล' },
   { href: '/presentation', icon: MonitorPlay,    label: 'นำเสนองาน' },
   { href: '/activities',  icon: History,        label: 'ประวัติกิจกรรม' },
 ]
@@ -45,7 +47,7 @@ export function Sidebar() {
         </p>
 
         {navItems.map(({ href, icon: Icon, label }) => {
-          const isActive = pathname === href
+          const isActive = pathname === href || (href === '/supervisors' && pathname.startsWith('/supervisors'))
           return (
             <Link
               key={href}

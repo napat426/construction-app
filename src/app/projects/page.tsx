@@ -13,7 +13,7 @@ export const metadata = {
 
 import { getCurrentUser } from '@/lib/auth'
 
-import { Bookmark } from 'lucide-react'
+import { Bookmark, Award } from 'lucide-react'
 
 export default async function ProjectsPage() {
   const user = await getCurrentUser()
@@ -72,6 +72,14 @@ export default async function ProjectsPage() {
           }
           actions={
             <div className="flex items-center gap-2">
+              <Link
+                href="/supervisors"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/50 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded-xl shadow-xs transition-all text-xs font-bold"
+                title="แฟ้มสะสมผลงานผู้คุมงาน & ภารกิจย่อย"
+              >
+                <Award size={16} className="text-purple-600 dark:text-purple-400" />
+                <span>แฟ้มผลงาน</span>
+              </Link>
               <Link
                 href="/quick-links"
                 className="p-2.5 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] text-amber-500 hover:bg-amber-50 dark:hover:bg-[#1e1e38] rounded-xl shadow-xs transition-all flex items-center justify-center cursor-pointer"

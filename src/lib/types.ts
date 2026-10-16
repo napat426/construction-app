@@ -377,3 +377,34 @@ export interface ActivityLog {
   created_at: string
 }
 
+export type SupervisorTaskStatus = 'pending' | 'in_progress' | 'completed' | 'delayed' | 'cancelled'
+
+export interface SupervisorTaskGroup {
+  id: string
+  supervisor: string
+  name: string
+  color?: string
+  sort_order: number
+  created_at?: string
+}
+
+export interface SupervisorTask {
+  id: string
+  group_id: string
+  supervisor: string
+  title: string
+  description: string | null
+  start_date: string | null
+  due_date: string | null
+  completed_date: string | null
+  status: SupervisorTaskStatus
+  has_issue: boolean
+  issue_detail?: string | null
+  issue_solution?: string | null
+  photo_urls: string[]
+  related_project_id?: string | null
+  sort_order: number
+  created_at: string
+  updated_at?: string
+}
+

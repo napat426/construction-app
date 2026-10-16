@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import { ReadOnlyBanner } from '@/components/ReadOnlyBanner'
 import { Header } from '@/components/Header'
 import { ProjectTabs } from '@/components/ProjectTabs'
 import { PunchListClient } from '@/components/PunchListClient'
@@ -39,7 +38,6 @@ export default async function ProjectPunchListPage({ params }: Props) {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
-      <ReadOnlyBanner />
       <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden">
         <Header
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', project.name, 'Punch List']}

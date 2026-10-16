@@ -16,12 +16,31 @@ const INITIAL_STATE: ActionState = null
 
 const DEFAULT_SUPERVISORS = ['ณภัทร ชัยสิทธิ์สงวน', 'อดิศักดิ์  กอลีซอ พชง.4 ผยธ.กรย.ก3']
 
+function formatNumberString(val: string | number | null | undefined): string {
+  if (val === null || val === undefined || val === '') return ''
+  const str = String(val).replace(/,/g, '')
+  if (isNaN(Number(str))) return ''
+  const parts = str.split('.')
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return parts.join('.')
+}
+
+function handleFormattedNumberChange(rawInput: string, setter: (val: string) => void) {
+  const clean = rawInput.replace(/[^0-9.]/g, '')
+  const parts = clean.split('.')
+  if (parts.length > 2) return
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  setter(parts.join('.'))
+}
+
 export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup, supervisorsList }: CreateProjectModalProps) {
   const [state, formAction, pending] = useActionState(createProject, INITIAL_STATE)
   const formRef = useRef<HTMLFormElement>(null)
 
   const activeSupervisorsList = (supervisorsList && supervisorsList.length > 0) ? supervisorsList : DEFAULT_SUPERVISORS
   const [supervisors, setSupervisors] = useState<string[]>([''])
+  const [budgetString, setBudgetString] = useState('')
+  const [openingPrString, setOpeningPrString] = useState('')
 
   // Close modal on success
   useEffect(() => {
@@ -198,9 +217,10 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup, supe
               <input
                 id="budget"
                 name="budget"
-                type="number"
-                min="0"
-                step="any"
+                type="text"
+                inputMode="decimal"
+                value={budgetString}
+                onChange={(e) => handleFormattedNumberChange(e.target.value, setBudgetString)}
                 placeholder="0"
                 className={inputCls}
               />
@@ -212,9 +232,10 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup, supe
               <input
                 id="opening_pr"
                 name="opening_pr"
-                type="number"
-                min="0"
-                step="any"
+                type="text"
+                inputMode="decimal"
+                value={openingPrString}
+                onChange={(e) => handleFormattedNumberChange(e.target.value, setOpeningPrString)}
                 placeholder="0"
                 className={inputCls}
               />

@@ -35,11 +35,11 @@ export async function createProject(
   const location    = (formData.get('location') as string)?.trim()   || null
   const status      = (formData.get('status') as string)             || 'รอดำเนินการ'
   const budgetRaw   = formData.get('budget') as string
-  const budget      = budgetRaw ? parseFloat(budgetRaw) : null
+  const budget      = budgetRaw ? parseFloat(budgetRaw.replace(/,/g, '')) : null
   const start_date  = (formData.get('start_date') as string)         || null
   const end_date    = (formData.get('end_date') as string)           || null
   const opening_prRaw = formData.get('opening_pr') as string
-  const opening_pr    = opening_prRaw ? parseFloat(opening_prRaw) : 0
+  const opening_pr    = opening_prRaw ? parseFloat(opening_prRaw.replace(/,/g, '')) : 0
   const progressRaw = formData.get('progress') as string
   const progress    = progressRaw ? Math.max(0, Math.min(100, parseInt(progressRaw, 10))) : 0
 
@@ -177,16 +177,16 @@ export async function updateProjectBaseline(
   const status      = (formData.get('status') as string)             || 'รอดำเนินการ'
 
   const budgetRaw          = formData.get('budget') as string
-  const budget             = budgetRaw ? parseFloat(budgetRaw) : null
+  const budget             = budgetRaw ? parseFloat(budgetRaw.replace(/,/g, '')) : null
   const paidRaw            = formData.get('paid_amount') as string
-  const paid_amount        = paidRaw ? parseFloat(paidRaw) : 0
+  const paid_amount        = paidRaw ? parseFloat(paidRaw.replace(/,/g, '')) : 0
   const penaltyRaw         = formData.get('penalty_rate') as string
-  const penalty_rate       = penaltyRaw ? parseFloat(penaltyRaw) : 0
+  const penalty_rate       = penaltyRaw ? parseFloat(penaltyRaw.replace(/,/g, '')) : 0
   
   const start_date         = (formData.get('start_date') as string) || null
   const end_date           = (formData.get('end_date') as string) || null
   const opening_prRaw      = formData.get('opening_pr') as string
-  const opening_pr         = opening_prRaw ? parseFloat(opening_prRaw) : 0
+  const opening_pr         = opening_prRaw ? parseFloat(opening_prRaw.replace(/,/g, '')) : 0
   
   if (start_date && end_date && new Date(start_date) >= new Date(end_date)) {
     return { error: 'วันสิ้นสุดสัญญาต้องมาหลังวันเริ่มต้น' }

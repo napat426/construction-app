@@ -22,6 +22,23 @@ interface EditBaselineModalProps {
 
 const DEFAULT_SUPERVISORS = ['ณภัทร ชัยสิทธิ์สงวน', 'อดิศักดิ์  กอลีซอ พชง.4 ผยธ.กรย.ก3']
 
+function formatNumberString(val: string | number | null | undefined): string {
+  if (val === null || val === undefined || val === '') return ''
+  const str = String(val).replace(/,/g, '')
+  if (isNaN(Number(str))) return ''
+  const parts = str.split('.')
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return parts.join('.')
+}
+
+function handleFormattedNumberChange(rawInput: string, setter: (val: string) => void) {
+  const clean = rawInput.replace(/[^0-9.]/g, '')
+  const parts = clean.split('.')
+  if (parts.length > 2) return
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  setter(parts.join('.'))
+}
+
 export function EditBaselineModal({ project, milestones, amendments, onClose, workGroups, supervisorsList }: EditBaselineModalProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
@@ -46,6 +63,10 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
   }, [description, adjustDescHeight])
 
   const hasDateError = !!(startDate && endDate && new Date(startDate) >= new Date(endDate))
+
+  const [budgetString, setBudgetString] = useState(() => formatNumberString(project.budget))
+  const [openingPrString, setOpeningPrString] = useState(() => formatNumberString(project.opening_pr))
+  const [penaltyRateString, setPenaltyRateString] = useState(() => formatNumberString(project.penalty_rate || 0))
 
   const [localMilestones, setLocalMilestones] = useState<ProjectMilestone[]>(
     milestones.length > 0
@@ -194,7 +215,7 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
 
         {/* Form */}
         <form ref={formRef} onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
             <div>
               <label className={labelCls} htmlFor="name">ชื่อโครงการ *</label>
               <input
@@ -206,54 +227,61 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                 className={inputCls}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <label className={labelCls}>ผู้ควบคุมงาน *</label>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  ผู้ควบคุมงาน <span className="text-red-500 normal-case tracking-normal">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSupervisors([...supervisors, ''])}
+                  className="text-xs text-primary-600 dark:text-primary-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <Plus size={13} /> เพิ่มผู้ควบคุมงาน
+                </button>
+              </div>
               <input type="hidden" name="supervisor" value={supervisors.filter(Boolean).join(', ')} />
-              {supervisors.map((sup, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <select
-                    required
-                    value={sup}
-                    onChange={(e) => {
-                      const updated = [...supervisors]
-                      updated[idx] = e.target.value
-                      setSupervisors(updated)
-                    }}
-                    className={inputCls}
-                  >
-                    <option value="">-- เลือกผู้ควบคุมงานคนที่ {idx + 1} --</option>
-                    {activeSupervisorsList.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                    {sup && !activeSupervisorsList.includes(sup) && (
-                      <option value={sup}>{sup} (เดิม)</option>
-                    )}
-                  </select>
-                  {supervisors.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setSupervisors(supervisors.filter((_, i) => i !== idx))}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors cursor-pointer"
-                      title="ลบ"
+              <div className="space-y-2">
+                {supervisors.map((sup, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <select
+                      required
+                      value={sup}
+                      onChange={(e) => {
+                        const updated = [...supervisors]
+                        updated[idx] = e.target.value
+                        setSupervisors(updated)
+                      }}
+                      className={inputCls}
                     >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setSupervisors([...supervisors, ''])}
-                className="text-xs text-primary-600 dark:text-primary-400 font-bold self-start mt-1 hover:underline cursor-pointer"
-              >
-                + เพิ่มผู้ควบคุมงาน
-              </button>
+                      <option value="">-- เลือกผู้ควบคุมงานคนที่ {idx + 1} --</option>
+                      {activeSupervisorsList.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                      {sup && !activeSupervisorsList.includes(sup) && (
+                        <option value={sup}>{sup} (เดิม)</option>
+                      )}
+                    </select>
+                    {supervisors.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setSupervisors(supervisors.filter((_, i) => i !== idx))}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors cursor-pointer"
+                        title="ลบ"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          {/* สถานที่ก่อสร้าง + หมายเลขงาน (WBS) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls} htmlFor="location">สถานที่ก่อสร้าง</label>
               <input
@@ -265,17 +293,6 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
               />
             </div>
             <div>
-              <label className={labelCls} htmlFor="status">สถานะโครงการ</label>
-              <select id="status" name="status" defaultValue={project.status} className={inputCls}>
-                <option value="ออกแบบ สำรวจ ประมาณการ">1. ออกแบบ สำรวจ ประมาณการ</option>
-                <option value="จัดซื้อจัดจ้าง">2. จัดซื้อจัดจ้าง</option>
-                <option value="รอดำเนินการ">3. รอดำเนินการ</option>
-                <option value="กำลังดำเนินการ">4. กำลังดำเนินการ</option>
-                <option value="ระงับ">5. ระงับ</option>
-                <option value="เสร็จสิ้น">6. เสร็จสิ้น</option>
-              </select>
-            </div>
-            <div>
               <label className={labelCls} htmlFor="wbs_no">หมายเลขงาน (WBS)</label>
               <input
                 id="wbs_no"
@@ -285,6 +302,21 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                 placeholder="เช่น WBS-1002"
                 className={inputCls}
               />
+            </div>
+          </div>
+
+          {/* สถานะโครงการ + กลุ่มงาน (WORK GROUP) - กว้างเต็ม 50% แต่ละช่อง */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls} htmlFor="status">สถานะโครงการ</label>
+              <select id="status" name="status" defaultValue={project.status} className={inputCls}>
+                <option value="ออกแบบ สำรวจ ประมาณการ">1. ออกแบบ สำรวจ ประมาณการ</option>
+                <option value="จัดซื้อจัดจ้าง">2. จัดซื้อจัดจ้าง</option>
+                <option value="รอดำเนินการ">3. รอดำเนินการ</option>
+                <option value="กำลังดำเนินการ">4. กำลังดำเนินการ</option>
+                <option value="ระงับ">5. ระงับ</option>
+                <option value="เสร็จสิ้น">6. เสร็จสิ้น</option>
+              </select>
             </div>
             <div>
               <label className={labelCls} htmlFor="work_group">กลุ่มงาน (Work Group)</label>
@@ -436,10 +468,11 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
               <input
                 id="penalty_rate"
                 name="penalty_rate"
-                type="number"
-                min="0"
-                step="any"
-                defaultValue={project.penalty_rate || 0}
+                type="text"
+                inputMode="decimal"
+                value={penaltyRateString}
+                onChange={(e) => handleFormattedNumberChange(e.target.value, setPenaltyRateString)}
+                placeholder="0"
                 className={inputCls}
               />
             </div>
@@ -451,10 +484,11 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
               <input
                 id="budget"
                 name="budget"
-                type="number"
-                min="0"
-                step="any"
-                defaultValue={project.budget || ''}
+                type="text"
+                inputMode="decimal"
+                value={budgetString}
+                onChange={(e) => handleFormattedNumberChange(e.target.value, setBudgetString)}
+                placeholder="0"
                 className={inputCls}
               />
             </div>
@@ -463,10 +497,11 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
               <input
                 id="opening_pr"
                 name="opening_pr"
-                type="number"
-                min="0"
-                step="any"
-                defaultValue={project.opening_pr || 0}
+                type="text"
+                inputMode="decimal"
+                value={openingPrString}
+                onChange={(e) => handleFormattedNumberChange(e.target.value, setOpeningPrString)}
+                placeholder="0"
                 className={inputCls}
               />
             </div>
@@ -534,12 +569,17 @@ export function EditBaselineModal({ project, milestones, amendments, onClose, wo
                       </td>
                       <td className="p-3">
                         <input
-                          type="number"
-                          min="0"
-                          step="any"
+                          type="text"
+                          inputMode="decimal"
                           placeholder="0"
-                          value={m.amount || ''}
-                          onChange={(e) => handleUpdateMilestone(idx, 'amount', parseFloat(e.target.value) || 0)}
+                          value={m.amount ? formatNumberString(m.amount) : ''}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9.]/g, '')
+                            const parts = raw.split('.')
+                            if (parts.length > 2) return
+                            const num = parseFloat(raw) || 0
+                            handleUpdateMilestone(idx, 'amount', num)
+                          }}
                           className="w-full bg-transparent border-0 focus:ring-0 p-0 text-slate-950 dark:text-white placeholder-slate-400 font-mono font-bold focus:outline-none"
                         />
                       </td>

@@ -544,6 +544,8 @@ export function ExecutiveSummaryTab({
   amendments = [],
   user,
 }: Props) {
+  const canEdit = Boolean(user && (user.role === 'admin' || user.role === 'editor'))
+
   // 1. Gather all photos from "ใบขอตรวจสอบคุณภาพ" (Inspections) with proper URL parsing
   const allInspectionPhotos = useMemo(() => {
     const list: { url: string; title: string; inspection_no: string; work_type: string; date: string }[] = []
@@ -1015,6 +1017,10 @@ export function ExecutiveSummaryTab({
 
   // Save current snapshot
   const handleSaveSnapshot = async () => {
+    if (!canEdit) {
+      alert('คุณไม่มีสิทธิ์บันทึกรายงาน กรุณาเข้าสู่ระบบก่อนดำเนินการ')
+      return
+    }
     setIsSaving(true)
     const now = new Date()
     const defaultTitle = `รายงานสถานะ (${formatThaiDate(reportDate)})`
@@ -1092,6 +1098,10 @@ export function ExecutiveSummaryTab({
 
   // Delete a snapshot
   const handleDeleteSnapshot = async (snapId: string) => {
+    if (!canEdit) {
+      alert('คุณไม่มีสิทธิ์ลบรายงาน กรุณาเข้าสู่ระบบก่อนดำเนินการ')
+      return
+    }
     if (!confirm('คุณต้องการลบรายงานฉบับที่บันทึกไว้นี้ใช่หรือไม่?')) return
     const updated = snapshots.filter(s => s.id !== snapId)
     setSnapshots(updated)
@@ -1110,6 +1120,10 @@ export function ExecutiveSummaryTab({
 
   // Re-generate auto draft handler
   const handleRegenerate = () => {
+    if (!canEdit) {
+      alert('คุณไม่มีสิทธิ์แก้ไขข้อความ กรุณาเข้าสู่ระบบก่อนดำเนินการ')
+      return
+    }
     const d = generateAutoDrafts()
     setHighlights(d.highlights)
     setIssues(d.issues)
@@ -1316,17 +1330,19 @@ export function ExecutiveSummaryTab({
                           📅 {snap.title}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteSnapshot(snap.id)
-                        }}
-                        title="ลบรายงานฉบับนี้"
-                        className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors cursor-pointer flex-shrink-0"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteSnapshot(snap.id)
+                          }}
+                          title="ลบรายงานฉบับนี้"
+                          className="p-1 text-slate-400 hover:text-red-500 rounded transition-colors cursor-pointer flex-shrink-0"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                     <div className="flex items-center justify-between text-[10px] text-slate-500 pl-6">
                       <span>{formatThaiDate(snap.reportDate || snap.created_at)}</span>
@@ -1378,28 +1394,32 @@ export function ExecutiveSummaryTab({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Save Button */}
-              <button
-                type="button"
-                onClick={handleSaveSnapshot}
-                disabled={isSaving}
-                title="บันทึกรายงานฉบับปัจจุบันไว้ดูย้อนหลังในอนาคต"
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors cursor-pointer"
-              >
-                <Save size={14} />
-                <span>💾 บันทึกรายงาน</span>
-              </button>
+              {/* Save Button (Admin / Editor Only) */}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={handleSaveSnapshot}
+                  disabled={isSaving}
+                  title="บันทึกรายงานฉบับปัจจุบันไว้ดูย้อนหลังในอนาคต"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors cursor-pointer"
+                >
+                  <Save size={14} />
+                  <span>💾 บันทึกรายงาน</span>
+                </button>
+              )}
 
-              {/* Regenerate Button */}
-              <button
-                type="button"
-                onClick={handleRegenerate}
-                title="ให้ระบบวิเคราะห์ข้อมูลและร่างข้อความใหม่อีกครั้ง"
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#252548] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
-              >
-                <Sparkles size={14} className="text-amber-500" />
-                <span>✨ ร่างข้อความอัตโนมัติ</span>
-              </button>
+              {/* Regenerate Button (Admin / Editor Only) */}
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={handleRegenerate}
+                  title="ให้ระบบวิเคราะห์ข้อมูลและร่างข้อความใหม่อีกครั้ง"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#252548] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
+                >
+                  <Sparkles size={14} className="text-amber-500" />
+                  <span>✨ ร่างข้อความอัตโนมัติ</span>
+                </button>
+              )}
 
               {/* Presentation Mode Button */}
               <button
@@ -1445,15 +1465,15 @@ export function ExecutiveSummaryTab({
               rainyDaysCount={rainyDaysCount}
               totalDaysObserved={totalDaysObserved}
               rainPercentage={rainPercentage}
-              isInteractive={true}
-              onReportDateChange={(val) => setReportDate(val)}
-              onContractStatusTagChange={(val) => setContractStatusTag(val)}
-              onHighlightsChange={(val) => setHighlights(val)}
-              onIssuesChange={(val) => setIssues(val)}
-              onFinancialChange={(val) => setFinancial(val)}
-              onActionsChange={(val) => setActions(val)}
-              onPhotoClick={(idx) => setPickerSlotIndex(idx)}
-              onPhotoCaptionChange={(idx, cap) => {
+              isInteractive={canEdit}
+              onReportDateChange={canEdit ? ((val) => setReportDate(val)) : undefined}
+              onContractStatusTagChange={canEdit ? ((val) => setContractStatusTag(val)) : undefined}
+              onHighlightsChange={canEdit ? ((val) => setHighlights(val)) : undefined}
+              onIssuesChange={canEdit ? ((val) => setIssues(val)) : undefined}
+              onFinancialChange={canEdit ? ((val) => setFinancial(val)) : undefined}
+              onActionsChange={canEdit ? ((val) => setActions(val)) : undefined}
+              onPhotoClick={canEdit ? ((idx) => setPickerSlotIndex(idx)) : undefined}
+              onPhotoCaptionChange={canEdit ? ((idx, cap) => {
                 const next = [...selectedPhotos]
                 if (!next[idx]) {
                   next[idx] = { url: '', caption: cap, inspection_no: '' }
@@ -1461,8 +1481,8 @@ export function ExecutiveSummaryTab({
                   next[idx] = { ...next[idx], caption: cap }
                 }
                 setSelectedPhotos(next)
-              }}
-              onPhotoRemove={handleRemovePhoto}
+              }) : undefined}
+              onPhotoRemove={canEdit ? handleRemovePhoto : undefined}
             />
           </div>
 

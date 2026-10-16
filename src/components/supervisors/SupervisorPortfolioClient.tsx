@@ -326,7 +326,129 @@ export function SupervisorPortfolioClient({
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 print:space-y-4 print:pb-0 print:max-w-none print:w-full">
+      {/* ── Print Styles for A4 Portrait ── */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 10mm 10mm 12mm 10mm;
+          }
+
+          html, body {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            color: #0f172a !important;
+            font-size: 9.5pt !important;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            line-height: 1.4 !important;
+          }
+
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+          }
+
+          header, nav, aside, footer,
+          .print\\:hidden,
+          [class*="print:hidden"],
+          button,
+          select {
+            display: none !important;
+          }
+
+          main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+          }
+
+          .card,
+          .print-card {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            box-shadow: none !important;
+            color: #0f172a !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          .print-profile-card {
+            background: #f8fafc !important;
+            border: 1.5px solid #cbd5e1 !important;
+            padding: 12px 14px !important;
+            border-radius: 10px !important;
+            margin-bottom: 12px !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          .print-grid-2 {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+          }
+
+          .print-grid-5 {
+            display: grid !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+            gap: 6px !important;
+            padding-top: 8px !important;
+          }
+
+          .print-avoid-break {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          .print-avoid-break-after {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+
+          .print-task-photo {
+            height: 110px !important;
+            max-height: 110px !important;
+            object-fit: cover !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+          }
+
+          h1, h2, h3, h4 {
+            color: #0f172a !important;
+          }
+
+          a {
+            text-decoration: none !important;
+            color: inherit !important;
+          }
+        }
+      `}</style>
+
+      {/* ── Official Print Header (Visible only when printed) ── */}
+      <div className="hidden print:block mb-4 pb-2 border-b-2 border-slate-800 text-center print-avoid-break">
+        <div className="flex items-center justify-between pb-1 text-[8.5pt] text-slate-500 font-bold border-b border-slate-200">
+          <span>ระบบบริหารจัดการและควบคุมงานก่อสร้าง</span>
+          <span>การไฟฟ้าส่วนภูมิภาค (กฟภ.)</span>
+        </div>
+        <h1 className="text-xl font-black text-slate-900 mt-2">
+          แฟ้มสะสมผลงานและการปฏิบัติงานของผู้ควบคุมงาน
+        </h1>
+        <div className="text-[9.5pt] text-slate-600 mt-0.5 flex items-center justify-center gap-3">
+          <span className="font-bold text-slate-800">ผู้ควบคุมงาน: {supervisorName}</span>
+          <span>•</span>
+          <span>ปีประเมิน: {selectedYear === 'all' ? 'ทุกปี (ภาพรวมผลงานทั้งหมด)' : `พ.ศ. ${selectedYear}`}</span>
+          <span>•</span>
+          <span>วันที่พิมพ์รายงาน: {new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+        </div>
+      </div>
+
       {/* ── Top Bar: Navigation & Switcher ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 print:hidden">
         <div className="flex items-center gap-2">
@@ -416,30 +538,30 @@ export function SupervisorPortfolioClient({
       )}
 
       {/* ── Supervisor Profile & KPI Header Card ── */}
-      <div className="card p-5 sm:p-6 bg-gradient-to-br from-white via-white to-slate-50 dark:from-[#111124] dark:to-[#16162e] border border-slate-200 dark:border-[#202042] rounded-2xl shadow-sm">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-[#202042]">
+      <div className="card p-5 sm:p-6 bg-gradient-to-br from-white via-white to-slate-50 dark:from-[#111124] dark:to-[#16162e] border border-slate-200 dark:border-[#202042] rounded-2xl shadow-sm print-profile-card">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-[#202042] print:pb-2">
           <div className="flex items-center gap-3.5">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
                 alt={supervisorName}
-                className="w-14 h-14 rounded-2xl object-cover shadow-md shrink-0 border-2 border-primary-500/30"
+                className="w-14 h-14 rounded-2xl object-cover shadow-md shrink-0 border-2 border-primary-500/30 print:w-12 print:h-12"
               />
             ) : (
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-700 flex items-center justify-center text-white text-xl font-black shadow-md shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-700 flex items-center justify-center text-white text-xl font-black shadow-md shrink-0 print:w-12 print:h-12">
                 {supervisorName.slice(0, 2)}
               </div>
             )}
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight print:text-lg">
                   {supervisorName}
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1 print:text-[9pt]">
                   <Award size={12} /> ผู้ควบคุมงาน
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 print:text-[8.5pt]">
                 แฟ้มสะสมผลงานรายบุคคล • ภารกิจเฉพาะกิจและการควบคุมงานก่อสร้าง
               </p>
             </div>
@@ -487,78 +609,80 @@ export function SupervisorPortfolioClient({
         </div>
 
         {/* KPI Numbers Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-5">
-          <div className="bg-slate-50 dark:bg-[#181834] p-3.5 rounded-xl border border-slate-100 dark:border-[#252548]">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-5 print-grid-5">
+          <div className="bg-slate-50 dark:bg-[#181834] p-3.5 rounded-xl border border-slate-100 dark:border-[#252548] print:bg-white print:border-slate-300 print:p-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block print:text-[8pt] print:text-slate-500">
               🏢 โครงการหลักที่คุม
             </span>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-slate-900 dark:text-white">
+              <span className="text-xl font-black text-slate-900 dark:text-white print:text-base">
                 {stats.projectCount}
               </span>
-              <span className="text-xs text-slate-500">โครงการ</span>
+              <span className="text-xs text-slate-500 print:text-[8pt]">โครงการ</span>
             </div>
-            <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 mt-0.5 truncate">
+            <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 mt-0.5 truncate print:text-[8.5pt]">
               ฿{(stats.totalProjectBudget / 1000000).toFixed(2)}M
             </p>
           </div>
 
-          <div className="bg-slate-50 dark:bg-[#181834] p-3.5 rounded-xl border border-slate-100 dark:border-[#252548]">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+          <div className="bg-slate-50 dark:bg-[#181834] p-3.5 rounded-xl border border-slate-100 dark:border-[#252548] print:bg-white print:border-slate-300 print:p-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block print:text-[8pt] print:text-slate-500">
               📋 ภารกิจย่อยทั้งหมด
             </span>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-slate-900 dark:text-white">
+              <span className="text-xl font-black text-slate-900 dark:text-white print:text-base">
                 {stats.totalTasks}
               </span>
-              <span className="text-xs text-slate-500">งาน</span>
+              <span className="text-xs text-slate-500 print:text-[8pt]">งาน</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-slate-500 mt-0.5 print:text-[8.5pt]">
               {supervisorGroups.length} กลุ่มงาน
             </p>
           </div>
 
-          <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-3.5 rounded-xl border border-emerald-200/50 dark:border-emerald-900/30">
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block flex items-center gap-1">
+          <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-3.5 rounded-xl border border-emerald-200/50 dark:border-emerald-900/30 print:bg-emerald-50/40 print:border-emerald-300 print:p-2">
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block flex items-center gap-1 print:text-[8pt]">
               <CheckCircle2 size={11} /> สำเร็จแล้ว
             </span>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 print:text-base">
                 {stats.completedTasks}
               </span>
-              <span className="text-xs text-emerald-700/80">งาน</span>
+              <span className="text-xs text-emerald-700/80 print:text-[8pt]">งาน</span>
             </div>
-            <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+            <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 print:text-[8.5pt]">
               ความสำเร็จ {stats.completionRate}%
             </p>
           </div>
 
-          <div className="bg-rose-50/50 dark:bg-rose-950/20 p-3.5 rounded-xl border border-rose-200/50 dark:border-rose-900/30">
-            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block flex items-center gap-1">
+          <div className="bg-rose-50/50 dark:bg-rose-950/20 p-3.5 rounded-xl border border-rose-200/50 dark:border-rose-900/30 print:bg-rose-50/40 print:border-rose-300 print:p-2">
+            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider block flex items-center gap-1 print:text-[8pt]">
               <Clock size={11} /> ล่าช้ากว่ากำหนด
             </span>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-rose-600 dark:text-rose-400">
+              <span className="text-xl font-black text-rose-600 dark:text-rose-400 print:text-base">
                 {stats.delayedTasks}
               </span>
-              <span className="text-xs text-rose-700/80">งาน</span>
+              <span className="text-xs text-rose-700/80 print:text-[8pt]">งาน</span>
             </div>
-            <p className="text-[11px] text-rose-600/80 mt-0.5">
+            <p className="text-[11px] text-rose-600/80 mt-0.5 print:text-[8.5pt]">
               {stats.inProgressTasks > 0 ? `กำลังทำ ${stats.inProgressTasks} งาน` : 'ไม่มีงานค้าง'}
             </p>
           </div>
 
-          <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3.5 rounded-xl border border-amber-200/50 dark:border-amber-900/30">
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block flex items-center gap-1">
+          <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3.5 rounded-xl border border-amber-200/50 dark:border-amber-900/30 print:bg-amber-50/40 print:border-amber-300 print:p-2">
+            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block flex items-center gap-1 print:text-[8pt]">
               <AlertTriangle size={11} /> ปัญหาอุปสรรค
             </span>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-amber-600 dark:text-amber-400">
+              <span className="text-xl font-black text-amber-600 dark:text-amber-400 print:text-base">
                 {stats.issueTasks}
               </span>
-              <span className="text-xs text-amber-700/80">เรื่อง</span>
+              <span className="text-xs text-amber-700/80 print:text-[8pt]">เรื่อง</span>
             </div>
-            <p className="text-[11px] text-amber-700/80 mt-0.5">มีบันทึกแนวทางแก้ไข</p>
+            <p className="text-[11px] text-amber-700/80 mt-0.5 print:text-[8.5pt]">
+              {stats.issueTasks > 0 ? 'มีบันทึกแนวทางแก้ไข' : 'ดำเนินงานราบรื่น'}
+            </p>
           </div>
         </div>
       </div>
@@ -586,40 +710,40 @@ export function SupervisorPortfolioClient({
             ไม่พบโครงการก่อสร้างหลักที่มีชื่อผู้ควบคุมงานท่านนี้
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 print-grid-2">
             {mainProjects.map((p) => {
               const progressPct = p.progress || 0
               return (
                 <div
                   key={p.id}
-                  className="card p-4 hover:shadow-md transition-all border border-slate-200 dark:border-[#202042] bg-white dark:bg-[#121226] rounded-xl flex flex-col justify-between"
+                  className="card p-4 hover:shadow-md transition-all border border-slate-200 dark:border-[#202042] bg-white dark:bg-[#121226] rounded-xl flex flex-col justify-between print-avoid-break print:p-3 print:bg-white print:border-slate-300"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#202042] text-slate-600 dark:text-slate-300">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#202042] text-slate-600 dark:text-slate-300 print:border print:border-slate-300">
                         {p.work_group || 'โครงการหลัก'}
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 print:border print:border-primary-300">
                         {p.status}
                       </span>
                     </div>
 
                     <h3
-                      className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug mb-1"
+                      className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug mb-1 print:text-[9.5pt] print:line-clamp-none"
                       title={p.name}
                     >
                       {p.name}
                     </h3>
 
                     {p.location && (
-                      <p className="text-[11px] text-slate-400 truncate mb-2">📍 {p.location}</p>
+                      <p className="text-[11px] text-slate-400 truncate mb-2 print:text-[8pt] print:text-slate-500">📍 {p.location}</p>
                     )}
                   </div>
 
-                  <div className="pt-3 border-t border-slate-100 dark:border-[#202042] space-y-2 mt-2">
+                  <div className="pt-3 border-t border-slate-100 dark:border-[#202042] space-y-2 mt-2 print:pt-2 print:border-slate-200">
                     {/* Budget & Progress */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 text-[11px]">งบประมาณ:</span>
+                    <div className="flex items-center justify-between text-xs print:text-[8.5pt]">
+                      <span className="text-slate-400 text-[11px] print:text-[8pt] print:text-slate-500">งบประมาณ:</span>
                       <span className="font-mono font-bold text-slate-900 dark:text-white">
                         {p.budget ? `฿${p.budget.toLocaleString()}` : '-'}
                       </span>
@@ -627,11 +751,11 @@ export function SupervisorPortfolioClient({
 
                     {/* Progress Bar */}
                     <div className="space-y-1">
-                      <div className="flex justify-between text-[11px] font-bold">
-                        <span className="text-slate-400">ความคืบหน้า</span>
+                      <div className="flex justify-between text-[11px] font-bold print:text-[8pt]">
+                        <span className="text-slate-400 print:text-slate-500">ความคืบหน้า</span>
                         <span className="text-primary-600 dark:text-primary-400">{progressPct}%</span>
                       </div>
-                      <div className="h-1.5 w-full bg-slate-100 dark:bg-[#202042] rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-slate-100 dark:bg-[#202042] rounded-full overflow-hidden print:bg-slate-200">
                         <div
                           className="h-full bg-primary-600 rounded-full transition-all duration-300"
                           style={{ width: `${progressPct}%` }}
@@ -639,7 +763,7 @@ export function SupervisorPortfolioClient({
                       </div>
                     </div>
 
-                    <div className="pt-1 flex justify-end">
+                    <div className="pt-1 flex justify-end print:hidden">
                       <Link
                         href={`/projects/${p.id}`}
                         className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline inline-flex items-center gap-1"
@@ -717,27 +841,27 @@ export function SupervisorPortfolioClient({
             return (
               <div
                 key={group.id}
-                className="card border border-slate-200 dark:border-[#202042] bg-white dark:bg-[#121226] rounded-2xl overflow-hidden shadow-2xs"
+                className="card border border-slate-200 dark:border-[#202042] bg-white dark:bg-[#121226] rounded-2xl overflow-hidden shadow-2xs print-avoid-break print:bg-white print:border-slate-300"
               >
                 {/* Group Header */}
-                <div className="p-4 bg-slate-50/70 dark:bg-[#16162e] border-b border-slate-100 dark:border-[#202042] flex items-center justify-between gap-3">
+                <div className="p-4 bg-slate-50/70 dark:bg-[#16162e] border-b border-slate-100 dark:border-[#202042] flex items-center justify-between gap-3 print-avoid-break-after print:bg-slate-100 print:py-2.5 print:px-3">
                   <div className="flex items-center gap-2.5">
                     <button
                       type="button"
                       onClick={() => toggleGroupCollapse(group.id)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer print:hidden"
                     >
                       {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                     </button>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getGroupBadgeColor(group.color)}`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getGroupBadgeColor(group.color)} print:border-slate-300 print:bg-slate-200/50 print:text-slate-800`}>
                       📁 {group.name}
                     </span>
-                    <span className="text-xs font-semibold text-slate-400">
+                    <span className="text-xs font-semibold text-slate-400 print:text-[8pt] print:text-slate-500">
                       ({groupTasks.length} งาน)
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 print:hidden">
                     {/* Reorder Group Controls */}
                     {isReorderMode && (
                       <div className="flex items-center gap-1 bg-white dark:bg-[#1e1e38] p-1 rounded-lg border border-slate-200 dark:border-[#252548]">
@@ -794,13 +918,13 @@ export function SupervisorPortfolioClient({
 
                 {/* Group Tasks Grid */}
                 {!isCollapsed && (
-                  <div className="p-4 sm:p-5">
+                  <div className="p-4 sm:p-5 print:p-2.5">
                     {groupTasks.length === 0 ? (
                       <div className="text-center py-6 text-xs text-slate-400 italic">
                         ยังไม่มีงานในกลุ่มนี้ — คลิก &quot;เพิ่มงานในกลุ่มนี้&quot; เพื่อเริ่มบันทึก
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 print-grid-2">
                         {groupTasks.map((t, tIdx) => {
                           const coverPhoto = t.photo_urls && t.photo_urls.length > 0 ? t.photo_urls[0] : null
                           const isCompleted = t.status === 'completed'
@@ -810,59 +934,66 @@ export function SupervisorPortfolioClient({
                             <div
                               key={t.id}
                               onClick={() => setSelectedTaskForDetail(t)}
-                              className="group relative bg-slate-50/70 dark:bg-[#16162e] hover:bg-white dark:hover:bg-[#1a1a38] border border-slate-200/80 dark:border-[#202042] hover:border-primary-400 dark:hover:border-primary-500 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                              className="group relative bg-slate-50/70 dark:bg-[#16162e] hover:bg-white dark:hover:bg-[#1a1a38] border border-slate-200/80 dark:border-[#202042] hover:border-primary-400 dark:hover:border-primary-500 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between print-avoid-break print:bg-white print:border-slate-300"
                             >
                               <div>
                                 {/* Card Cover Photo */}
                                 {coverPhoto ? (
-                                  <div className="relative aspect-16/10 w-full overflow-hidden bg-slate-200 dark:bg-[#181834]">
+                                  <div className="relative aspect-16/10 w-full overflow-hidden bg-slate-200 dark:bg-[#181834] print:h-28 print:aspect-auto">
                                     <img
                                       src={coverPhoto}
                                       alt={t.title}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 print-task-photo"
                                     />
                                     {t.photo_urls.length > 1 && (
-                                      <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                      <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded print:hidden">
                                         📷 +{t.photo_urls.length - 1}
                                       </span>
                                     )}
                                   </div>
                                 ) : (
-                                  <div className="h-1.5 w-full bg-slate-200 dark:bg-[#202042]" />
+                                  <div className="h-1.5 w-full bg-slate-200 dark:bg-[#202042] print:hidden" />
                                 )}
 
                                 {/* Card Content */}
-                                <div className="p-3.5 space-y-2">
+                                <div className="p-3.5 space-y-2 print:p-2.5 print:space-y-1.5">
                                   {/* Status Badges */}
                                   <div className="flex items-center justify-between gap-1 flex-wrap">
                                     {isCompleted ? (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1 print:border-emerald-300 print:text-[8pt]">
                                         <CheckCircle2 size={10} /> สำเร็จแล้ว
                                       </span>
                                     ) : isDelayed ? (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 inline-flex items-center gap-1">
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 inline-flex items-center gap-1 print:border-rose-300 print:text-[8pt]">
                                         <AlertTriangle size={10} /> ล่าช้า
                                       </span>
                                     ) : (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 print:border-blue-300 print:text-[8pt]">
                                         กำลังทำ
                                       </span>
                                     )}
 
                                     {t.has_issue && (
-                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center gap-1">
+                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center gap-1 print:border-amber-300 print:text-[8pt]">
                                         ⚠️ มีอุปสรรค
                                       </span>
                                     )}
                                   </div>
 
                                   {/* Task Title */}
-                                  <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                  <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors print:text-[9.5pt] print:line-clamp-none">
                                     {t.title}
                                   </h4>
 
+                                  {/* Description for print */}
+                                  {t.description && (
+                                    <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2 print:block print:line-clamp-none print:text-[8pt] print:text-slate-700 pt-0.5">
+                                      {t.description}
+                                    </p>
+                                  )}
+
                                   {/* Dates */}
-                                  <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                                  <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 pt-1 print:text-[8pt]">
                                     <Calendar size={11} className="shrink-0" />
                                     <span>
                                       {t.start_date ? formatDate(t.start_date) : '-'}
@@ -873,7 +1004,7 @@ export function SupervisorPortfolioClient({
                               </div>
 
                               {/* Card Footer / Reorder helper */}
-                              <div className="px-3.5 py-2 border-t border-slate-100 dark:border-[#202042] bg-white/50 dark:bg-[#121226]/50 flex items-center justify-between text-[10px] text-slate-400">
+                              <div className="px-3.5 py-2 border-t border-slate-100 dark:border-[#202042] bg-white/50 dark:bg-[#121226]/50 flex items-center justify-between text-[10px] text-slate-400 print:hidden">
                                 <span className="group-hover:text-primary-600 font-semibold flex items-center gap-1">
                                   คลิกดูรายละเอียด <Maximize2 size={10} />
                                 </span>
@@ -913,19 +1044,19 @@ export function SupervisorPortfolioClient({
 
         {/* Catch-All Container for Orphaned / Mismatched Tasks */}
         {orphanTasks.length > 0 && (
-          <div className="card border-2 border-dashed border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-950/20 rounded-2xl overflow-hidden shadow-2xs">
-            <div className="p-4 bg-amber-100/60 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800/50 flex items-center justify-between gap-3">
+          <div className="card border-2 border-dashed border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-950/20 rounded-2xl overflow-hidden shadow-2xs print-avoid-break print:bg-white print:border-slate-300 print:border-solid">
+            <div className="p-4 bg-amber-100/60 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800/50 flex items-center justify-between gap-3 print-avoid-break-after print:bg-slate-100 print:py-2.5 print:px-3">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold border bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-400">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold border bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-400 print:bg-slate-200/50 print:border-slate-300 print:text-slate-800">
                   📁 งานอื่นๆ / รอย้ายกลุ่ม ({orphanTasks.length} งาน)
                 </span>
-                <span className="text-[11px] text-amber-700 dark:text-amber-300 hidden sm:inline">
+                <span className="text-[11px] text-amber-700 dark:text-amber-300 hidden sm:inline print:hidden">
                   (ภารกิจที่รหัสกลุ่มไม่ตรง สามารถคลิกดูหรือกดแก้ไขเพื่อย้ายเข้ากลุ่มงานที่ต้องการได้)
                 </span>
               </div>
             </div>
-            <div className="p-4 sm:p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+            <div className="p-4 sm:p-5 print:p-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 print-grid-2">
                 {orphanTasks.map((t) => {
                   const coverPhoto = t.photo_urls && t.photo_urls.length > 0 ? t.photo_urls[0] : null
                   const isCompleted = t.status === 'completed'
@@ -935,51 +1066,57 @@ export function SupervisorPortfolioClient({
                     <div
                       key={t.id}
                       onClick={() => setSelectedTaskForDetail(t)}
-                      className="group relative bg-white dark:bg-[#16162e] hover:bg-slate-50 dark:hover:bg-[#1a1a38] border border-amber-200 dark:border-amber-900/50 hover:border-amber-400 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                      className="group relative bg-white dark:bg-[#16162e] hover:bg-slate-50 dark:hover:bg-[#1a1a38] border border-amber-200 dark:border-amber-900/50 hover:border-amber-400 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between print-avoid-break print:bg-white print:border-slate-300"
                     >
                       <div>
                         {coverPhoto ? (
-                          <div className="relative aspect-16/10 w-full overflow-hidden bg-slate-200 dark:bg-[#181834]">
+                          <div className="relative aspect-16/10 w-full overflow-hidden bg-slate-200 dark:bg-[#181834] print:h-28 print:aspect-auto">
                             <img
                               src={coverPhoto}
                               alt={t.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 print-task-photo"
                             />
                             {t.photo_urls.length > 1 && (
-                              <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                              <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded print:hidden">
                                 +{t.photo_urls.length} รูป
                               </span>
                             )}
                           </div>
                         ) : (
-                          <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-amber-500" />
+                          <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-amber-500 print:hidden" />
                         )}
 
-                        <div className="p-3.5 space-y-2">
+                        <div className="p-3.5 space-y-2 print:p-2.5 print:space-y-1.5">
                           <div className="flex items-center justify-between gap-1 text-[10px]">
                             <span
                               className={`px-2 py-0.5 rounded-full font-bold ${
                                 isCompleted
-                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 print:border print:border-emerald-300'
                                   : isDelayed
-                                  ? 'bg-red-500/15 text-red-600 dark:text-red-400'
-                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                              }`}
+                                  ? 'bg-red-500/15 text-red-600 dark:text-red-400 print:border print:border-rose-300'
+                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 print:border print:border-amber-300'
+                              } print:text-[8pt]`}
                             >
                               {isCompleted ? '✅ สำเร็จแล้ว' : isDelayed ? '⚠️ ล่าช้า' : '⏳ กำลังดำเนินการ'}
                             </span>
                             {t.has_issue && (
-                              <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold flex items-center gap-0.5">
+                              <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold flex items-center gap-0.5 print:border print:border-rose-300 print:text-[8pt]">
                                 <AlertTriangle size={9} /> มีปัญหา
                               </span>
                             )}
                           </div>
 
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-amber-600 transition-colors">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-amber-600 transition-colors print:text-[9.5pt] print:line-clamp-none">
                             {t.title}
                           </h4>
 
-                          <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                          {t.description && (
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2 print:block print:line-clamp-none print:text-[8pt] print:text-slate-700 pt-0.5">
+                              {t.description}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 pt-1 print:text-[8pt]">
                             <Calendar size={11} className="shrink-0" />
                             <span>
                               {t.start_date ? formatDate(t.start_date) : '-'}
@@ -989,7 +1126,7 @@ export function SupervisorPortfolioClient({
                         </div>
                       </div>
 
-                      <div className="px-3.5 py-2 border-t border-slate-100 dark:border-[#202042] bg-white/50 dark:bg-[#121226]/50 flex items-center justify-between text-[10px] text-slate-400">
+                      <div className="px-3.5 py-2 border-t border-slate-100 dark:border-[#202042] bg-white/50 dark:bg-[#121226]/50 flex items-center justify-between text-[10px] text-slate-400 print:hidden">
                         <span className="group-hover:text-amber-600 font-semibold flex items-center gap-1">
                           คลิกดูรายละเอียด <Maximize2 size={10} />
                         </span>
@@ -1001,6 +1138,27 @@ export function SupervisorPortfolioClient({
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Official Print Signature Block (Visible only when printed) ── */}
+      <div className="hidden print:block pt-8 mt-6 border-t-2 border-slate-800 print-avoid-break">
+        <div className="text-[9pt] text-slate-700 mb-6 text-center italic">
+          ขอรับรองว่าข้อมูลผลงานและการปฏิบัติงานทั้งหมดข้างต้น ถูกต้องและเป็นความจริงทุกประการ
+        </div>
+        <div className="grid grid-cols-2 gap-8 text-center text-[9pt]">
+          <div className="space-y-1">
+            <p className="font-bold text-slate-800">ลงชื่อ..........................................................</p>
+            <p className="text-slate-800 font-semibold">({supervisorName})</p>
+            <p className="text-slate-600 text-[8.5pt]">ผู้ควบคุมงาน / ผู้รายงาน</p>
+            <p className="text-slate-500 text-[8pt]">วันที่ ...... / ...... / ............</p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-bold text-slate-800">ลงชื่อ..........................................................</p>
+            <p className="text-slate-800 font-semibold">(..........................................................)</p>
+            <p className="text-slate-600 text-[8.5pt]">หัวหน้าแผนก / ผู้ตรวจสอบ</p>
+            <p className="text-slate-500 text-[8pt]">วันที่ ...... / ...... / ............</p>
+          </div>
+        </div>
       </div>
 
       {/* ────────────────────────────────────────────────────────── */}

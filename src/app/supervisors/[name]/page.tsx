@@ -39,7 +39,7 @@ export default async function SupervisorPersonalPage({ params }: Props) {
   const storageData = await getSupervisorStorageData()
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-[#f2f2f8] dark:bg-[#0a0a14]">
+    <div className="flex-1 flex flex-col min-h-screen bg-[#f2f2f8] dark:bg-[#0a0a14] print:bg-white print:min-h-0">
       <Header
         breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'แฟ้มผลงาน', supervisorName]}
         title={`แฟ้มสะสมผลงาน: ${supervisorName}`}
@@ -47,7 +47,7 @@ export default async function SupervisorPersonalPage({ params }: Props) {
         user={currentUser}
       />
 
-      <main className="flex-1 p-4 sm:p-6">
+      <main className="flex-1 p-4 sm:p-6 print:p-0 print:m-0">
         <SupervisorPortfolioClient
           supervisorName={supervisorName}
           allSupervisors={allSupervisors}

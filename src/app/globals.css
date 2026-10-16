@@ -208,8 +208,8 @@
 /* ─── Presentation PDF Print Styles (16:9 Landscape Layout) ─── */
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 0;
+    size: A4 portrait;
+    margin: 10mm;
   }
 
   /* Hide header, navigation, sidebar and interactive UI elements when printing */

@@ -122,16 +122,7 @@ export function ProjectsClient({
     })
   }, [initialProjects, supervisors, selectedSupervisors, selectedStatuses, selectedWorkGroups, allWorkGroupKeys, workGroups, searchQuery])
 
-  const stats = useMemo(
-    () => ({
-      total:   initialProjects.length,
-      active:  initialProjects.filter((p) => p.status === 'กำลังดำเนินการ').length,
-      done:    initialProjects.filter((p) => p.status === 'เสร็จสิ้น').length,
-      paused:  initialProjects.filter((p) => p.status === 'ระงับ').length,
-      pending: initialProjects.filter((p) => p.status === 'รอดำเนินการ').length,
-    }),
-    [initialProjects]
-  )
+
 
   /* ── Reordering Handlers ── */
   const handleMoveGroup = async (groupIndex: number, direction: 'up' | 'down') => {
@@ -250,28 +241,7 @@ export function ProjectsClient({
 
   return (
     <>
-      {/* ── Summary Stats ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6 print:hidden">
-        {(
-          [
-            { label: 'ทั้งหมด',           value: stats.total,   color: 'text-primary-600 dark:text-primary-400',   dot: 'bg-primary-600' },
-            { label: 'กำลังดำเนินการ',    value: stats.active,  color: 'text-amber-600   dark:text-amber-400',     dot: 'bg-amber-500'   },
-            { label: 'เสร็จสิ้น',         value: stats.done,    color: 'text-emerald-600 dark:text-emerald-400',   dot: 'bg-emerald-500' },
-            { label: 'รอดำเนินการ',      value: stats.pending, color: 'text-sky-600 dark:text-sky-400',           dot: 'bg-sky-500' },
-            { label: 'ระงับ',           value: stats.paused,  color: 'text-red-600 dark:text-red-400',           dot: 'bg-red-500' },
-          ] as const
-        ).map((s) => (
-          <div key={s.label} className="stat-card rounded-xl px-4 py-3.5">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`w-2 h-2 rounded-full ${s.dot}`} />
-              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                {s.label}
-              </p>
-            </div>
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-          </div>
-        ))}
-      </div>
+
 
       {/* ── Toolbar ── */}
       <div className="flex flex-wrap items-center gap-3 mb-5 print:hidden">

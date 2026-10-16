@@ -183,6 +183,18 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
           {/* User profiles controls */}
           {user ? (
             <div className="flex items-center gap-2 border-l border-slate-200 dark:border-[#252548] pl-2.5">
+              {user.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.avatar_url}
+                  alt={user.display_name}
+                  className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-xs flex-shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-bold text-xs flex items-center justify-center border border-primary-200 dark:border-primary-800/40 flex-shrink-0">
+                  {user.display_name?.charAt(0) || user.username?.charAt(0) || 'U'}
+                </div>
+              )}
               <div className="hidden lg:block text-right">
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight truncate max-w-[120px]">
                   {user.display_name}

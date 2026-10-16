@@ -41,6 +41,8 @@ import { SupervisorGroupModal } from './SupervisorGroupModal'
 interface Props {
   supervisorName: string
   allSupervisors: string[]
+  avatarUrl?: string | null
+  allAvatars?: Record<string, string>
   initialGroups: SupervisorTaskGroup[]
   initialTasks: SupervisorTask[]
   projects: Project[]
@@ -50,6 +52,8 @@ interface Props {
 export function SupervisorPortfolioClient({
   supervisorName,
   allSupervisors,
+  avatarUrl,
+  allAvatars = {},
   initialGroups,
   initialTasks,
   projects,
@@ -387,9 +391,17 @@ export function SupervisorPortfolioClient({
       <div className="card p-5 sm:p-6 bg-gradient-to-br from-white via-white to-slate-50 dark:from-[#111124] dark:to-[#16162e] border border-slate-200 dark:border-[#202042] rounded-2xl shadow-sm">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-[#202042]">
           <div className="flex items-center gap-3.5">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-700 flex items-center justify-center text-white text-xl font-black shadow-md shrink-0">
-              {supervisorName.slice(0, 2)}
-            </div>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={supervisorName}
+                className="w-14 h-14 rounded-2xl object-cover shadow-md shrink-0 border-2 border-primary-500/30"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-700 flex items-center justify-center text-white text-xl font-black shadow-md shrink-0">
+                {supervisorName.slice(0, 2)}
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">

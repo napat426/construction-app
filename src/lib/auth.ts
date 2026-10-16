@@ -9,6 +9,7 @@ export interface UserSession {
   display_name: string
   role: 'admin' | 'editor' | 'viewer'
   status: 'pending' | 'approved' | 'suspended'
+  avatar_url?: string | null
 }
 
 /**

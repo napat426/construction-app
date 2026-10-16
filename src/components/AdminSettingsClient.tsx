@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight, Settings, ArrowUp, ArrowDown, RotateCcw, X, CalendarRange } from 'lucide-react'
+import { Plus, Trash2, Loader2, HardHat, ListChecks, ChevronRight, Settings, ArrowUp, ArrowDown, RotateCcw, X, CalendarRange, Camera, Upload, Check, ImageIcon } from 'lucide-react'
 import { AdminChecklistMasterModal } from '@/components/AdminChecklistMasterModal'
 import { LineGroupSettingsModal } from '@/components/LineGroupSettingsModal'
-import { saveSystemSetting, updateWorkGroupsSetting, updateDefaultWbsTasksSetting, updateSupervisorsSetting } from '@/app/actions/settings'
+import { saveSystemSetting, updateWorkGroupsSetting, updateDefaultWbsTasksSetting, updateSupervisorsSetting, updateSupervisorAvatar } from '@/app/actions/settings'
+import { uploadReportPhoto } from '@/app/actions/reports'
+import { compressImage } from '@/lib/image'
 import type { LineChannelTarget } from '@/lib/line'
 
 interface DefaultWbsItem {
@@ -82,6 +84,22 @@ export function AdminSettingsClient({
   })
   const [newSupervisorName, setNewSupervisorName] = useState('')
   const [isSupervisorSaving, setIsSupervisorSaving] = useState(false)
+
+  const [supervisorAvatars, setSupervisorAvatars] = useState<Record<string, string>>(() => {
+    try {
+      const val = initialSettings['supervisor_avatars']
+      if (val) {
+        const parsed = JSON.parse(val)
+        if (parsed && typeof parsed === 'object') return parsed
+      }
+    } catch {}
+    return {}
+  })
+  const [uploadingSupervisor, setUploadingSupervisor] = useState<string | null>(null)
+  const [targetSupervisorForUpload, setTargetSupervisorForUpload] = useState<string | null>(null)
+  const [supervisorNotification, setSupervisorNotification] = useState<string | null>(null)
+  const [supervisorUploadError, setSupervisorUploadError] = useState<string | null>(null)
+  const supervisorFileInputRef = useRef<HTMLInputElement>(null)
 
   const [slotDay, setSlotDay] = useState('Mon')
   const [slotTime, setSlotTime] = useState('08:30')
@@ -269,6 +287,97 @@ export function AdminSettingsClient({
 
   const getSupervisorProjectCount = (name: string) => {
     return projects.filter(p => (p.supervisor || '').split(',').map(s => s.trim()).includes(name)).length
+  }
+
+  const showSupervisorNotification = (msg: string) => {
+    setSupervisorNotification(msg)
+    setTimeout(() => {
+      setSupervisorNotification(null)
+    }, 3500)
+  }
+
+  const handleTriggerSupervisorUpload = (supName: string) => {
+    setTargetSupervisorForUpload(supName)
+    setSupervisorUploadError(null)
+    if (supervisorFileInputRef.current) {
+      supervisorFileInputRef.current.value = ''
+      supervisorFileInputRef.current.click()
+    }
+  }
+
+  const handleSupervisorFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    const supName = targetSupervisorForUpload
+    if (!file || !supName) return
+
+    setUploadingSupervisor(supName)
+    setSupervisorUploadError(null)
+
+    try {
+      // 1. Compress image to max 500x500
+      const compressed = await compressImage(file, 500, 0.85)
+
+      // 2. Upload to storage
+      const uploadRes = await uploadReportPhoto(compressed)
+      if (uploadRes.error || !uploadRes.url) {
+        throw new Error(uploadRes.error || 'อัปโหลดรูปภาพไม่สำเร็จ')
+      }
+
+      // 3. Save to system_settings supervisor_avatars
+      const saveRes = await updateSupervisorAvatar(supName, uploadRes.url)
+      if (saveRes?.error) {
+        throw new Error(saveRes.error)
+      }
+
+      // 4. Update local state
+      setSupervisorAvatars((prev) => ({
+        ...prev,
+        [supName]: uploadRes.url!,
+      }))
+      setSettings(prev => {
+        let currentMap: Record<string, string> = {}
+        try {
+          if (prev.supervisor_avatars) currentMap = JSON.parse(prev.supervisor_avatars)
+        } catch {}
+        currentMap[supName] = uploadRes.url!
+        return { ...prev, supervisor_avatars: JSON.stringify(currentMap) }
+      })
+      showSupervisorNotification(`อัปเดตรูปภาพของ "${supName}" เรียบร้อยแล้ว`)
+    } catch (err: any) {
+      setSupervisorUploadError(err.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ')
+    } finally {
+      setUploadingSupervisor(null)
+      setTargetSupervisorForUpload(null)
+    }
+  }
+
+  const handleRemoveSupervisorAvatar = async (supName: string) => {
+    if (!confirm(`ต้องการลบรูปภาพของ "${supName}" ใช่หรือไม่?`)) return
+    setUploadingSupervisor(supName)
+    try {
+      const res = await updateSupervisorAvatar(supName, null)
+      if (res?.error) {
+        throw new Error(res.error)
+      }
+      setSupervisorAvatars((prev) => {
+        const next = { ...prev }
+        delete next[supName]
+        return next
+      })
+      setSettings(prev => {
+        let currentMap: Record<string, string> = {}
+        try {
+          if (prev.supervisor_avatars) currentMap = JSON.parse(prev.supervisor_avatars)
+        } catch {}
+        delete currentMap[supName]
+        return { ...prev, supervisor_avatars: JSON.stringify(currentMap) }
+      })
+      showSupervisorNotification(`ลบรูปภาพของ "${supName}" แล้ว`)
+    } catch (err: any) {
+      setSupervisorUploadError(err.message || 'เกิดข้อผิดพลาดในการลบรูปภาพ')
+    } finally {
+      setUploadingSupervisor(null)
+    }
   }
 
   const saveWbsTasks = async (updated: DefaultWbsItem[]) => {
@@ -513,6 +622,31 @@ export function AdminSettingsClient({
           </span>
         </div>
 
+        {supervisorNotification && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-3 animate-in fade-in duration-200">
+            <Check size={16} />
+            {supervisorNotification}
+          </div>
+        )}
+
+        {supervisorUploadError && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-600 dark:text-red-400 mb-3">
+            <span>⚠️ {supervisorUploadError}</span>
+            <button type="button" onClick={() => setSupervisorUploadError(null)} className="p-1 hover:bg-red-500/10 rounded cursor-pointer">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* Hidden file input for supervisor photo upload */}
+        <input
+          type="file"
+          ref={supervisorFileInputRef}
+          onChange={handleSupervisorFileSelected}
+          accept="image/*"
+          className="hidden"
+        />
+
         {isSupervisorSaving && (
           <div className="flex items-center gap-2 text-xs font-bold text-primary-500 mb-3">
             <Loader2 className="animate-spin" size={14} />
@@ -551,12 +685,64 @@ export function AdminSettingsClient({
             ) : (
               supervisorsList.map((sup, idx) => {
                 const count = getSupervisorProjectCount(sup)
+                const avatar = supervisorAvatars[sup]
+                const isUploading = uploadingSupervisor === sup
+
                 return (
                   <div key={sup} className="flex items-center justify-between p-3.5 hover:bg-slate-50/50 dark:hover:bg-[#1a1a36]/20 transition-colors">
                     <div className="flex items-center gap-3">
                       <span className="w-6 h-6 rounded-full bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 text-xs font-bold flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
+
+                      {/* Supervisor Avatar / Photo upload */}
+                      <div className="relative group/supavatar shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleTriggerSupervisorUpload(sup)}
+                          disabled={isUploading}
+                          title="คลิกเพื่ออัปโหลดหรือเปลี่ยนรูปภาพผู้ควบคุมงาน"
+                          className="relative w-11 h-11 rounded-xl overflow-hidden border-2 border-slate-200 dark:border-[#252548] hover:border-primary-500 transition-all flex items-center justify-center bg-slate-100 dark:bg-[#1a1a36] cursor-pointer group shadow-2xs"
+                        >
+                          {isUploading ? (
+                            <Loader2 size={18} className="animate-spin text-primary-500" />
+                          ) : avatar ? (
+                            <img
+                              src={avatar}
+                              alt={sup}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 group-hover:text-primary-500 transition-colors">
+                              <Camera size={14} />
+                              <span className="text-[8px] font-bold mt-0.5">ใส่รูป</span>
+                            </div>
+                          )}
+
+                          {/* Hover Overlay */}
+                          {!isUploading && (
+                            <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                              <Camera size={15} />
+                            </div>
+                          )}
+                        </button>
+
+                        {/* Quick remove photo button if avatar exists */}
+                        {avatar && !isUploading && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveSupervisorAvatar(sup)
+                            }}
+                            title="ลบรูปภาพนี้"
+                            className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center text-[10px] shadow opacity-0 group-hover/supavatar:opacity-100 transition-opacity cursor-pointer"
+                          >
+                            <X size={10} />
+                          </button>
+                        )}
+                      </div>
+
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{sup}</span>
                         {count > 0 ? (

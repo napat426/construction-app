@@ -198,3 +198,106 @@ export async function updateProjectOrderSetting(projectIds: string[]) {
     return { error: err.message }
   }
 }
+
+/**
+ * Fetch supervisor avatars map (supervisorName -> avatarUrl)
+ */
+export async function getSupervisorAvatars(): Promise<Record<string, string>> {
+  try {
+    const { data: settingRes } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'supervisor_avatars')
+      .maybeSingle()
+
+    let avatarMap: Record<string, string> = {}
+    if (settingRes?.value) {
+      try {
+        const parsed = JSON.parse(settingRes.value)
+        if (parsed && typeof parsed === 'object') {
+          avatarMap = { ...parsed }
+        }
+      } catch {}
+    }
+
+    // Optional fallback: check if user_profiles and user_extras have matching display_name
+    try {
+      const [{ data: profiles }, { data: extrasRes }] = await Promise.all([
+        supabase.from('user_profiles').select('id, display_name'),
+        supabase.from('system_settings').select('value').eq('key', 'user_extras').maybeSingle()
+      ])
+
+      if (profiles && extrasRes?.value) {
+        const extras = JSON.parse(extrasRes.value)
+        for (const p of profiles) {
+          if (p.display_name && extras[p.id]?.avatar_url && !avatarMap[p.display_name]) {
+            avatarMap[p.display_name] = extras[p.id].avatar_url
+          }
+        }
+      }
+    } catch {}
+
+    return avatarMap
+  } catch (err) {
+    console.error('Error fetching supervisor avatars:', err)
+    return {}
+  }
+}
+
+/**
+ * Update or remove avatar for a supervisor
+ */
+export async function updateSupervisorAvatar(supervisorName: string, avatarUrl: string | null) {
+  try {
+    const name = supervisorName.trim()
+    if (!name) return { error: 'ไม่พบชื่อผู้ควบคุมงาน' }
+
+    // Fetch existing raw supervisor_avatars
+    const { data: existing } = await supabase
+      .from('system_settings')
+      .select('id, value')
+      .eq('key', 'supervisor_avatars')
+      .maybeSingle()
+
+    let map: Record<string, string> = {}
+    if (existing?.value) {
+      try {
+        map = JSON.parse(existing.value) || {}
+      } catch {}
+    }
+
+    if (avatarUrl) {
+      map[name] = avatarUrl
+    } else {
+      delete map[name]
+    }
+
+    const serialized = JSON.stringify(map)
+
+    if (existing) {
+      await supabase.from('system_settings').update({ value: serialized }).eq('key', 'supervisor_avatars')
+    } else {
+      await supabase.from('system_settings').insert({ key: 'supervisor_avatars', value: serialized })
+    }
+
+    await logActivity({
+      actionType: 'UPDATE',
+      entityType: 'system_setting',
+      entityTitle: `${avatarUrl ? 'อัปเดตรูปภาพ' : 'ลบรูปภาพ'}ผู้ควบคุมงาน: ${name}`,
+      details: {
+        supervisor: name,
+        avatar_url: avatarUrl,
+      },
+    })
+
+    revalidatePath('/admin/settings')
+    revalidatePath('/supervisors')
+    revalidatePath(`/supervisors/${encodeURIComponent(name)}`)
+    revalidatePath('/projects')
+
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message || 'บันทึกรูปภาพไม่สำเร็จ' }
+  }
+}
+

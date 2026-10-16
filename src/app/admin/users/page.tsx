@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
+import { getUserExtras } from '@/app/actions/user'
 import { Header } from '@/components/Header'
 import { AdminUsersClient } from '@/components/AdminUsersClient'
 
@@ -20,7 +21,13 @@ export default async function AdminUsersPage() {
     .select('*')
     .order('created_at', { ascending: false })
 
-  const users = profiles || []
+  const extras = await getUserExtras()
+
+  const users = (profiles || []).map((p) => ({
+    ...p,
+    avatar_url: extras[p.id]?.avatar_url || null,
+    raw_password: extras[p.id]?.raw_password || null,
+  }))
 
   return (
     <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
@@ -29,6 +36,7 @@ export default async function AdminUsersPage() {
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'จัดการผู้ใช้']}
           title="การจัดการสิทธิ์และผู้ใช้งาน"
           subtitle="อนุมัติใบสมัครสมาชิกใหม่ กำหนดบทบาท และระงับบัญชีผู้ใช้ในระบบ"
+          user={currentUser}
         />
 
         <main className="flex-1 p-6">

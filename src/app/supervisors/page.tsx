@@ -7,6 +7,7 @@ import {
   getSupervisorStorageData,
   getSupervisorsList,
 } from '@/app/actions/supervisor_tasks'
+import { getSupervisorAvatars } from '@/app/actions/settings'
 import {
   Users,
   Award,
@@ -27,7 +28,10 @@ export const metadata = {
 
 export default async function SupervisorsOverviewPage() {
   const currentUser = await getCurrentUser()
-  const allSupervisors = await getSupervisorsList()
+  const [allSupervisors, supervisorAvatars] = await Promise.all([
+    getSupervisorsList(),
+    getSupervisorAvatars(),
+  ])
 
   const { data: projectsData } = await supabase
     .from('projects')
@@ -156,9 +160,17 @@ export default async function SupervisorsOverviewPage() {
                     {/* Top Identity */}
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-600 to-indigo-700 flex items-center justify-center text-white text-base font-black shadow-sm shrink-0">
-                          {sName.slice(0, 2)}
-                        </div>
+                        {supervisorAvatars[sName] ? (
+                          <img
+                            src={supervisorAvatars[sName]}
+                            alt={sName}
+                            className="w-12 h-12 rounded-xl object-cover shadow-sm shrink-0 border border-slate-200 dark:border-[#252548]"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-600 to-indigo-700 flex items-center justify-center text-white text-base font-black shadow-sm shrink-0">
+                            {sName.slice(0, 2)}
+                          </div>
+                        )}
                         <div>
                           <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
                             {sName}

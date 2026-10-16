@@ -7,6 +7,7 @@ import {
   getSupervisorStorageData,
   getSupervisorsList,
 } from '@/app/actions/supervisor_tasks'
+import { getSupervisorAvatars } from '@/app/actions/settings'
 import { SupervisorPortfolioClient } from '@/components/supervisors/SupervisorPortfolioClient'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +22,10 @@ export default async function SupervisorPersonalPage({ params }: Props) {
   const supervisorName = decodeURIComponent(rawName)
 
   const currentUser = await getCurrentUser()
-  const allSupervisors = await getSupervisorsList()
+  const [allSupervisors, supervisorAvatars] = await Promise.all([
+    getSupervisorsList(),
+    getSupervisorAvatars(),
+  ])
 
   // Fetch all projects for linking & counting
   const { data: projectsData } = await supabase
@@ -47,6 +51,8 @@ export default async function SupervisorPersonalPage({ params }: Props) {
         <SupervisorPortfolioClient
           supervisorName={supervisorName}
           allSupervisors={allSupervisors}
+          avatarUrl={supervisorAvatars[supervisorName] || null}
+          allAvatars={supervisorAvatars}
           initialGroups={storageData.groups}
           initialTasks={storageData.tasks}
           projects={projects}

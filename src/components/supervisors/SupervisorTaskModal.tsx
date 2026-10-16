@@ -152,8 +152,10 @@ export function SupervisorTaskModal({
           setHasIssue(true)
           if (issue_detail) setIssueDetail(issue_detail)
           if (issue_solution) setIssueSolution(issue_solution)
+          setAiMessage('⚠️ AI วิเคราะห์พบปัญหาอุปสรรคและได้เลือกช่อง "ปัญหาอุปสรรค" ไว้ให้แล้ว (คุณสามารถยกเลิกการเลือกได้ด้านล่างหากไม่ต้องการ)')
+        } else {
+          setAiMessage('✨ AI วิเคราะห์รูปภาพและกรอก ชื่องาน และ รายละเอียดผลการดำเนินงาน ให้เรียบร้อยแล้ว!')
         }
-        setAiMessage('✨ AI วิเคราะห์รูปภาพและกรอก ชื่องาน และ รายละเอียดผลการดำเนินงาน ให้เรียบร้อยแล้ว!')
       }
     } catch (err: any) {
       setError(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ AI')

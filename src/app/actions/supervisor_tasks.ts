@@ -212,6 +212,25 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
     const storage = await getSupervisorStorageData()
     const now = new Date().toISOString()
 
+    // Auto-validate and correct group_id to ensure it always links to a valid group
+    let resolvedGroupId = task.group_id
+    const existingGroup = storage.groups.find((g) => g.id === resolvedGroupId && g.supervisor === task.supervisor)
+    if (!existingGroup) {
+      // Try to find by name match (stripping any emoji e.g. "📁 ประชุมและอบรม" -> "ประชุมและอบรม")
+      const cleanTarget = (resolvedGroupId || '').replace(/^📁\s*/, '').trim()
+      const matchByName = storage.groups.find(
+        (g) => g.supervisor === task.supervisor && (g.name === cleanTarget || g.name.trim() === cleanTarget)
+      )
+      if (matchByName) {
+        resolvedGroupId = matchByName.id
+      } else {
+        const firstGroup = storage.groups.find((g) => g.supervisor === task.supervisor)
+        if (firstGroup) {
+          resolvedGroupId = firstGroup.id
+        }
+      }
+    }
+
     if (task.id) {
       // Update
       storage.tasks = storage.tasks.map((t) =>
@@ -219,6 +238,7 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
           ? {
               ...t,
               ...task,
+              group_id: resolvedGroupId,
               updated_at: now,
             }
           : t
@@ -227,7 +247,7 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
       // Create new
       const newTask: SupervisorTask = {
         id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        group_id: task.group_id,
+        group_id: resolvedGroupId,
         supervisor: task.supervisor,
         title: task.title,
         description: task.description || null,
@@ -240,7 +260,7 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
         issue_solution: task.issue_solution || null,
         photo_urls: task.photo_urls || [],
         related_project_id: task.related_project_id || null,
-        sort_order: storage.tasks.filter((t) => t.supervisor === task.supervisor && t.group_id === task.group_id).length + 1,
+        sort_order: storage.tasks.filter((t) => t.supervisor === task.supervisor && t.group_id === resolvedGroupId).length + 1,
         created_at: now,
         updated_at: now,
       }

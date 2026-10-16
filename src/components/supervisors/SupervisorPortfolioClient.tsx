@@ -155,6 +155,11 @@ export function SupervisorPortfolioClient({
     return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
   }, [groups, supervisorName])
 
+  // Catch-all: tasks whose group_id does not match any current supervisor group
+  const orphanTasks = useMemo(() => {
+    return filteredSupervisorTasks.filter((t) => !supervisorGroups.some((g) => g.id === t.group_id))
+  }, [filteredSupervisorTasks, supervisorGroups])
+
   // Main construction projects for this supervisor
   const mainProjects = useMemo(() => {
     return projects.filter((p) => (p.supervisor || '').includes(supervisorName))
@@ -904,6 +909,97 @@ export function SupervisorPortfolioClient({
               </div>
             )
           })
+        )}
+
+        {/* Catch-All Container for Orphaned / Mismatched Tasks */}
+        {orphanTasks.length > 0 && (
+          <div className="card border-2 border-dashed border-amber-300 dark:border-amber-700/60 bg-amber-50/40 dark:bg-amber-950/20 rounded-2xl overflow-hidden shadow-2xs">
+            <div className="p-4 bg-amber-100/60 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800/50 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold border bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-400">
+                  📁 งานอื่นๆ / รอย้ายกลุ่ม ({orphanTasks.length} งาน)
+                </span>
+                <span className="text-[11px] text-amber-700 dark:text-amber-300 hidden sm:inline">
+                  (ภารกิจที่รหัสกลุ่มไม่ตรง สามารถคลิกดูหรือกดแก้ไขเพื่อย้ายเข้ากลุ่มงานที่ต้องการได้)
+                </span>
+              </div>
+            </div>
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+                {orphanTasks.map((t) => {
+                  const coverPhoto = t.photo_urls && t.photo_urls.length > 0 ? t.photo_urls[0] : null
+                  const isCompleted = t.status === 'completed'
+                  const isDelayed = t.status === 'delayed'
+
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => setSelectedTaskForDetail(t)}
+                      className="group relative bg-white dark:bg-[#16162e] hover:bg-slate-50 dark:hover:bg-[#1a1a38] border border-amber-200 dark:border-amber-900/50 hover:border-amber-400 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                    >
+                      <div>
+                        {coverPhoto ? (
+                          <div className="relative aspect-16/10 w-full overflow-hidden bg-slate-200 dark:bg-[#181834]">
+                            <img
+                              src={coverPhoto}
+                              alt={t.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            {t.photo_urls.length > 1 && (
+                              <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                +{t.photo_urls.length} รูป
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-amber-500" />
+                        )}
+
+                        <div className="p-3.5 space-y-2">
+                          <div className="flex items-center justify-between gap-1 text-[10px]">
+                            <span
+                              className={`px-2 py-0.5 rounded-full font-bold ${
+                                isCompleted
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                  : isDelayed
+                                  ? 'bg-red-500/15 text-red-600 dark:text-red-400'
+                                  : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                              }`}
+                            >
+                              {isCompleted ? '✅ สำเร็จแล้ว' : isDelayed ? '⚠️ ล่าช้า' : '⏳ กำลังดำเนินการ'}
+                            </span>
+                            {t.has_issue && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold flex items-center gap-0.5">
+                                <AlertTriangle size={9} /> มีปัญหา
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-amber-600 transition-colors">
+                            {t.title}
+                          </h4>
+
+                          <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                            <Calendar size={11} className="shrink-0" />
+                            <span>
+                              {t.start_date ? formatDate(t.start_date) : '-'}
+                              {t.due_date && t.due_date !== t.start_date ? ` ถึง ${formatDate(t.due_date)}` : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="px-3.5 py-2 border-t border-slate-100 dark:border-[#202042] bg-white/50 dark:bg-[#121226]/50 flex items-center justify-between text-[10px] text-slate-400">
+                        <span className="group-hover:text-amber-600 font-semibold flex items-center gap-1">
+                          คลิกดูรายละเอียด <Maximize2 size={10} />
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

@@ -94,18 +94,27 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup, supe
 
           {/* รายละเอียด */}
           <div>
-            <label className={labelCls} htmlFor="description">รายละเอียด</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className={labelCls} htmlFor="description">รายละเอียด</label>
+              <span className="text-[10px] text-slate-400 font-medium">ขยายตามความยาวข้อความอัตโนมัติ</span>
+            </div>
             <textarea
               id="description"
               name="description"
               rows={3}
               placeholder="อธิบายรายละเอียดของโครงการ..."
-              className={`${inputCls} resize-none`}
+              onInput={(e) => {
+                const target = e.currentTarget
+                target.style.height = 'auto'
+                target.style.height = `${Math.max(76, target.scrollHeight)}px`
+              }}
+              className={`${inputCls} resize-none overflow-hidden transition-[height] duration-75 leading-relaxed`}
+              style={{ minHeight: '76px' }}
             />
           </div>
 
           {/* สถานที่ + ผู้ควบคุมงาน */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
             <div>
               <label className={labelCls} htmlFor="location">สถานที่ก่อสร้าง</label>
               <input
@@ -116,58 +125,62 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup, supe
                 className={inputCls}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <label className={labelCls}>
-                ผู้ควบคุมงาน <span className="text-red-500 normal-case tracking-normal">*</span>
-              </label>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  ผู้ควบคุมงาน <span className="text-red-500 normal-case tracking-normal">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSupervisors([...supervisors, ''])}
+                  className="text-xs text-primary-600 dark:text-primary-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                >
+                  <Plus size={13} /> เพิ่มผู้ควบคุมงาน
+                </button>
+              </div>
               <input type="hidden" name="supervisor" value={supervisors.filter(Boolean).join(', ')} />
-              {supervisors.map((sup, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <select
-                    required
-                    value={sup}
-                    onChange={(e) => {
-                      const updated = [...supervisors]
-                      updated[idx] = e.target.value
-                      setSupervisors(updated)
-                    }}
-                    className={inputCls}
-                  >
-                    <option value="">-- เลือกผู้ควบคุมงานคนที่ {idx + 1} --</option>
-                    {activeSupervisorsList.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                    {sup && !activeSupervisorsList.includes(sup) && (
-                      <option value={sup}>{sup} (เดิม)</option>
-                    )}
-                  </select>
-                  {supervisors.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setSupervisors(supervisors.filter((_, i) => i !== idx))}
-                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors cursor-pointer"
-                      title="ลบ"
+              <div className="space-y-2">
+                {supervisors.map((sup, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <select
+                      required
+                      value={sup}
+                      onChange={(e) => {
+                        const updated = [...supervisors]
+                        updated[idx] = e.target.value
+                        setSupervisors(updated)
+                      }}
+                      className={inputCls}
                     >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setSupervisors([...supervisors, ''])}
-                className="text-xs text-primary-600 dark:text-primary-400 font-bold self-start mt-1 hover:underline cursor-pointer"
-              >
-                + เพิ่มผู้ควบคุมงาน
-              </button>
+                      <option value="">-- เลือกผู้ควบคุมงานคนที่ {idx + 1} --</option>
+                      {activeSupervisorsList.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                      {sup && !activeSupervisorsList.includes(sup) && (
+                        <option value={sup}>{sup} (เดิม)</option>
+                      )}
+                    </select>
+                    {supervisors.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setSupervisors(supervisors.filter((_, i) => i !== idx))}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors cursor-pointer"
+                        title="ลบ"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* สถานะ + งบประมาณ + วงเงินจ้างก่อสร้าง */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+            <div className="sm:col-span-6">
               <label className={labelCls} htmlFor="status">สถานะโครงการ</label>
               <select id="status" name="status" className={inputCls}>
                 <option value="ออกแบบ สำรวจ ประมาณการ">1. ออกแบบ สำรวจ ประมาณการ</option>
@@ -178,8 +191,10 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup, supe
                 <option value="เสร็จสิ้น">6. เสร็จสิ้น</option>
               </select>
             </div>
-            <div>
-              <label className={labelCls} htmlFor="budget">งบประมาณโครงการ (บาท)</label>
+            <div className="sm:col-span-3">
+              <label className={`${labelCls} truncate`} htmlFor="budget" title="งบประมาณโครงการ (บาท)">
+                งบประมาณโครงการ (บาท)
+              </label>
               <input
                 id="budget"
                 name="budget"
@@ -190,8 +205,10 @@ export function CreateProjectModal({ onClose, workGroups, defaultWorkGroup, supe
                 className={inputCls}
               />
             </div>
-            <div>
-              <label className={labelCls} htmlFor="opening_pr">วงเงินจ้างก่อสร้าง (บาท)</label>
+            <div className="sm:col-span-3">
+              <label className={`${labelCls} truncate`} htmlFor="opening_pr" title="วงเงินจ้างก่อสร้าง (บาท)">
+                วงเงินจ้างก่อสร้าง (บาท)
+              </label>
               <input
                 id="opening_pr"
                 name="opening_pr"

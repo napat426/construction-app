@@ -39,6 +39,7 @@ export function AIAssistantSection({ projects, user, aiOcrEnabled = false }: AIA
   const [isProcessing, setIsProcessing] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const [projectSearch, setProjectSearch] = useState('')
 
   // RAG Source counts for selected projects
   const [ragCounts, setRagCounts] = useState({ tasks: 0, materials: 0, reports: 0, inspections: 0, globalDocs: 0, projectDocs: 0 })
@@ -225,30 +226,109 @@ export function AIAssistantSection({ projects, user, aiOcrEnabled = false }: AIA
       </div>
 
       {isExpanded && (
-        <div className="flex flex-col md:flex-row h-[600px] max-h-[70vh]">
-          {/* Left Column - 290px */}
-          <div className="w-full md:w-[290px] border-r border-slate-200 dark:border-[#252548] flex flex-col bg-slate-50/50 dark:bg-[#14142a]/50 overflow-y-auto custom-scrollbar">
+        <div className="flex flex-col md:flex-row h-[620px] max-h-[75vh]">
+          {/* Left Column - 330px to 360px */}
+          <div className="w-full md:w-[330px] lg:w-[360px] shrink-0 border-r border-slate-200 dark:border-[#252548] flex flex-col bg-slate-50/50 dark:bg-[#14142a]/50 overflow-y-auto custom-scrollbar">
             {/* Project Selection */}
-            <div className="p-4 border-b border-slate-200 dark:border-[#252548] flex-shrink-0">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">เลือกโครงการวิเคราะห์</span>
+            <div className="p-3.5 border-b border-slate-200 dark:border-[#252548] flex-shrink-0">
+              <div className="flex justify-between items-center mb-2.5">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                  เลือกโครงการวิเคราะห์
+                </span>
                 <button 
                   onClick={() => setSelectedIds(selectedIds.length === projects.length ? [] : projects.map(p => p.id))}
-                  className="text-[10px] text-primary-600 hover:underline font-bold"
+                  className="text-[11px] text-primary-600 dark:text-primary-400 hover:underline font-bold"
                 >
-                  {selectedIds.length === projects.length ? 'ล้าง' : 'เลือกทั้งหมด'}
+                  {selectedIds.length === projects.length ? 'ล้างทั้งหมด' : 'เลือกทั้งหมด'}
                 </button>
               </div>
-              <div className="space-y-2">
-                {projects.map(p => (
-                  <label key={p.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-[#252548] cursor-pointer transition-colors">
-                    <input type="checkbox" checked={selectedIds.includes(p.id)} onChange={() => toggleProject(p.id)} className="w-4 h-4 rounded text-primary-600" />
-                    <span className="flex-1 text-sm text-slate-700 dark:text-slate-300 truncate">{p.name}</span>
-                    <span className={`w-2 h-2 rounded-full ${p.status === 'กำลังดำเนินการ' ? 'bg-blue-500' : p.status === 'เสร็จสิ้น' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                  </label>
-                ))}
+
+              {/* Mini Search Filter */}
+              <div className="relative mb-2.5">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="ค้นหาชื่อโครงการ / สาขา..."
+                  value={projectSearch}
+                  onChange={e => setProjectSearch(e.target.value)}
+                  className="w-full pl-7 pr-7 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1a1a36] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                />
+                {projectSearch && (
+                  <button
+                    onClick={() => setProjectSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs px-1"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
-              <p className="text-xs text-slate-400 mt-3 text-center font-medium">เลือกแล้ว {selectedIds.length} โครงการ</p>
+
+              {/* Projects List */}
+              <div className="space-y-1.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+                {projects
+                  .filter(p => {
+                    if (!projectSearch.trim()) return true
+                    const q = projectSearch.toLowerCase()
+                    return (
+                      p.name.toLowerCase().includes(q) ||
+                      (p.supervisor && p.supervisor.toLowerCase().includes(q)) ||
+                      (p.work_group && p.work_group.toLowerCase().includes(q))
+                    )
+                  })
+                  .map(p => {
+                    const isSelected = selectedIds.includes(p.id)
+                    return (
+                      <label 
+                        key={p.id}
+                        title={p.name}
+                        className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all border ${
+                          isSelected
+                            ? 'bg-primary-50/90 dark:bg-primary-950/30 border-primary-300 dark:border-primary-800/60 shadow-2xs'
+                            : 'hover:bg-slate-100 dark:hover:bg-[#252548] border-transparent'
+                        }`}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={isSelected} 
+                          onChange={() => toggleProject(p.id)} 
+                          className="w-4 h-4 rounded text-primary-600 mt-0.5 shrink-0 cursor-pointer" 
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-medium text-slate-800 dark:text-slate-200 leading-snug break-words block">
+                            {p.name}
+                          </span>
+                          {p.supervisor && (
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 block truncate mt-0.5">
+                              👤 {p.supervisor}
+                            </span>
+                          )}
+                        </div>
+                        <span 
+                          title={`สถานะ: ${p.status}`}
+                          className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                            p.status === 'กำลังดำเนินการ' 
+                              ? 'bg-blue-500 ring-2 ring-blue-500/20' 
+                              : p.status === 'เสร็จสิ้น' 
+                              ? 'bg-emerald-500 ring-2 ring-emerald-500/20' 
+                              : 'bg-amber-500 ring-2 ring-amber-500/20'
+                          }`} 
+                        />
+                      </label>
+                    )
+                  })}
+              </div>
+
+              <div className="flex justify-between items-center text-xs text-slate-400 mt-2.5 pt-2 border-t border-slate-200/70 dark:border-slate-800 font-medium">
+                <span>เลือกแล้ว {selectedIds.length} โครงการ</span>
+                {selectedIds.length > 0 && (
+                  <button
+                    onClick={() => setSelectedIds([])}
+                    className="text-[10px] text-slate-400 hover:text-rose-500 underline"
+                  >
+                    ยกเลิกที่เลือก
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Model Selector */}

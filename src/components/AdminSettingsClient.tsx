@@ -45,6 +45,22 @@ export function AdminSettingsClient({
   const [isWbsModalOpen, setIsWbsModalOpen] = useState(false)
   const [masterCount, setMasterCount] = useState(37)
   const [activeModalChannel, setActiveModalChannel] = useState<LineChannelTarget | null>(null)
+  const [thaiLlmKeyInput, setThaiLlmKeyInput] = useState(initialSettings['thaillm_api_key'] || '')
+  const [thaiLlmSuccess, setThaiLlmSuccess] = useState(false)
+
+  const handleSaveThaiLlmKey = async () => {
+    setIsSaving(true)
+    setThaiLlmSuccess(false)
+    try {
+      await saveSettingKey('thaillm_api_key', thaiLlmKeyInput.trim())
+      setThaiLlmSuccess(true)
+      setTimeout(() => setThaiLlmSuccess(false), 3000)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const [wbsTasks, setWbsTasks] = useState<DefaultWbsItem[]>(() => {
     try {
@@ -477,6 +493,59 @@ export function AdminSettingsClient({
             >
               <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings['ai_ocr_enabled'] === 'true' ? 'translate-x-6' : ''}`} />
             </button>
+          </div>
+
+          {/* ThaiLLM / Typhoon API Key Setting */}
+          <div className="p-5 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-[#1a1a36] dark:to-[#16162e] rounded-xl border border-slate-200 dark:border-[#252548] space-y-3 shadow-2xs">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2 text-sm">
+                  <span className="text-base">🇹🇭</span>
+                  <span>เชื่อมต่อ ThaiLLM / Typhoon API Key (โมเดลภาษาไทยสำรอง)</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    Auto-Failover
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  นำ API Key ที่ได้จาก <strong>ThaiLLM Playground (playground.thaillm.or.th)</strong> หรือ SCB 10X Typhoon มาวางที่นี่ ระบบจะใช้เป็นโมเดลสำรองอัตโนมัติเมื่อ Google Gemini ติดคิวหนาแน่น (503)
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <input
+                type="password"
+                placeholder="วาง API Key จาก ThaiLLM ที่นี่ (เช่น sk-... หรือ th-...)"
+                value={thaiLlmKeyInput}
+                onChange={e => setThaiLlmKeyInput(e.target.value)}
+                className="input-base text-xs font-mono flex-1 py-2 px-3 bg-white dark:bg-[#121226]"
+              />
+              <button
+                type="button"
+                onClick={handleSaveThaiLlmKey}
+                disabled={isSaving}
+                className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50 shrink-0"
+              >
+                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                <span>บันทึก Key</span>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] pt-1">
+              {thaiLlmSuccess ? (
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 animate-pulse">
+                  ✅ บันทึก API Key เรียบร้อยแล้ว ระบบเปิดใช้งานสำรองอัตโนมัติทันที
+                </span>
+              ) : settings['thaillm_api_key'] ? (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                  <Check size={12} /> มีการบันทึก API Key อยู่ในระบบเรียบร้อยแล้ว
+                </span>
+              ) : (
+                <span className="text-slate-400 italic">
+                  * หากไม่กรอก ระบบจะใช้ Google Gemini Multi-Model Cascade เป็นหลักตามปกติ
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

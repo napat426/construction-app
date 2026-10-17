@@ -438,7 +438,21 @@ ${rawContext}`
 
     // 2.2 Optional ThaiLLM / OpenAI / Typhoon Fallback if all Gemini models fail or unavailable
     if (!answer) {
-      const thaiLLMKey = process.env.THAILLM_API_KEY || process.env.TYPHOON_API_KEY
+      let thaiLLMKey = process.env.THAILLM_API_KEY || process.env.TYPHOON_API_KEY
+      if (!thaiLLMKey) {
+        try {
+          const { data: dbSetting } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'thaillm_api_key')
+            .maybeSingle()
+          if (dbSetting?.value && dbSetting.value.trim().length > 0) {
+            thaiLLMKey = dbSetting.value.trim()
+          }
+        } catch (dbErr) {
+          console.warn('Error fetching thaillm_api_key from system_settings:', dbErr)
+        }
+      }
       const openAIKey = process.env.OPENAI_API_KEY
 
       if (thaiLLMKey) {

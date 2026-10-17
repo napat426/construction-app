@@ -457,8 +457,8 @@ ${rawContext}`
 
       if (thaiLLMKey) {
         try {
-          console.log('Attempting failover to ThaiLLM / Typhoon API...')
-          const endpoint = process.env.THAILLM_API_URL || 'https://api.opentyphoon.ai/v1/chat/completions'
+          console.log('Attempting failover to ThaiLLM API...')
+          const endpoint = process.env.THAILLM_API_URL || 'https://api.thaillm.or.th/v1/chat/completions'
           const messages = [
             { role: 'system', content: systemInstruction },
             ...(hasHistory
@@ -476,18 +476,20 @@ ${rawContext}`
               Authorization: `Bearer ${thaiLLMKey}`,
             },
             body: JSON.stringify({
-              model: process.env.THAILLM_MODEL || 'typhoon-v1.5-instruct',
+              model: process.env.THAILLM_MODEL || 'OpenThaiGPT-ThaiLLM-8B-Instruct-v7.2',
               messages,
               temperature: 0.3,
             }),
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(20000),
           })
 
           if (res.ok) {
             const data = await res.json()
             const text = data?.choices?.[0]?.message?.content
             if (text) {
-              answer = text.trim()
+              // Strip reasoning think tags if present
+              const cleanText = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+              answer = cleanText || text.trim()
             }
           }
         } catch (tErr: any) {

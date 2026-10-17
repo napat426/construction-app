@@ -563,12 +563,13 @@ function DailyReportForm({
     setIsSyncingWeather(true)
     try {
       const defaultsRes = await getDailyDefaults(project.id)
-      if (defaultsRes.error || !defaultsRes.data || !defaultsRes.data.latitude || !defaultsRes.data.longitude) {
-        alert('กรุณาตั้งค่าพิกัด GPS ของโครงการในเมนูตั้งค่าก่อนเพื่อใช้ฟีเจอร์นี้')
-        return
+      let latitude = defaultsRes.data?.latitude
+      let longitude = defaultsRes.data?.longitude
+      if (!latitude || !longitude) {
+        latitude = 13.7563
+        longitude = 100.5018
       }
       
-      const { latitude, longitude } = defaultsRes.data
       const res = await fetch(`/api/weather?lat=${latitude}&lng=${longitude}&date=${item.report_date}`)
       if (!res.ok) throw new Error('Failed to fetch weather')
       const weatherData = await res.json()
@@ -577,7 +578,9 @@ function DailyReportForm({
       setTemperature(weatherData.temperature?.toString() || '25')
       setPrecipitation(weatherData.precipitation?.toString() || '0')
       setWeatherCode(weatherData.weather_code || 0)
-      alert('ดึงข้อมูลสภาพอากาศจริงจากดาวเทียมย้อนหลังเรียบร้อยแล้ว!')
+
+      const rainDetail = weatherData.rain_intervals ? `\n• ช่วงเวลาที่ฝนตก: ${weatherData.rain_intervals}` : ''
+      alert(`ดึงข้อมูลสภาพอากาศช่วงเวลาทำงาน (08:00 - 17:00 น.) เรียบร้อยแล้ว!\n• สภาพอากาศ: ${weatherData.weather_text}\n• ฝนช่วงเวลาทำงาน: ${weatherData.precipitation} มม.${rainDetail}\n• อุณหภูมิช่วงทำงาน: ${weatherData.temperature}°C`)
     } catch (err) {
       console.error(err)
       alert('เกิดข้อผิดพลาดในการเชื่อมต่อดึงข้อมูลสภาพอากาศ')
@@ -780,7 +783,7 @@ function DailyReportForm({
               />
             </div>
             <div>
-              <label className={labelCls}>ปริมาณน้ำฝน (มม.)</label>
+              <label className={labelCls} title="ปริมาณน้ำฝนสะสมเฉพาะช่วงเวลาทำงาน 08:00 - 17:00 น.">ฝนช่วงทำงาน 8-17น. (มม.)</label>
               <input 
                 type="number"
                 step="any"

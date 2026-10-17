@@ -1233,6 +1233,7 @@ function WeeklyReportForm({
 
     const rainDaysThisWeek = weekDailyReports.filter(d => {
       const w = (d.weather || '').toLowerCase();
+      if (w.includes('นอกเวลา') || w.includes('ไม่กระทบงาน')) return false;
       const p = Number(d.precipitation) || 0;
       return w.includes('ฝน') || w.includes('rain') || p > 0;
     }).length;

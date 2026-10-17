@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
 import type { InspectionStatus } from '@/lib/types'
-import { getWeatherText } from '@/lib/weatherUtils'
+import { getWeatherText, fetchWeatherForDate } from '@/lib/weatherUtils'
 import { logActivity } from '@/lib/auditLogger'
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -251,41 +251,20 @@ export async function backfillDailyReport(projectId: string, dateStr: string) {
     const lat = defaults?.latitude ?? 13.7563
     const lon = defaults?.longitude ?? 100.5018
 
-    // 4. Fetch archive weather
-    let weatherText = 'ท้องฟ้าแจ่มใส'
+    // 4. Fetch archive/forecast weather focusing on working hours 08:00 - 17:00
+    let weatherText = 'แดดจัด'
     let temperature = 32
     let precipitation = 0
     let weatherCode = 0
 
-    if (defaults && defaults.latitude && defaults.longitude) {
-      try {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const targetDate = new Date(dateStr)
-        targetDate.setHours(0, 0, 0, 0)
-        const diffDays = (today.getTime() - targetDate.getTime()) / (24 * 60 * 60 * 1000)
-        const isArchive = diffDays > 5
-
-        const endpoint = isArchive
-          ? 'https://archive-api.open-meteo.com/v1/archive'
-          : 'https://api.open-meteo.com/v1/forecast'
-
-        const url = `${endpoint}?latitude=${defaults.latitude}&longitude=${defaults.longitude}&start_date=${dateStr}&end_date=${dateStr}&daily=precipitation_sum,weather_code,temperature_2m_max&timezone=Asia/Bangkok`
-
-        const weatherRes = await fetch(url)
-        if (weatherRes.ok) {
-          const wData = await weatherRes.json()
-          if (wData.daily && wData.daily.time && wData.daily.time.length > 0) {
-            temperature = wData.daily.temperature_2m_max ? wData.daily.temperature_2m_max[0] : 25
-            precipitation = wData.daily.precipitation_sum ? wData.daily.precipitation_sum[0] : 0
-            weatherCode = wData.daily.weather_code ? wData.daily.weather_code[0] : 0
-
-            weatherText = getWeatherText(precipitation, weatherCode)
-          }
-        }
-      } catch (weatherErr) {
-        console.error('Failed to fetch weather for backfill:', weatherErr)
-      }
+    try {
+      const wData = await fetchWeatherForDate(lat, lon, dateStr)
+      weatherText = wData.weather_text
+      temperature = wData.temperature
+      precipitation = wData.precipitation
+      weatherCode = wData.weather_code
+    } catch (weatherErr) {
+      console.error('Failed to fetch weather for backfill:', weatherErr)
     }
 
     // 5. Fetch tasks and compute active WBS
@@ -395,9 +374,28 @@ export async function createQuickDailyReport(projectId: string, dateStr: string)
     // Fetch defaults (fast)
     const { data: defaults } = await supabase
       .from('project_daily_defaults')
-      .select('manpower_defaults, machinery_defaults')
+      .select('manpower_defaults, machinery_defaults, latitude, longitude')
       .eq('project_id', projectId)
       .single()
+
+    const lat = defaults?.latitude ?? 13.7563
+    const lon = defaults?.longitude ?? 100.5018
+
+    // Auto-fetch real weather focusing on working hours 08:00 - 17:00
+    let weatherText = 'แดดจัด'
+    let temperature = 32
+    let precipitation = 0
+    let weatherCode = 0
+
+    try {
+      const wData = await fetchWeatherForDate(lat, lon, dateStr)
+      weatherText = wData.weather_text
+      temperature = wData.temperature
+      precipitation = wData.precipitation
+      weatherCode = wData.weather_code
+    } catch (weatherErr) {
+      console.error('Failed to auto-fetch weather on createQuickDailyReport:', weatherErr)
+    }
 
     // Compute planned tasks for this date as initial Work Done
     const planned = await getPlannedTasksForDate(projectId, dateStr)
@@ -408,10 +406,10 @@ export async function createQuickDailyReport(projectId: string, dateStr: string)
       .insert({
         project_id: projectId,
         report_date: dateStr,
-        weather: 'แดดจัด',
-        temperature: 25,
-        precipitation: 0,
-        weather_code: 0,
+        weather: weatherText,
+        temperature,
+        precipitation,
+        weather_code: weatherCode,
         manpower: defaults?.manpower_defaults || [],
         machinery: defaults?.machinery_defaults || [],
         work_done: initialWorkDone,
@@ -442,13 +440,37 @@ export async function createQuickDailyReport(projectId: string, dateStr: string)
 }
 
 export async function createDailyReport(projectId: string, payload: any) {
+  let weather = payload.weather
+  let temperature = payload.temperature
+  let precipitation = payload.precipitation ?? 0
+  let weatherCode = payload.weather_code ?? 0
+
+  if (!weather || weather.trim() === '') {
+    try {
+      const { data: defaults } = await supabase
+        .from('project_daily_defaults')
+        .select('latitude, longitude')
+        .eq('project_id', projectId)
+        .single()
+      const lat = defaults?.latitude ?? 13.7563
+      const lon = defaults?.longitude ?? 100.5018
+      const wData = await fetchWeatherForDate(lat, lon, payload.report_date)
+      weather = wData.weather_text
+      temperature = temperature ?? wData.temperature
+      precipitation = precipitation || wData.precipitation
+      weatherCode = weatherCode || wData.weather_code
+    } catch {
+      weather = 'แดดจัด'
+    }
+  }
+
   const { data, error } = await supabase.from('daily_reports').insert({
     project_id: projectId,
     report_date: payload.report_date,
-    weather: payload.weather,
-    temperature: payload.temperature,
-    precipitation: payload.precipitation || 0,
-    weather_code: payload.weather_code || 0,
+    weather,
+    temperature,
+    precipitation,
+    weather_code: weatherCode,
     manpower: payload.manpower,
     machinery: payload.machinery,
     work_done: payload.work_done,

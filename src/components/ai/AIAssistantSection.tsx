@@ -254,8 +254,9 @@ export function AIAssistantSection({ projects, user, aiOcrEnabled = false }: AIA
             {/* Model Selector */}
             <div className="px-4 py-3 border-b border-slate-200 dark:border-[#252548] flex-shrink-0">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">โมเดล AI</span>
-              <div className="w-full text-xs font-semibold bg-slate-100 dark:bg-[#1a1a32] border border-slate-200 dark:border-[#252548] rounded-lg px-2.5 py-1.5 text-slate-500 dark:text-slate-400 select-none">
-                ⚡ Gemini 2.5 Flash
+              <div className="w-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-lg px-2.5 py-1.5 text-emerald-700 dark:text-emerald-300 select-none flex items-center justify-between">
+                <span>⚡ Gemini Flash (Auto-Failover)</span>
+                <span className="text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-600 dark:text-emerald-400 font-bold">Active</span>
               </div>
             </div>
 

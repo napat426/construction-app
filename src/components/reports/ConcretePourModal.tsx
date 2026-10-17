@@ -5,6 +5,7 @@ import { X, Plus, Upload, Trash2, Loader2, Save } from 'lucide-react'
 import { createConcretePour, updateConcretePour } from '@/app/actions/concrete'
 import type { ConcretePour, WBSTask, ActionState } from '@/lib/types'
 import { uploadReportPhoto } from '@/app/actions/reports'
+import { compressImage } from '@/lib/image'
 
 interface Props {
   project_id: string
@@ -58,7 +59,12 @@ export function ConcretePourModal({ project_id, tasks, initialData, existingPour
     
     const newUrls: string[] = []
     for (let i = 0; i < e.target.files.length; i++) {
-      const file = e.target.files[i]
+      let file = e.target.files[i]
+      try {
+        file = await compressImage(file, 1200, 0.75)
+      } catch (compErr) {
+        console.warn('Image compression failed:', compErr)
+      }
       const res = await uploadReportPhoto(file)
       if (res.url) {
         newUrls.push(res.url)

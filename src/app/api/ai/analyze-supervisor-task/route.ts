@@ -79,11 +79,11 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(apiKey)
     const CANDIDATE_MODELS = [
-      'gemini-3.5-flash',
-      'gemini-3.6-flash',
-      'gemini-3.8-flash',
-      'gemini-3.1-flash-lite',
       'gemini-flash-latest',
+      'gemini-3.8-flash',
+      'gemini-3.7-flash',
+      'gemini-3.6-flash',
+      'gemini-3.1-flash-lite',
     ]
 
     const prompt = `คุณคือวิศวกรผู้ควบคุมงานก่อสร้างอาวุโส (Senior Site Engineer / Construction Supervisor)

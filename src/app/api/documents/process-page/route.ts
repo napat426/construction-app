@@ -39,17 +39,35 @@ export async function POST(req: Request) {
     // 1. OCR with Gemini Vision if no text provided
     if (!pageText && imageBase64) {
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' })
+        const ocrCandidates = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite']
         const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '')
         const prompt = "Please extract all text and tables from this image accurately. Preserve the reading order and structure. If there is Thai text, please extract it correctly."
         
-        const result = await model.generateContent([
-          prompt,
-          { inlineData: { data: base64Data, mimeType: 'image/jpeg' } }
-        ])
-        
-        pageText = result.response.text()
-        if (!pageText || pageText.trim() === '') {
+        let extractedText = ''
+        let lastOcrErr: any = null
+        for (const ocrModelName of ocrCandidates) {
+          try {
+            const model = genAI.getGenerativeModel({ model: ocrModelName })
+            const result = await model.generateContent([
+              prompt,
+              { inlineData: { data: base64Data, mimeType: 'image/jpeg' } }
+            ])
+            const txt = result.response.text()
+            if (txt && txt.trim().length > 0) {
+              extractedText = txt
+              break
+            }
+          } catch (oErr: any) {
+            lastOcrErr = oErr
+            console.warn(`OCR failover from ${ocrModelName}:`, oErr.message)
+          }
+        }
+
+        if (extractedText) {
+          pageText = extractedText
+        } else if (lastOcrErr) {
+          throw lastOcrErr
+        } else {
           ocrConfidence = 'low'
           pageText = '[No readable text found on this page]'
         }

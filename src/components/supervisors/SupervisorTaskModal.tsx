@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { X, Plus, Trash2, ImagePlus, AlertTriangle, Sparkles, Loader2, Upload } from 'lucide-react'
 import type { SupervisorTask, SupervisorTaskGroup, Project } from '@/lib/types'
 import { uploadReportPhoto } from '@/app/actions/reports'
+import { compressImage } from '@/lib/image'
 
 interface Props {
   initialTask?: Partial<SupervisorTask> | null
@@ -61,7 +62,15 @@ export function SupervisorTaskModal({
     setError('')
     try {
       const fileArray = Array.from(files)
-      const uploadPromises = fileArray.map(async (file) => {
+      const uploadPromises = fileArray.map(async (rawFile) => {
+        // Compress image to max 1200px width/height and JPEG quality 0.75
+        let file = rawFile
+        try {
+          file = await compressImage(rawFile, 1200, 0.75)
+        } catch (compErr) {
+          console.warn('Image compression failed, using original file:', compErr)
+        }
+
         try {
           const res = await uploadReportPhoto(file)
           if (res.url) return res.url

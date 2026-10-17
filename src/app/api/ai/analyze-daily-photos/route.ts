@@ -103,10 +103,11 @@ export async function POST(req: Request) {
     // Initialize Gemini with Multi-Model Auto-Failover
     const genAI = new GoogleGenerativeAI(apiKey)
     const CANDIDATE_MODELS = [
+      'gemini-flash-latest',
+      'gemini-3.8-flash',
+      'gemini-3.7-flash',
       'gemini-3.6-flash',
-      'gemini-3.5-flash',
-      'gemini-3-flash-preview',
-      'gemini-2.5-flash',
+      'gemini-3.1-flash-lite',
     ]
 
     // System Prompt for Engineering Vision Analysis

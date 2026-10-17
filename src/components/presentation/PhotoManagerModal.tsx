@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import type { Project, Inspection } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { uploadReportPhoto, deleteInspectionPhoto, addInspectionPhoto } from '@/app/actions/reports'
+import { compressImage } from '@/lib/image'
 import type { UserSession } from '@/lib/auth'
 import { X, Upload, CheckCircle2, Image as ImageIcon, Loader2 } from 'lucide-react'
 
@@ -145,7 +146,13 @@ export function PhotoManagerModal({ projectId, project, inspections, dailyReport
       if (!targetInspectionId) throw new Error("No inspection available")
 
       // Upload using server action
-      const res = await uploadReportPhoto(file)
+      let uploadFile = file
+      try {
+        uploadFile = await compressImage(file, 1200, 0.75)
+      } catch (compErr) {
+        console.warn('Image compression failed:', compErr)
+      }
+      const res = await uploadReportPhoto(uploadFile)
       if (res.error || !res.url) throw new Error(res.error || 'Upload failed')
       
       const publicUrl = res.url

@@ -374,11 +374,20 @@ export async function POST(req: Request) {
       }
     }
 
-    try {
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
-      const model = genAI.getGenerativeModel({ model: modelName })
-      
-      const systemInstruction = `คุณคือ AI ผู้ช่วยผู้จัดการโครงการก่อสร้าง หน้าที่ของคุณคือการเรียบเรียงข้อมูลตัวเลขและสถานะโครงการที่ได้รับ ให้เป็นภาษาธรรมชาติที่อ่านง่าย เป็นมืออาชีพ และกระชับ
+    // 2. Cascade Auto-Failover through Google Gemini models
+    const DEFAULT_CANDIDATE_MODELS = [
+      'gemini-flash-latest',
+      'gemini-3.8-flash',
+      'gemini-3.7-flash',
+      'gemini-3.6-flash',
+      'gemini-3.1-flash-lite',
+    ]
+
+    const candidateModels = selectedModel
+      ? [selectedModel, ...DEFAULT_CANDIDATE_MODELS.filter((m) => m !== selectedModel)]
+      : DEFAULT_CANDIDATE_MODELS
+
+    const systemInstruction = `คุณคือ AI ผู้ช่วยผู้จัดการโครงการก่อสร้าง หน้าที่ของคุณคือการเรียบเรียงข้อมูลตัวเลขและสถานะโครงการที่ได้รับ ให้เป็นภาษาธรรมชาติที่อ่านง่าย เป็นมืออาชีพ และกระชับ
 
 คำสั่งสำคัญ (Strict Rules):
 1. ให้ใช้เฉพาะข้อมูลและตัวเลขที่ให้มาใน "ข้อมูลดิบ" เท่านั้น ห้ามคำนวณใหม่ ห้ามเดา ห้ามสร้างตัวเลขใหม่เองเด็ดขาด
@@ -389,25 +398,134 @@ export async function POST(req: Request) {
 ข้อมูลดิบ (Facts) ณ วันนี้:
 ${rawContext}`
 
-      // Build multi-turn conversation contents for memory
-      const contents: any[] = []
-      if (hasHistory) {
-        for (const msg of conversationHistory) {
-          if (msg.role === 'user' && msg.content) {
-            contents.push({ role: 'user', parts: [{ text: msg.content }] })
-          } else if (msg.role === 'assistant' && msg.content && !msg.isTyping) {
-            contents.push({ role: 'model', parts: [{ text: msg.content }] })
-          }
+    // Build multi-turn conversation contents for memory
+    const contents: any[] = []
+    if (hasHistory) {
+      for (const msg of conversationHistory) {
+        if (msg.role === 'user' && msg.content) {
+          contents.push({ role: 'user', parts: [{ text: msg.content }] })
+        } else if (msg.role === 'assistant' && msg.content && !msg.isTyping) {
+          contents.push({ role: 'model', parts: [{ text: msg.content }] })
         }
       }
-      contents.push({ role: 'user', parts: [{ text: question || actionType || 'สรุปข้อมูล' }] })
+    }
+    contents.push({ role: 'user', parts: [{ text: question || actionType || 'สรุปข้อมูล' }] })
 
-      const result = await model.generateContent({ systemInstruction, contents })
-      answer = result.response.text()
-    } catch (aiError: any) {
-      console.error('Gemini API Error:', aiError)
-      // Graceful Fallback
-      answer = `⚠️ **AI ไม่พร้อมใช้งานชั่วคราว (โควตาหรือเชื่อมต่อ)**\n(Error: ${aiError.message})\nนี่คือข้อมูลสรุปเบื้องต้นที่ระบบคำนวณได้:\n\n${rawContext.split('\n').map(l => `- ${l}`).join('\n')}`
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
+    const genAI = new GoogleGenerativeAI(apiKey)
+    let lastError: any = null
+
+    for (const currentModelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({ model: currentModelName })
+        const result = (await Promise.race([
+          model.generateContent({ systemInstruction, contents }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout 15s on ${currentModelName}`)), 15000)
+          ),
+        ])) as any
+
+        const text = result?.response?.text()
+        if (text && text.trim().length > 0) {
+          answer = text.trim()
+          break
+        }
+      } catch (err: any) {
+        lastError = err
+        console.warn(`Chat model failover from ${currentModelName}:`, err.message)
+      }
+    }
+
+    // 2.2 Optional ThaiLLM / OpenAI / Typhoon Fallback if all Gemini models fail or unavailable
+    if (!answer) {
+      const thaiLLMKey = process.env.THAILLM_API_KEY || process.env.TYPHOON_API_KEY
+      const openAIKey = process.env.OPENAI_API_KEY
+
+      if (thaiLLMKey) {
+        try {
+          console.log('Attempting failover to ThaiLLM / Typhoon API...')
+          const endpoint = process.env.THAILLM_API_URL || 'https://api.opentyphoon.ai/v1/chat/completions'
+          const messages = [
+            { role: 'system', content: systemInstruction },
+            ...(hasHistory
+              ? conversationHistory
+                  .filter((m: any) => m.content && !m.isTyping)
+                  .map((m: any) => ({ role: m.role === 'model' ? 'assistant' : m.role, content: m.content }))
+              : []),
+            { role: 'user', content: question || actionType || 'สรุปข้อมูล' },
+          ]
+
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${thaiLLMKey}`,
+            },
+            body: JSON.stringify({
+              model: process.env.THAILLM_MODEL || 'typhoon-v1.5-instruct',
+              messages,
+              temperature: 0.3,
+            }),
+            signal: AbortSignal.timeout(15000),
+          })
+
+          if (res.ok) {
+            const data = await res.json()
+            const text = data?.choices?.[0]?.message?.content
+            if (text) {
+              answer = text.trim()
+            }
+          }
+        } catch (tErr: any) {
+          console.warn('ThaiLLM failover error:', tErr.message)
+        }
+      } else if (openAIKey) {
+        try {
+          console.log('Attempting failover to OpenAI GPT-4o-mini API...')
+          const messages = [
+            { role: 'system', content: systemInstruction },
+            ...(hasHistory
+              ? conversationHistory
+                  .filter((m: any) => m.content && !m.isTyping)
+                  .map((m: any) => ({ role: m.role === 'model' ? 'assistant' : m.role, content: m.content }))
+              : []),
+            { role: 'user', content: question || actionType || 'สรุปข้อมูล' },
+          ]
+
+          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${openAIKey}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages,
+              temperature: 0.3,
+            }),
+            signal: AbortSignal.timeout(15000),
+          })
+
+          if (res.ok) {
+            const data = await res.json()
+            const text = data?.choices?.[0]?.message?.content
+            if (text) {
+              answer = text.trim()
+            }
+          }
+        } catch (oErr: any) {
+          console.warn('OpenAI failover error:', oErr.message)
+        }
+      }
+    }
+
+    // 2.3 Ultimate Graceful Fallback if everything failed
+    if (!answer) {
+      console.error('All AI models failed, providing structured raw facts summary:', lastError)
+      answer = `⚠️ **AI กำลังปรับปรุงหรือมีผู้ใช้งานหนาแน่น**\n(ระบบได้คำนวณและรวบรวมข้อมูลสถานะล่าสุดจากฐานข้อมูลให้อัตโนมัติ):\n\n${rawContext
+        .split('\n')
+        .map((l) => `- ${l}`)
+        .join('\n')}`
     }
 
     // 3. Save to History (Cache) — skip for multi-turn conversation mode

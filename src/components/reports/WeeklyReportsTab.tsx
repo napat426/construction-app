@@ -1245,22 +1245,62 @@ function WeeklyReportForm({
       return iDate >= startD && iDate <= endD;
     });
 
-    // 1. Generate Executive Summary
-    let summaryGen = `ความก้าวหน้าโครงการสะสม: ผลงานจริงสะสม ${evCumulative.toFixed(1)}% (แผนงานสะสม ${pvCumulative.toFixed(1)}%, ส่วนต่าง ${svPercent >= 0 ? '+' : ''}${svPercent.toFixed(1)}%)\n`;
+    // 1. Project Type & Phase Analysis for Weekly Report
+    const pName = (project.name || '').toLowerCase();
+    const pGroup = (project.work_group || '').toLowerCase();
+    const pDesc = (project.description || '').toLowerCase();
+    const combinedInfo = `${pName} ${pGroup} ${pDesc}`;
 
-    if (completedTasks.length > 0) {
-      summaryGen += `• กิจกรรมที่ดำเนินงานแล้วเสร็จ 100%: ${completedTasks.slice(0, 3).map(t => `${t.wbs_no ? `[${t.wbs_no}] ` : ''}${t.name}`).join(', ')}\n`;
+    const isLand = combinedInfo.includes('ที่ดิน') || combinedInfo.includes('จัดซื้อที่ดิน') || combinedInfo.includes('เวนคืน');
+    const isWarehouse = combinedInfo.includes('มิเตอร์') || combinedInfo.includes('โรงเก็บมิเตอร์') || combinedInfo.includes('คลังพัสดุ');
+    const isOffice = combinedInfo.includes('สำนักงาน') || combinedInfo.includes('กฟส.') || combinedInfo.includes('อาคารสำนักงาน');
+    const isTourism = combinedInfo.includes('ศูนย์บริการ') || combinedInfo.includes('ท่องเที่ยว');
+
+    let stageTitle = 'งานก่อสร้างทั่วไป';
+    if (isLand) {
+      stageTitle = evCumulative < 50 ? 'งานตรวจสอบเอกสารสิทธิ์และรังวัดแนวเขต' : evCumulative < 90 ? 'งานจัดทำสัญญาซื้อขายและขออนุมัติเบิกจ่าย' : 'งานโอนกรรมสิทธิ์และส่งมอบที่ดิน';
+    } else {
+      if (evCumulative < 18) stageTitle = 'งานเตรียมพื้นที่ วางผัง และงานดิน/ฐานราก';
+      else if (evCumulative < 48) stageTitle = 'งานโครงสร้างหลัก ค.ส.ล. และโครงสร้างหลังคา';
+      else if (evCumulative < 78) stageTitle = 'งานก่อสร้างสถาปัตยกรรมและระบบวิศวกรรม (MEP)';
+      else if (evCumulative < 94) stageTitle = 'งานตกแต่งผิว ติดตั้งสุขภัณฑ์ ดวงโคม และอุปกรณ์ประกอบ';
+      else stageTitle = 'งานทดสอบระบบ เก็บรายละเอียด Defect และเตรียมส่งมอบงาน';
     }
-    if (inProgressTasks.length > 0) {
-      summaryGen += `• กิจกรรมที่อยู่ระหว่างดำเนินการ: ${inProgressTasks.slice(0, 3).map(t => `${t.wbs_no ? `[${t.wbs_no}] ` : ''}${t.name} (คืบหน้า ${t.actual_progress}%)`).join(', ')}\n`;
+
+    const weekWorkers = weekDailyReports.filter(d => Number(d.manpower) > 0);
+    const avgWeekWorkers = weekWorkers.length > 0
+      ? Math.round(weekWorkers.reduce((sum, d) => sum + Number(d.manpower), 0) / weekWorkers.length)
+      : 0;
+
+    // 1. Generate Executive Summary
+    let summaryGen = `ความก้าวหน้าโครงการสะสม: ผลงานจริงสะสม ${evCumulative.toFixed(1)}% (แผนงานสะสม ${pvCumulative.toFixed(1)}%, ส่วนต่าง ${svPercent >= 0 ? '+' : ''}${svPercent.toFixed(1)}%) — อยู่ในขอบเขต${stageTitle}\n`;
+
+    if (isLand) {
+      if (completedTasks.length > 0) {
+        summaryGen += `• ขั้นตอนที่ดำเนินงานแล้วเสร็จ: ${completedTasks.slice(0, 3).map(t => t.name).join(', ')}\n`;
+      }
+      if (inProgressTasks.length > 0) {
+        summaryGen += `• ขั้นตอนที่อยู่ระหว่างดำเนินการ: ${inProgressTasks.slice(0, 3).map(t => `${t.name} (คืบหน้า ${t.actual_progress}%)`).join(', ')}\n`;
+      }
+    } else {
+      if (completedTasks.length > 0) {
+        summaryGen += `• กิจกรรมที่ดำเนินงานแล้วเสร็จ 100%: ${completedTasks.slice(0, 3).map(t => `${t.wbs_no ? `[${t.wbs_no}] ` : ''}${t.name}`).join(', ')}\n`;
+      }
+      if (inProgressTasks.length > 0) {
+        summaryGen += `• กิจกรรมที่อยู่ระหว่างดำเนินการ: ${inProgressTasks.slice(0, 3).map(t => `${t.wbs_no ? `[${t.wbs_no}] ` : ''}${t.name} (คืบหน้า ${t.actual_progress}%)`).join(', ')}\n`;
+      }
     }
+
     if (weekInspections.length > 0) {
-      summaryGen += `• มีการขอตรวจสอบคุณภาพงาน (Inspection) จำนวน ${weekInspections.length} รายการ ได้แก่ ${weekInspections.slice(0, 2).map(i => i.title || i.work_type || 'ขอตรวจงาน').join(', ')}\n`;
+      summaryGen += `• มีการยื่นขอส่งตรวจสอบคุณภาพงาน (Inspection) จำนวน ${weekInspections.length} รายการ ได้แก่ ${weekInspections.slice(0, 2).map(i => i.title || i.work_type || 'ขอตรวจงาน').join(', ')}\n`;
+    }
+    if (avgWeekWorkers > 0) {
+      summaryGen += `• กำลังคนในรอบสัปดาห์: มีการจัดชุดช่างและแรงงานเข้าปฏิบัติงานเฉลี่ย ~${avgWeekWorkers} คน/วัน\n`;
     }
     if (rainDaysThisWeek > 0) {
-      summaryGen += `• ในรอบสัปดาห์มีสถิติฝนตกสะสม ${rainDaysThisWeek} วัน (จาก ${Math.max(1, weekDailyReports.length)} วันที่บันทึก) ซึ่งส่งผลกระทบต่องานภายนอกอาคาร`;
+      summaryGen += `• สภาพอากาศ: มีสถิติฝนตกสะสมในสัปดาห์นี้ ${rainDaysThisWeek} วัน (จาก ${Math.max(1, weekDailyReports.length)} วันที่บันทึก) ซึ่งส่งผลกระทบต่อกิจกรรมภายนอกอาคาร`;
     } else {
-      summaryGen += `• สภาพอากาศโดยรวมปลอดโปร่ง สามารถดำเนินงานก่อสร้างได้ตามปกติ`;
+      summaryGen += `• สภาพอากาศ: ท้องฟ้าปลอดโปร่ง สามารถดำเนินงานก่อสร้างได้อย่างต่อเนื่องเต็มกำลัง`;
     }
 
     // 2. Generate Delayed Tasks & Causes

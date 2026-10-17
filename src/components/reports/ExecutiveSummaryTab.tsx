@@ -737,55 +737,227 @@ export function ExecutiveSummaryTab({
   const totalDaysObserved = Math.max(daysElapsed, dailyReports.length, 1)
   const rainPercentage = ((rainyDaysCount / totalDaysObserved) * 100).toFixed(1)
 
-  // 3. Smart Auto-Draft Generators
+  // 3. Smart Multi-Context Auto-Draft Engine
   const generateAutoDrafts = () => {
-    let hText = `โครงการดำเนินงานมีความก้าวหน้าสะสม ${actualProgress.toFixed(1)}% `
-    if (scheduledTasks.length > 0) {
-      const completedTasks = scheduledTasks.filter(t => (Number(t.actual_progress) || 0) >= 100)
-      const activeTasks = scheduledTasks.filter(t => (Number(t.actual_progress) || 0) > 0 && (Number(t.actual_progress) || 0) < 100)
+    // 3.1 Project Type Categorization
+    const pName = (project.name || '').toLowerCase()
+    const pGroup = (project.work_group || '').toLowerCase()
+    const pDesc = (project.description || '').toLowerCase()
+    const combinedInfo = `${pName} ${pGroup} ${pDesc}`
+
+    const isLand = combinedInfo.includes('ที่ดิน') || combinedInfo.includes('จัดซื้อที่ดิน') || combinedInfo.includes('เวนคืน')
+    const isWarehouse = combinedInfo.includes('มิเตอร์') || combinedInfo.includes('โรงเก็บมิเตอร์') || combinedInfo.includes('คลังพัสดุ') || combinedInfo.includes('โรงเก็บ')
+    const isTourism = combinedInfo.includes('ศูนย์บริการ') || combinedInfo.includes('ท่องเที่ยว')
+    const isOffice = combinedInfo.includes('สำนักงาน') || combinedInfo.includes('กฟส.') || combinedInfo.includes('อาคารสำนักงาน')
+    const isSubstation = combinedInfo.includes('สถานีไฟฟ้า') || combinedInfo.includes('หม้อแปลง') || combinedInfo.includes('ลานไก') || combinedInfo.includes('เคเบิล')
+    const isRenovation = combinedInfo.includes('ปรับปรุง') || combinedInfo.includes('ซ่อมแซม') || combinedInfo.includes('รีโนเวท')
+    const isExternalCivil = combinedInfo.includes('รั้ว') || combinedInfo.includes('ถนน') || combinedInfo.includes('ระบายน้ำ') || combinedInfo.includes('ลานคอนกรีต')
+
+    let projectScopeTag = 'งานก่อสร้างอาคาร ค.ส.ล.'
+    if (isLand) projectScopeTag = 'งานจัดซื้อที่ดินและรังวัดกรรมสิทธิ์'
+    else if (isWarehouse) projectScopeTag = 'งานก่อสร้างโรงเก็บมิเตอร์และโครงสร้างเหล็ก'
+    else if (isTourism) projectScopeTag = 'งานก่อสร้างศูนย์บริการนักท่องเที่ยวและภูมิทัศน์'
+    else if (isOffice) projectScopeTag = 'งานก่อสร้างอาคารสำนักงานและระบบสาธารณูปโภค'
+    else if (isSubstation) projectScopeTag = 'งานสถานีไฟฟ้าและระบบจำหน่าย'
+    else if (isRenovation) projectScopeTag = 'งานปรับปรุงและต่อเติมอาคาร'
+    else if (isExternalCivil) projectScopeTag = 'งานผังบริเวณ รั้ว และระบบระบายน้ำ'
+
+    // 3.2 Construction Stage Detection (Phase Analysis)
+    let stageName = 'เตรียมการก่อสร้าง'
+    let stageKey: 'prep' | 'substructure' | 'structure' | 'architecture' | 'finishing' | 'handover' = 'prep'
+
+    if (isLand) {
+      stageKey = actualProgress < 50 ? 'prep' : actualProgress < 90 ? 'finishing' : 'handover'
+      stageName = actualProgress < 50 ? 'งานตรวจสอบเอกสารสิทธิ์และรังวัดแนวเขตที่ดิน' : actualProgress < 90 ? 'งานจัดทำสัญญาซื้อขายและขออนุมัติเบิกจ่าย' : 'งานโอนกรรมสิทธิ์และส่งมอบที่ดิน'
+    } else {
+      if (actualProgress < 18) {
+        stageKey = 'substructure'
+        stageName = 'งานเตรียมพื้นที่ สำรวจวางผัง และงานดิน/ฐานราก'
+      } else if (actualProgress < 48) {
+        stageKey = 'structure'
+        stageName = 'งานโครงสร้างหลัก ค.ส.ล. (เสา-คาน-พื้น) และโครงสร้างหลังคา'
+      } else if (actualProgress < 78) {
+        stageKey = 'architecture'
+        stageName = 'งานก่อสร้างสถาปัตยกรรม (ก่ออิฐ-ฉาบปูน-ปูกระเบื้อง) และงานระบบ MEP'
+      } else if (actualProgress < 94) {
+        stageKey = 'finishing'
+        stageName = 'งานตกแต่งผิว ติดตั้งสุขภัณฑ์ ดวงโคม และอุปกรณ์ประกอบอาคาร'
+      } else {
+        stageKey = 'handover'
+        stageName = 'งานทดสอบระบบ (Commissioning) เก็บรายละเอียด Defect และเตรียมส่งมอบงาน'
+      }
+    }
+
+    // 3.3 Style Seed for Phrasing Variety (Deterministic based on project ID)
+    const seed = (project.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 4
+    const leadIns = [
+      `โครงการดำเนินงานมีความก้าวหน้าสะสม ${actualProgress.toFixed(1)}%`,
+      `ภาพรวมการปฏิบัติงานก่อสร้างโครงการจนถึงปัจจุบัน มีผลงานสะสม ${actualProgress.toFixed(1)}%`,
+      `สรุปผลการดำเนินงานก่อสร้าง ณ ปัจจุบัน สามารถขับเคลื่อนผลงานได้สะสม ${actualProgress.toFixed(1)}%`,
+      `การดำเนินงานโครงการตามกรอบสัญญาและแผนงาน ล่าสุดมีความก้าวหน้าสะสม ${actualProgress.toFixed(1)}%`
+    ]
+    const leadIn = leadIns[seed]
+
+    // 3.4 Active & Completed Tasks Analysis
+    const completedTasks = scheduledTasks.filter(t => (Number(t.actual_progress) || 0) >= 100)
+    const activeTasks = scheduledTasks.filter(t => (Number(t.actual_progress) || 0) > 0 && (Number(t.actual_progress) || 0) < 100)
+    
+    const todayBase = reportDate ? new Date(reportDate) : new Date()
+    todayBase.setHours(0, 0, 0, 0)
+
+    const criticalDelayedTasks = scheduledTasks.filter(t => {
+      const tStart = new Date(t.computedStartDate)
+      const tEnd = new Date(t.computedEndDate)
+      tStart.setHours(0, 0, 0, 0)
+      tEnd.setHours(0, 0, 0, 0)
+      let taskPlanned = 0
+      if (todayBase >= tEnd) taskPlanned = 100
+      else if (todayBase <= tStart) taskPlanned = 0
+      else {
+        const dur = Math.max(1, countWorkingDays(tStart, tEnd, amendments))
+        const el = countWorkingDays(tStart, todayBase, amendments)
+        taskPlanned = Math.min(100, (el / dur) * 100)
+      }
+      const a = Number(t.actual_progress) || 0
+      return (taskPlanned - a) >= 10
+    })
+
+    // 3.5 Live Inspections Context
+    const validInspections = (inspections || []).filter(i => i.title || i.work_type)
+    const recentInspections = validInspections.slice(0, 2)
+    let inspectionText = ''
+    if (recentInspections.length > 0) {
+      inspectionText = ` ควบคู่กับการยื่นขอส่งตรวจสอบคุณภาพงาน (Inspection) เช่น ${recentInspections.map(i => i.title || i.work_type).join(' และ ')}`
+    }
+
+    // 3.6 Manpower Context from Daily Reports
+    const validDaily = (dailyReports || []).filter(d => Number(d.manpower) > 0)
+    const avgManpower = validDaily.length > 0
+      ? Math.round(validDaily.slice(0, 7).reduce((sum, d) => sum + Number(d.manpower), 0) / Math.min(7, validDaily.length))
+      : 0
+    const manpowerText = avgManpower > 0 ? ` (จัดชุดแรงงานเข้าปฏิบัติการเฉลี่ย ~${avgManpower} คน/วัน)` : ''
+
+    // --- Compose 1: Highlights ---
+    let hText = `${leadIn} อยู่ในขอบเขต${stageName}${manpowerText} `
+    if (isLand) {
       if (completedTasks.length > 0) {
-        hText += `โดยดำเนินงานสำคัญแล้วเสร็จ ได้แก่ ${completedTasks.slice(0, 2).map(t => `${t.name} (100%)`).join(', ')} `
+        hText += `โดยดำเนินงานในส่วนของ ${completedTasks.slice(0, 2).map(t => t.name).join(', ')} แล้วเสร็จเรียบร้อย `
       }
       if (activeTasks.length > 0) {
-        hText += `และกำลังดำเนินการ ${activeTasks.slice(0, 2).map(t => `${t.name} (คืบหน้า ${t.actual_progress}%)`).join(', ')} อย่างต่อเนื่อง`
-      } else if (completedTasks.length === 0) {
-        hText += `อยู่ระหว่างการเตรียมงานและเข้าดำเนินงานตามงวดงานก่อสร้าง`
+        hText += `และอยู่ระหว่างขั้นตอน ${activeTasks.slice(0, 2).map(t => `${t.name} (คืบหน้า ${t.actual_progress}%)`).join(', ')} ตามระเบียบข้อบังคับ`
+      } else {
+        hText += `การประสานงานกับหน่วยงานที่ดินและผู้ถือกรรมสิทธิ์เป็นไปอย่างต่อเนื่อง`
       }
     } else {
-      hText += `อยู่ระหว่างการดำเนินงานตามแผนงานงวดงานก่อสร้าง`
+      if (completedTasks.length > 0) {
+        const topDone = completedTasks.slice(-2).map(t => `${t.name} (100%)`).join(', ')
+        hText += `โดยมีกิจกรรมงานสำคัญที่แล้วเสร็จ ได้แก่ ${topDone} `
+      }
+      if (activeTasks.length > 0) {
+        const topActive = activeTasks.slice(0, 2).map(t => `${t.name} (คืบหน้า ${t.actual_progress}%)`).join(', ')
+        hText += `และกำลังเร่งรัดดำเนินงาน ${topActive}${inspectionText} อย่างต่อเนื่องตามมาตรฐานวิศวกรรม`
+      } else if (completedTasks.length === 0) {
+        hText += `อยู่ระหว่างการเตรียมความพร้อมของเครื่องจักร แคมป์คนงาน และการส่งอนุมัติเอกสารวัสดุก่อสร้าง`
+      }
     }
 
+    // --- Compose 2: Issues & Risk Analysis ---
     let iText = ''
-    if (isDelayed) {
-      iText += `ผลงานสะสม ${actualProgress.toFixed(1)}% ช้ากว่าแผนงาน ${Math.abs(svPercent).toFixed(1)}% (ล่าช้าประมาณ ${delayDays} วัน คาดการณ์ว่าจะแล้วเสร็จประมาณ ${formatThaiDate(forecastCompletion?.date.toISOString())} ซึ่งเกินกำหนดสัญญาประมาณ ${delayDays} วัน) `
-      if (hasAmendments && latestAmendment) {
-        iText += `สืบเนื่องจากโครงการมีการแก้ไขสัญญา (${latestAmendment.reason || `ครั้งที่ ${latestAmendment.amendment_no}`}) ขยายเวลา +${latestAmendment.extra_days} วัน ส่งผลให้ต้องปรับแผนการปฏิบัติงาน `
+    if (isLand) {
+      if (isDelayed) {
+        iText = `การจัดซื้อที่ดินล่าช้ากว่าแผนงาน ${Math.abs(svPercent).toFixed(1)}% (ประมาณ ${delayDays} วัน) สืบเนื่องจากขั้นตอนทางทะเบียนและรังวัดสอบเขตที่ดินกับสำนักงานที่ดินและเจ้าของที่ดินแปลงข้างเคียง `
+        if (hasAmendments && latestAmendment) {
+          iText += `โดยโครงการได้รับการอนุมัติขยายระยะเวลาสัญญา (${latestAmendment.reason || `ครั้งที่ ${latestAmendment.amendment_no}`}) เพิ่มเติม ${latestAmendment.extra_days} วัน เพื่อรองรับกระบวนการทางกฎหมาย`
+        }
+      } else {
+        iText = `กระบวนการจัดซื้อที่ดินดำเนินงานเป็นไปตามแผนงาน การตรวจสอบเอกสารสิทธิ์ โฉนดที่ดิน และการประสานงานฝ่ายจัดกรรมสิทธิ์ที่ดินเป็นไปอย่างราบรื่น ไม่พบข้อติดขัดทางกฎหมาย`
       }
+    } else if (isDelayed) {
+      iText = `ผลงานสะสม ${actualProgress.toFixed(1)}% ล่าช้ากว่าแผนงาน ${Math.abs(svPercent).toFixed(1)}% (ล่าช้าประมาณ ${delayDays} วัน คาดว่าจะแล้วเสร็จประมาณ ${formatThaiDate(forecastCompletion?.date.toISOString())}) `
+
+      // Weather impact matched with stage
       if (rainyDaysCount > 0) {
-        iText += `ประกอบกับในรอบการทำงานมีสถิติฝนตกสะสมจำนวน ${rainyDaysCount} วัน จากทั้งหมด ${totalDaysObserved} วัน (${rainPercentage}%) ส่งผลกระทบต่องานภายนอกอาคารและงานโครงสร้างดิน `
+        if (stageKey === 'substructure') {
+          iText += `ปัจจัยหลักเกิดจากสถิติฝนตกสะสม ${rainyDaysCount} วัน (${rainPercentage}% ของวันทำงาน) ซึ่งส่งผลกระทบโดยตรงต่องานดินและหลุมฐานราก ทำให้เกิดน้ำท่วมขังและดินสไลด์ ต้องใช้เวลาสูบน้ำระบายออกก่อนเข้าปฏิบัติงาน `
+        } else if (stageKey === 'structure') {
+          iText += `ประกอบกับในรอบการทำงานมีฝนตกสะสม ${rainyDaysCount} วัน (${rainPercentage}%) ทำให้เป็นอุปสรรคต่อความปลอดภัยในการทำงานบนที่สูงและการติดตั้งโครงหลังคาเหล็ก `
+        } else if (stageKey === 'architecture') {
+          iText += `ประกอบกับสภาพอากาศฝนตกสะสม ${rainyDaysCount} วัน ส่งผลต่อความชื้นสะสมในผนังก่อ ทำให้ต้องชะลอการฉาบปูนและทาสีเพื่อรักษาคุณภาพงาน `
+        } else {
+          iText += `ประกอบกับมีฝนตกสะสม ${rainyDaysCount} วัน ส่งผลกระทบต่องานภายนอกอาคารและงานปรับปรุงผังบริเวณ `
+        }
       }
-      if (!hasAmendments && rainyDaysCount === 0) {
-        iText += `เนื่องจากปัญหาหน้างานด้านการจัดสรรกำลังคนและเครื่องจักรของผู้รับจ้าง `
+
+      // Amendment factor
+      if (hasAmendments && latestAmendment) {
+        iText += `ทั้งนี้ โครงการได้รับการขยายเวลาสัญญา (${latestAmendment.reason || `ครั้งที่ ${latestAmendment.amendment_no}`}) เพิ่มเติม ${latestAmendment.extra_days} วัน ซึ่งอยู่ระหว่างการปรับแผนการทำงาน WBS ให้สอดรับกัน `
+      }
+
+      // Critical Tasks Delay
+      if (criticalDelayedTasks.length > 0) {
+        iText += `โดยมีงานสายวิกฤตที่ต้องเฝ้าระวัง ได้แก่ ${criticalDelayedTasks.slice(0, 2).map(t => t.name).join(', ')} `
+      } else if (!hasAmendments && rainyDaysCount === 0) {
+        iText += `สาเหตุส่วนหนึ่งเกิดจากการจัดสรรชุดแรงงานฝีมือและเครื่องจักรของผู้รับจ้างยังระดมเข้าพื้นที่ได้ไม่เต็มกำลังตามแผนงานงวดนี้ `
       }
     } else if (isAhead) {
-      iText = `โครงการมีความก้าวหน้า ${actualProgress.toFixed(1)}% เร็วกว่าแผนงาน +${svPercent.toFixed(1)}% (เร็วกว่ากำหนดประมาณ ${Math.abs(svDays)} วัน) การปฏิบัติงานเป็นไปอย่างราบรื่น คาดว่าจะแล้วเสร็จตามกำหนดสัญญา (${formatThaiDate(currentEndDate?.toISOString())}) ไม่พบปัญหาหรืออุปสรรคสำคัญ`
+      iText = `โครงการมีความก้าวหน้า ${actualProgress.toFixed(1)}% เร็วกว่าแผนงาน +${svPercent.toFixed(1)}% (เร็วกว่ากำหนดประมาณ ${Math.abs(svDays)} วัน) การบริหารจัดการชุดช่างและ supply chain วัสดุทำได้มีประสิทธิภาพ การดำเนินงานในส่วน${stageName}เป็นไปอย่างราบรื่น คาดว่าจะส่งมอบงานได้ตามกำหนดสัญญา (${formatThaiDate(currentEndDate?.toISOString())})`
     } else {
-      iText = `โครงการดำเนินงานเป็นไปตามกรอบแผนงาน (ส่วนต่าง ${svPercent.toFixed(1)}%) การบริหารจัดการพื้นที่หน้างานและการจัดส่งวัสดุเป็นไปตามแผนที่กำหนด คาดว่างานจะแล้วเสร็จตามสัญญา (${formatThaiDate(currentEndDate?.toISOString())})`
+      iText = `โครงการดำเนินงานเป็นไปตามกรอบแผนงานก่อสร้าง (ส่วนต่างความคืบหน้า ${svPercent >= 0 ? '+' : ''}${svPercent.toFixed(1)}%) การบริหารจัดการพื้นที่หน้างาน สภาพอากาศ และการส่งมอบวัสดุอยู่ในเกณฑ์ควบคุมได้ คาดว่าจะสามารถแล้วเสร็จตามกำหนดสัญญา (${formatThaiDate(currentEndDate?.toISOString())})`
     }
 
+    // --- Compose 3: Financial Health & Cash Flow Analysis ---
     let fText = `ปัจจุบันโครงการได้เบิกจ่ายงบประมาณไปแล้ว ${paidMilestones.length} งวด เป็นจำนวนเงิน ${formatMoney(paidAmount)} บาท (คิดเป็น ${paidPercent.toFixed(1)}% ของวงเงินสัญญา) คงเหลือวงเงินเบิกจ่าย ${formatMoney(remainingDisbursement)} บาท `
-    if (nextMilestone) {
-      fText += `สำหรับงวดงานถัดไป (งวดที่ ${nextMilestone.milestone_no}) วงเงิน ${formatMoney(Number(nextMilestone.amount) || 0)} บาท อยู่ระหว่างเตรียมความพร้อมเพื่อตรวจรับงาน`
+
+    const diffProgressPaid = actualProgress - paidPercent
+    if (diffProgressPaid > 20) {
+      fText += `ทั้งนี้ ผลงานจริง (${actualProgress.toFixed(1)}%) ก้าวหน้าสูงกว่ายอดเบิกจ่ายสะสมอยู่ ${diffProgressPaid.toFixed(1)}% สะท้อนถึงการลงทุนสำรองจ่ายอย่างต่อเนื่องของผู้รับจ้าง `
+    } else if (diffProgressPaid < -5) {
+      fText += `โดยยอดการเบิกจ่ายสอดคล้องครอบคลุมเนื้องานจริงที่ส่งมอบแล้ว `
     }
 
+    if (nextMilestone) {
+      fText += `สำหรับงวดงานถัดไป (งวดที่ ${nextMilestone.milestone_no}) วงเงิน ${formatMoney(Number(nextMilestone.amount) || 0)} บาท อยู่ระหว่างการจัดเตรียมเอกสารตรวจรับและผลทดสอบวัสดุเพื่อเสนอขออนุมัติเบิกจ่าย`
+    } else if (paidMilestones.length > 0 && remainingDisbursement === 0) {
+      fText += `โครงการได้เบิกจ่ายงบประมาณครบถ้วน 100% ตามสัญญาแล้ว`
+    }
+
+    // --- Compose 4: Tailored Actions & Engineering Solutions ---
     let aText = ''
-    if (isDelayed) {
+    if (isLand) {
+      aText = `• ประสานงานอย่างใกล้ชิดกับเจ้าหน้าที่สำนักงานที่ดินเพื่อเร่งรัดกระบวนการรังวัด ออกเอกสารสิทธิ์ และจดทะเบียนสิทธิ\n• จัดเตรียมเอกสารการเงินและรายงานขออนุมัติจัดซื้อเพื่อส่งมอบให้ฝ่ายการเงินเบิกจ่ายตามระเบียบ กฟภ.`
+    } else if (isDelayed) {
+      const actionsList: string[] = []
       if (hasAmendments) {
-        aText += `- เร่งรัดการปรับแผนการทำงานให้สอดคล้องกับสัญญาแก้ไขเพิ่มเติม เพื่อให้ผู้รับจ้างสามารถเข้าดำเนินงานได้เต็มกำลัง\n`
+        actionsList.push(`ปรับปรุงแผนงานหลัก (Revised Baseline WBS) ให้สอดรับกับการแก้ไขสัญญาเพิ่มเติม +${approvedExtensionDays} วัน`)
       }
-      aText += `- สั่งการให้ผู้รับจ้างเพิ่มชุดแรงงานและเครื่องจักรในกิจกรรมที่ล่าช้า และขยายเวลาทำงานล่วงเวลา (OT)\n- ปรับแผนงานแบบ Fast-tracking โดยเร่งรัดกิจกรรมวิกฤต (Critical Path) เพื่อชดเชยเวลาที่ล่าช้า ${delayDays} วัน`
+      if (stageKey === 'substructure') {
+        actionsList.push(`เพิ่มเครื่องสูบน้ำและขุดร่องระบายน้ำรอบหลุมฐานราก เพื่อเร่งระบายน้ำขังทันทีหลังฝนหยุด`)
+        actionsList.push(`สั่งการให้ผู้รับจ้างพิจารณาใช้คอนกรีตกำลังอัดเร็ว (Early Strength Concrete) เพื่อลดระยะเวลาถอดแบบหล่อฐานรากและคานคอดิน`)
+      } else if (stageKey === 'structure') {
+        actionsList.push(`จัดชุดช่างไม้แบบและช่างผูกเหล็ก 2 ชุดทำงานคู่ขนาน (Zoning) ระหว่างงานเสาและคาน`)
+        actionsList.push(`เร่งรัดงานประกอบโครงสร้างหลังคาเหล็กจากโรงงาน (Prefabrication) เพื่อนำมาติดตั้งหน้างานได้ทันทีเมื่อโครงสร้าง ค.ส.ล. พร้อม`)
+      } else if (stageKey === 'architecture') {
+        actionsList.push(`จัดลำดับงานแบบ Fast-Tracking โดยให้ช่างระบบไฟฟ้า-ประปา (MEP) เข้าเดินท่อคู่ขนานกับงานก่ออิฐ`)
+        actionsList.push(`สลับแรงงานเข้ามาดำเนินงานสถาปัตย์ภายในอาคารที่มีหลังคาคลุมแล้ว เพื่อไม่ให้เสียเวลาระหว่างมีสภาพอากาศฝนตก`)
+      } else if (stageKey === 'finishing' || stageKey === 'handover') {
+        actionsList.push(`จัดทำรายการข้อบกพร่องล่วงหน้า (Pre-inspection Punch List) และเร่งรัดผู้รับจ้างแก้ไขให้เสร็จสิ้นก่อนวันตรวจรับจริง`)
+        actionsList.push(`ประสานงานขอเชื่อมต่อไฟฟ้าและประปาถาวรเพื่อเตรียมการทดสอบระบบ (Commissioning) อย่างเต็มรูปแบบ`)
+      } else {
+        actionsList.push(`สั่งการให้ผู้รับจ้างระดมชุดแรงงานและเครื่องจักรเพิ่มในกิจกรรมที่ล่าช้า และขยายเวลาทำงานล่วงเวลา (OT)`)
+      }
+      actionsList.push(`ติดตามตรวจสอบความก้าวหน้างานวิกฤต (Critical Path) เป็นรายสัปดาห์อย่างใกล้ชิด เพื่อชดเชยเวลาที่ล่าช้า ${delayDays} วัน`)
+      aText = actionsList.map(item => `• ${item}`).join('\n')
     } else {
-      aText = `- ควบคุมคุณภาพงานก่อสร้างตามมาตรฐานแบบรูปและรายการอย่างต่อเนื่อง\n- ประสานงานเตรียมความพร้อมในการส่งมอบและตรวจรับงวดงานถัดไปให้เป็นไปตามกำหนดเวลา`
+      const positiveActions: string[] = [
+        `ควบคุมคุณภาพงานก่อสร้างและตรวจสอบรายการวัสดุให้เป็นไปตามแบบรูปและข้อกำหนดทางวิศวกรรม (Specification) อย่างเคร่งครัด`,
+        `ประสานงานผู้ควบคุมงานและคณะกรรมการตรวจรับเพื่อเตรียมความพร้อมในการตรวจรับงวดงานถัดไปให้เป็นไปตามกรอบเวลา`,
+      ]
+      if (stageKey === 'finishing' || stageKey === 'handover') {
+        positiveActions.push(`จัดเตรียมเอกสารแบบ As-built Drawing และคู่มือการบำรุงรักษาอุปกรณ์เพื่อเตรียมส่งมอบงาน`)
+      } else {
+        positiveActions.push(`กำชับมาตรการความปลอดภัยในการทำงาน (Safety First) และความสะอาดเรียบร้อยของพื้นที่ก่อสร้างอย่างสม่ำเสมอ`)
+      }
+      aText = positiveActions.map(item => `• ${item}`).join('\n')
     }
 
     return {
@@ -799,7 +971,7 @@ export function ExecutiveSummaryTab({
         ? `⚠️ งานล่าช้ากว่าแผน ~${delayDays} วัน (อยู่ระหว่างเร่งรัด)`
         : isAhead
         ? `🚀 ผลงานเร็วกว่าแผนงาน +${svPercent.toFixed(1)}%`
-        : `🟢 ปฏิบัติงานตามแผนปกติ`,
+        : `🟢 ปฏิบัติงานตามแผนปกติ (${projectScopeTag})`,
     }
   }
 
@@ -807,7 +979,8 @@ export function ExecutiveSummaryTab({
   const initialDrafts = useMemo(() => generateAutoDrafts(), [
     project, actualProgress, plannedProgress, progressDiff, svPercent, svDays, isDelayed, isAhead, delayDays,
     hasAmendments, latestAmendment, approvedExtensionDays, rainyDaysCount, totalDaysObserved, rainPercentage, paidMilestones,
-    paidAmount, paidPercent, remainingDisbursement, nextMilestone, scheduledTasks, forecastCompletion, currentEndDate
+    paidAmount, paidPercent, remainingDisbursement, nextMilestone, scheduledTasks, forecastCompletion, currentEndDate,
+    inspections, dailyReports
   ])
 
   const [highlights, setHighlights] = useState(initialDrafts.highlights)

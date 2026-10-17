@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { computeTaskDates } from '@/lib/scheduler'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { logActivity } from '@/lib/auditLogger'
+import { callThaiLLMTextCascade } from '@/lib/thaiLLM'
 
 function getProjectProgress(project: any, allTasks: any[]) {
   const pTasks = allTasks.filter(t => t.project_id === project.id)
@@ -436,66 +437,38 @@ ${rawContext}`
       }
     }
 
-    // 2.2 Optional ThaiLLM / OpenAI / Typhoon Fallback if all Gemini models fail or unavailable
+    // 2.2 ThaiLLM Multi-Model Cascade Auto-Failover (OpenThaiGPT -> Typhoon-S -> Pathumma -> THaLLE -> qwen3.6)
     if (!answer) {
-      let thaiLLMKey = process.env.THAILLM_API_KEY || process.env.TYPHOON_API_KEY
-      if (!thaiLLMKey) {
-        try {
-          const { data: dbSetting } = await supabase
-            .from('system_settings')
-            .select('value')
-            .eq('key', 'thaillm_api_key')
-            .maybeSingle()
-          if (dbSetting?.value && dbSetting.value.trim().length > 0) {
-            thaiLLMKey = dbSetting.value.trim()
-          }
-        } catch (dbErr) {
-          console.warn('Error fetching thaillm_api_key from system_settings:', dbErr)
+      try {
+        console.log('[ThaiLLM Cascade] Attempting multi-model text failover...')
+        const messages = [
+          { role: 'system', content: systemInstruction },
+          ...(hasHistory
+            ? conversationHistory
+                .filter((m: any) => m.content && !m.isTyping)
+                .map((m: any) => ({ role: m.role === 'model' ? 'assistant' : m.role, content: m.content }))
+            : []),
+          { role: 'user', content: question || actionType || 'สรุปข้อมูล' },
+        ]
+
+        const thaiAnswer = await callThaiLLMTextCascade({
+          messages,
+          temperature: 0.3,
+          timeoutMs: 20000,
+        })
+
+        if (thaiAnswer) {
+          answer = thaiAnswer
         }
+      } catch (tErr: any) {
+        console.warn('ThaiLLM cascade failover error:', tErr?.message || tErr)
       }
+    }
+
+    // 2.3 OpenAI GPT-4o-mini Fallback
+    if (!answer) {
       const openAIKey = process.env.OPENAI_API_KEY
-
-      if (thaiLLMKey) {
-        try {
-          console.log('Attempting failover to ThaiLLM API...')
-          const endpoint = process.env.THAILLM_API_URL || 'https://api.thaillm.or.th/v1/chat/completions'
-          const messages = [
-            { role: 'system', content: systemInstruction },
-            ...(hasHistory
-              ? conversationHistory
-                  .filter((m: any) => m.content && !m.isTyping)
-                  .map((m: any) => ({ role: m.role === 'model' ? 'assistant' : m.role, content: m.content }))
-              : []),
-            { role: 'user', content: question || actionType || 'สรุปข้อมูล' },
-          ]
-
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${thaiLLMKey}`,
-            },
-            body: JSON.stringify({
-              model: process.env.THAILLM_MODEL || 'OpenThaiGPT-ThaiLLM-8B-Instruct-v7.2',
-              messages,
-              temperature: 0.3,
-            }),
-            signal: AbortSignal.timeout(20000),
-          })
-
-          if (res.ok) {
-            const data = await res.json()
-            const text = data?.choices?.[0]?.message?.content
-            if (text) {
-              // Strip reasoning think tags if present
-              const cleanText = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
-              answer = cleanText || text.trim()
-            }
-          }
-        } catch (tErr: any) {
-          console.warn('ThaiLLM failover error:', tErr.message)
-        }
-      } else if (openAIKey) {
+      if (openAIKey) {
         try {
           console.log('Attempting failover to OpenAI GPT-4o-mini API...')
           const messages = [

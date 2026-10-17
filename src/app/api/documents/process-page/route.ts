@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { callThaiLLMVision, getThaiLLMApiKey } from '@/lib/thaiLLM'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // Allow up to 60 seconds for OCR processing on Vercel
@@ -60,6 +61,25 @@ export async function POST(req: Request) {
           } catch (oErr: any) {
             lastOcrErr = oErr
             console.warn(`OCR failover from ${ocrModelName}:`, oErr.message)
+          }
+        }
+
+        if (!extractedText) {
+          try {
+            console.log('[ThaiLLM Vision OCR] Attempting fallback for document OCR...')
+            const thaiRes = await callThaiLLMVision({
+              prompt,
+              images: [{ base64: base64Data, mimeType: 'image/jpeg' }],
+              temperature: 0.1,
+              timeoutMs: 35000,
+            })
+            if (thaiRes && thaiRes.trim().length > 0) {
+              extractedText = thaiRes.trim()
+              extractMethod = 'thaillm_vision_ocr'
+              console.log('[ThaiLLM Vision OCR] Successfully recovered OCR via ThaiLLM!')
+            }
+          } catch (tErr: any) {
+            console.warn('[ThaiLLM Vision OCR] Error:', tErr?.message || tErr)
           }
         }
 

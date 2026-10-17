@@ -2,15 +2,19 @@ import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { supabase } from '@/lib/supabase'
 import { logActivity } from '@/lib/auditLogger'
+import { callThaiLLMVision, getThaiLLMApiKey } from '@/lib/thaiLLM'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-  if (!apiKey) {
+  let apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
+  apiKey = apiKey.replace(/^["']|["']$/g, '').trim()
+  const thaiKey = await getThaiLLMApiKey()
+
+  if (!apiKey && !thaiKey) {
     return NextResponse.json(
-      { error: 'ยังไม่ได้กำหนด GOOGLE_GENERATIVE_AI_API_KEY ในระบบ' },
+      { error: 'ยังไม่ได้กำหนด GOOGLE_GENERATIVE_AI_API_KEY หรือ ThaiLLM API Key ในระบบ' },
       { status: 500 }
     )
   }
@@ -130,18 +134,45 @@ ${taskListText ? `รายการงานตามแผนงาน/WBS ใ
     let generatedText = ''
     let lastError: any = null
 
-    for (const modelName of CANDIDATE_MODELS) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName })
-        const response = await model.generateContent([prompt, ...validParts])
-        const text = response.response.text()
-        if (text && text.trim().length > 0) {
-          generatedText = text.trim()
-          break
+    if (apiKey) {
+      for (const modelName of CANDIDATE_MODELS) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName })
+          const response = await model.generateContent([prompt, ...validParts])
+          const text = response.response.text()
+          if (text && text.trim().length > 0) {
+            generatedText = text.trim()
+            break
+          }
+        } catch (err: any) {
+          console.warn(`[AI Vision Failover] Model ${modelName} failed, trying next candidate:`, err?.message || err)
+          lastError = err
         }
-      } catch (err: any) {
-        console.warn(`[AI Vision Failover] Model ${modelName} failed, trying next candidate:`, err?.message || err)
-        lastError = err
+      }
+    }
+
+    // Backup Plan: ThaiLLM Vision Auto-Failover (qwen3.6-35b-a3b)
+    if (!generatedText) {
+      try {
+        console.log('[ThaiLLM Vision] Attempting fallback for daily report photos...')
+        const thaiImages = validParts.map((p) => ({
+          base64: p.inlineData.data,
+          mimeType: p.inlineData.mimeType,
+        }))
+
+        const thaiRes = await callThaiLLMVision({
+          prompt,
+          images: thaiImages,
+          temperature: 0.2,
+          timeoutMs: 35000,
+        })
+
+        if (thaiRes && thaiRes.trim().length > 0) {
+          generatedText = thaiRes.trim()
+          console.log('[ThaiLLM Vision] Successfully recovered daily report analysis via ThaiLLM!')
+        }
+      } catch (thaiErr: any) {
+        console.warn('[ThaiLLM Vision] Fallback error for daily photos:', thaiErr?.message || thaiErr)
       }
     }
 

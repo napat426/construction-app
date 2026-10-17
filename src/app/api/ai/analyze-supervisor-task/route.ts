@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { callThaiLLMVision, getThaiLLMApiKey } from '@/lib/thaiLLM'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -7,10 +8,11 @@ export const maxDuration = 60
 export async function POST(req: Request) {
   let apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
   apiKey = apiKey.replace(/^["']|["']$/g, '').trim()
+  const thaiKey = await getThaiLLMApiKey()
 
-  if (!apiKey) {
+  if (!apiKey && !thaiKey) {
     return NextResponse.json(
-      { error: 'ยังไม่ได้กำหนด GOOGLE_GENERATIVE_AI_API_KEY ในระบบ' },
+      { error: 'ยังไม่ได้กำหนด GOOGLE_GENERATIVE_AI_API_KEY หรือ ThaiLLM API Key ในระบบ' },
       { status: 500 }
     )
   }
@@ -108,32 +110,65 @@ ${relatedProjectName ? `เกี่ยวข้องกับโครงก�
     let resultJson: any = null
     let lastError: any = null
 
-    for (const modelName of CANDIDATE_MODELS) {
+    if (apiKey) {
+      for (const modelName of CANDIDATE_MODELS) {
+        try {
+          const model = genAI.getGenerativeModel({
+            model: modelName,
+            generationConfig: {
+              temperature: 0.2,
+              responseMimeType: 'application/json',
+            },
+          })
+
+          const res = await Promise.race([
+            model.generateContent([prompt, ...validParts]),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error(`Timeout 25s on ${modelName}`)), 25000)
+            ),
+          ]) as any
+
+          const text = res.response.text().trim()
+          const cleanedText = text.replace(/^```json/i, '').replace(/```$/i, '').trim()
+          resultJson = JSON.parse(cleanedText)
+          if (resultJson?.title && resultJson?.description) {
+            break
+          }
+        } catch (err: any) {
+          lastError = err
+          console.warn(`Supervisor vision failover from ${modelName}:`, err.message)
+        }
+      }
+    }
+
+    // Backup Plan: ThaiLLM Vision Auto-Failover (qwen3.6-35b-a3b)
+    if (!resultJson || !resultJson.title) {
       try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: 'application/json',
-          },
+        console.log('[ThaiLLM Vision] Attempting fallback for supervisor task...')
+        const thaiImages = validParts.map((p) => ({
+          base64: p.inlineData.data,
+          mimeType: p.inlineData.mimeType,
+        }))
+
+        const thaiRes = await callThaiLLMVision({
+          prompt,
+          images: thaiImages,
+          temperature: 0.2,
+          timeoutMs: 35000,
         })
 
-        const res = await Promise.race([
-          model.generateContent([prompt, ...validParts]),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Timeout 25s on ${modelName}`)), 25000)
-          ),
-        ]) as any
-
-        const text = res.response.text().trim()
-        const cleanedText = text.replace(/^```json/i, '').replace(/```$/i, '').trim()
-        resultJson = JSON.parse(cleanedText)
-        if (resultJson?.title && resultJson?.description) {
-          break
+        if (thaiRes) {
+          const jsonMatch = thaiRes.match(/\{[\s\S]*\}/)
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0])
+            if (parsed?.title && parsed?.description) {
+              resultJson = parsed
+              console.log('[ThaiLLM Vision] Successfully recovered supervisor task via ThaiLLM!')
+            }
+          }
         }
-      } catch (err: any) {
-        lastError = err
-        console.warn(`Supervisor vision failover from ${modelName}:`, err.message)
+      } catch (thaiErr: any) {
+        console.warn('[ThaiLLM Vision] Fallback error for supervisor task:', thaiErr?.message || thaiErr)
       }
     }
 

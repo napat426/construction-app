@@ -1,8 +1,9 @@
 'use client'
 
-import { Fragment, useState, useMemo, useTransition, useRef } from 'react'
+import { Fragment, useState, useMemo, useTransition, useRef, useEffect } from 'react'
 import {
   Plus,
+  Minus,
   Edit2,
   Trash2,
   Calendar,
@@ -25,7 +26,7 @@ import {
   HelpCircle,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { deleteTask } from '@/app/actions/tasks'
+import { deleteTask, updateTaskProgressQuick } from '@/app/actions/tasks'
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended, parsePredecessor } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
@@ -110,6 +111,44 @@ export function PlanningClient({
 
   // Inline edit state
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+
+  // Local tasks state for instantaneous optimistic updates
+  const [localTasks, setLocalTasks] = useState<WBSTask[]>(tasks)
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLocalTasks(tasks)
+  }, [tasks])
+
+  const handleQuickProgress = async (task: WBSTask, delta: number) => {
+    if (!user || (user.role !== 'admin' && user.role !== 'editor')) return
+    const currentProgress = Number(task.actual_progress) || 0
+    let nextProgress = currentProgress + delta
+
+    // Clamp between 0 and 100% (e.g., 95 + 10 = 105 -> 100%, 5 - 10 = -5 -> 0%)
+    nextProgress = Math.max(0, Math.min(100, Math.round(nextProgress)))
+    if (nextProgress === currentProgress) return
+
+    // Optimistic UI update
+    const previousTasks = localTasks
+    setLocalTasks(prev =>
+      prev.map(t => (t.id === task.id ? { ...t, actual_progress: nextProgress } : t))
+    )
+    setUpdatingTaskId(task.id)
+
+    try {
+      const res = await updateTaskProgressQuick(project.id, task.id, nextProgress)
+      if (res?.error) {
+        setLocalTasks(previousTasks)
+        alert(res.error)
+      }
+    } catch (err: any) {
+      setLocalTasks(previousTasks)
+      alert(err?.message || 'เกิดข้อผิดพลาดในการปรับปรุงความคืบหน้า')
+    } finally {
+      setUpdatingTaskId(null)
+    }
+  }
 
   // Ref to preserve scroll position of the WBS table when entering edit mode
   const tableScrollRef = useRef<HTMLDivElement>(null)
@@ -204,12 +243,12 @@ export function PlanningClient({
   }
 
   const handleExportCurrentWbs = () => {
-    if (!tasks || tasks.length === 0) {
+    if (!localTasks || localTasks.length === 0) {
       alert('โครงการนี้ยังไม่มีรายการกิจกรรม WBS ให้ดาวน์โหลด')
       return
     }
 
-    const sorted = [...tasks].sort((a, b) => sortWBS(a.wbs_no, b.wbs_no))
+    const sorted = [...localTasks].sort((a, b) => sortWBS(a.wbs_no, b.wbs_no))
 
     const rows = sorted.map((item, idx) => ({
       'ลำดับ (WBS No.)': item.wbs_no || String(idx + 1),
@@ -340,9 +379,9 @@ export function PlanningClient({
 
   // Sort tasks naturally by WBS No. and calculate dynamic schedule dates
   const scheduledTasks = useMemo(() => {
-    const sorted = [...tasks].sort((a, b) => sortWBS(a.wbs_no, b.wbs_no))
+    const sorted = [...localTasks].sort((a, b) => sortWBS(a.wbs_no, b.wbs_no))
     return computeTaskDates(sorted, project.start_date, amendments)
-  }, [tasks, project.start_date, amendments])
+  }, [localTasks, project.start_date, amendments])
 
   // Helper: compute task status badge
   const todayForStatus = new Date()
@@ -1208,7 +1247,7 @@ export function PlanningClient({
       {activeTab === 'wbs' && (
         <div className="card rounded-2xl overflow-hidden animate-fade-in border border-slate-200 dark:border-[#1c1c34]">
           <div className="overflow-x-auto" ref={tableScrollRef}>
-            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1354px' }}>
+            <table className="w-full text-left text-xs border-collapse" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1410px' }}>
               <colgroup>
                 <col style={{ width: '72px' }} />{/* WBS No */}
                 <col style={{ width: '380px' }} />{/* Task Name — widened */}
@@ -1219,7 +1258,7 @@ export function PlanningClient({
                 <col style={{ width: '100px' }} />{/* Predecessors */}
                 <col style={{ width: '108px' }} />{/* Cost */}
                 <col style={{ width: '68px' }} />{/* Weight */}
-                <col style={{ width: '105px' }} />{/* Progress */}
+                <col style={{ width: '155px' }} />{/* Progress */}
                 <col style={{ width: '75px' }} />{/* Weighted */}
                 <col style={{ width: '95px' }} />{/* Actions */}
               </colgroup>
@@ -1615,15 +1654,54 @@ export function PlanningClient({
                         <td className="py-3 px-4 text-right font-mono text-slate-500 dark:text-slate-500">
                           {weight.toFixed(1)}%
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-16 bg-slate-100 dark:bg-[#1e1e38] rounded-full overflow-hidden flex-shrink-0">
+                        <td className="py-3 px-2">
+                          <div className="flex items-center gap-1.5">
+                            {user && (user.role === 'admin' || user.role === 'editor') ? (
+                              <button
+                                type="button"
+                                id={`quick-dec-${t.id}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleQuickProgress(t, -10)
+                                }}
+                                disabled={t.actual_progress <= 0 || updatingTaskId === t.id}
+                                title={t.actual_progress <= 0 ? 'ความคืบหน้าต่ำสุดแล้ว (0%)' : 'ลดความคืบหน้า 10% (-10%)'}
+                                className="w-5 h-5 rounded flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#14142a] disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-90 flex-shrink-0"
+                              >
+                                <Minus size={11} strokeWidth={2.5} />
+                              </button>
+                            ) : null}
+
+                            <div className="h-1.5 w-12 bg-slate-100 dark:bg-[#1e1e38] rounded-full overflow-hidden flex-shrink-0">
                               <div
-                                className="h-full rounded-full progress-fill"
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  t.actual_progress === 100
+                                    ? 'bg-emerald-500'
+                                    : t.actual_progress > 0
+                                    ? 'bg-primary-600 dark:bg-primary-500'
+                                    : 'bg-transparent'
+                                }`}
                                 style={{ width: `${t.actual_progress}%` }}
                               />
                             </div>
-                            <span className="font-mono text-[10px] font-bold text-primary-600 dark:text-primary-400">
+
+                            {user && (user.role === 'admin' || user.role === 'editor') ? (
+                              <button
+                                type="button"
+                                id={`quick-inc-${t.id}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleQuickProgress(t, 10)
+                                }}
+                                disabled={t.actual_progress >= 100 || updatingTaskId === t.id}
+                                title={t.actual_progress >= 100 ? 'ความคืบหน้าครบ 100% แล้ว' : 'เพิ่มความคืบหน้า 10% (+10%)'}
+                                className="w-5 h-5 rounded flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#14142a] disabled:opacity-25 disabled:cursor-not-allowed transition-all cursor-pointer active:scale-90 flex-shrink-0"
+                              >
+                                <Plus size={11} strokeWidth={2.5} />
+                              </button>
+                            ) : null}
+
+                            <span className="font-mono text-[10px] font-bold text-primary-600 dark:text-primary-400 min-w-[30px] text-right flex-shrink-0">
                               {t.actual_progress}%
                             </span>
                           </div>

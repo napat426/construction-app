@@ -187,6 +187,46 @@ export async function updateTask(
   return { success: true }
 }
 
+export async function updateTaskProgressQuick(
+  projectId: string,
+  taskId: string,
+  newProgress: number
+): Promise<ActionState> {
+  if (!projectId || !taskId) return { error: 'ข้อมูลไม่ครบถ้วน' }
+
+  const actual_progress = Math.max(0, Math.min(100, Math.round(newProgress)))
+
+  const { data: task } = await supabase
+    .from('tasks')
+    .select('wbs_no, name')
+    .eq('id', taskId)
+    .single()
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({ actual_progress })
+    .eq('id', taskId)
+
+  if (error) {
+    return { error: `ปรับปรุงความคืบหน้าไม่สำเร็จ: ${error.message}` }
+  }
+
+  await logActivity({
+    projectId,
+    actionType: 'UPDATE',
+    entityType: 'wbs_task',
+    entityId: taskId,
+    entityTitle: `ปรับความคืบหน้า [${task?.wbs_no || ''}] ${task?.name || ''} เป็น ${actual_progress}%`,
+    details: { taskId, actual_progress },
+  })
+
+  await recalculateProjectProgress(projectId)
+  revalidatePath(`/projects/${projectId}/planning`)
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/projects')
+  return { success: true }
+}
+
 export async function deleteTask(projectId: string, taskId: string): Promise<ActionState> {
   if (!projectId || !taskId) return { error: 'ข้อมูลไม่ครบถ้วน' }
 

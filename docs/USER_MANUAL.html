@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คู่มือการใช้งานระบบติดตามงานก่อสร้าง (User Manual) ฉบับสมบูรณ์</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Prompt:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-light: #e0f2fe;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --emerald: #10b981;
+      --emerald-light: #ecfdf5;
+      --amber: #f59e0b;
+      --amber-light: #fef3c7;
+      --rose: #ef4444;
+      --rose-light: #fef2f2;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--slate-800);
+      background-color: #e2e8f0;
+      padding: 30px 15px;
+    }
+
+    /* Screen Document Container */
+    .doc-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: white;
+      padding: 60px 75px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .doc-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+        padding-top: 15mm;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .screenshot-container {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      table {
+        page-break-inside: avoid;
+      }
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-family: 'Prompt', 'Sarabun', sans-serif;
+      color: var(--slate-900);
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 3px solid var(--primary-light);
+    }
+
+    h2 {
+      font-size: 19px;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 10px;
+      color: var(--slate-800);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 16px;
+      margin-bottom: 6px;
+      color: var(--slate-700);
+    }
+
+    p {
+      margin-bottom: 12px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 14px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      background: #f1f5f9;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      color: #0f172a;
+    }
+
+    /* Official Cover Section */
+    .cover-section {
+      text-align: center;
+      padding: 50px 20px 70px 20px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 50px;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      padding: 6px 18px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-weight: 700;
+      border-radius: 20px;
+      font-size: 14px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .cover-title {
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: 16px;
+      line-height: 1.25;
+    }
+
+    .cover-subtitle {
+      font-size: 18px;
+      color: var(--slate-600);
+      font-weight: 400;
+      max-width: 85%;
+      margin: 0 auto;
+    }
+
+    .cover-divider {
+      width: 100px;
+      height: 4px;
+      background: var(--primary);
+      margin: 30px auto;
+      border-radius: 2px;
+    }
+
+    .cover-details {
+      margin: 40px auto 0 auto;
+      text-align: left;
+      background: var(--slate-50);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 32px;
+      max-width: 750px;
+    }
+
+    .cover-details-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: 14px;
+    }
+
+    .cover-details-row:last-child {
+      border-bottom: none;
+    }
+
+    /* Section divider */
+    .section-block {
+      margin-bottom: 60px;
+    }
+
+    /* FULL UNCONSTRAINED SCREENSHOT CONTAINER */
+    .screenshot-container {
+      margin: 20px 0 28px 0;
+      text-align: center;
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+
+    .doc-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      margin: 0 auto;
+      cursor: zoom-in;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .doc-img:hover {
+      transform: scale(1.008);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .img-caption {
+      font-size: 13.5px;
+      color: var(--slate-700);
+      margin-top: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .zoom-hint {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: normal;
+      background: var(--primary-light);
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    /* Step items */
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 22px 0;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 9px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--slate-100);
+      font-weight: 700;
+      color: var(--slate-800);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .badge-green { background: var(--emerald-light); color: var(--emerald); border: 1px solid #a7f3d0; }
+    .badge-blue { background: var(--primary-light); color: var(--primary-dark); border: 1px solid #bae6fd; }
+    .badge-amber { background: var(--amber-light); color: #b45309; border: 1px solid #fde68a; }
+    .badge-red { background: var(--rose-light); color: var(--rose); border: 1px solid #fecaca; }
+    .badge-slate { background: var(--slate-100); color: var(--slate-600); border: 1px solid #cbd5e1; }
+
+    /* Print control button */
+    .print-bar {
+      position: fixed;
+      top: 15px;
+      right: 25px;
+      background: white;
+      padding: 12px 20px;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.18);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .print-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .print-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Lightbox Modal */
+    #lightbox {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.92);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      backdrop-filter: blur(4px);
+    }
+
+    #lightbox img {
+      max-width: 96vw;
+      max-height: 96vh;
+      border-radius: 8px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+    }
+
+    #lightbox-caption {
+      position: absolute;
+      bottom: 24px;
+      color: white;
+      font-size: 15px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 8px 20px;
+      border-radius: 24px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Print Control Bar -->
+  <div class="print-bar no-print">
+    <span style="font-size: 13px; font-weight: 600; color: #475569;">📄 รูปภาพเต็มจอ คมชัด ไม่จำกัดหน้า</span>
+    <button class="print-btn" onclick="window.print()">🖨️ สั่งพิมพ์เป็น PDF</button>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" alt="Zoomed view" />
+    <div id="lightbox-caption"></div>
+  </div>
+
+  <div class="doc-container">
+
+    <!-- ==================== หน้าปก ==================== -->
+    <div class="cover-section">
+      <div class="cover-badge">Official Standard Documentation</div>
+      <h1 class="cover-title" style="border: none;">คู่มือการใช้งานระบบติดตามงานก่อสร้าง<br>(Construction Project Tracking System)</h1>
+      <div class="cover-divider"></div>
+      <p class="cover-subtitle">ระบบบริหารจัดการโครงการ วางแผนงาน WBS กราฟ S-Curve ตรวจสอบและจัดทำรายงานประจำวันอัตโนมัติด้วย AI</p>
+
+      <div class="cover-details">
+        <div class="cover-details-row">
+          <strong>ชื่อเอกสาร :</strong>
+          <span>คู่มือผู้ใช้งานระบบ (User Manual) ฉบับสมบูรณ์</span>
+        </div>
+        <div class="cover-details-row">
+          <strong>ระบบโปรแกรม :</strong>
+          <span>Construction Management & Monitoring Platform</span>
+        </div>
+        <div class="cover-details-row">
+          <strong>หน่วยงาน / ฝ่าย :</strong>
+          <span>ฝ่ายควบคุมและกำกับการก่อสร้าง / กองวิศวกรรม</span>
+        </div>
+        <div class="cover-details-row">
+          <strong>ผู้จัดทำ / เรียบเรียง :</strong>
+          <span>ทีมพัฒนาระบบและควบคุมโครงการ</span>
+        </div>
+        <div class="cover-details-row">
+          <strong>เวอร์ชันของระบบ :</strong>
+          <span>Version 1.2.0 (พร้อมระบบ Quick Progress Stepper & AI Engine)</span>
+        </div>
+        <div class="cover-details-row">
+          <strong>วันที่จัดทำเอกสาร :</strong>
+          <span>19 ตุลาคม 2569</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== บทนำและสิทธิ์การใช้งาน ==================== -->
+    <div class="section-block page-break">
+      <h1>บทนำและสิทธิ์การใช้งาน (Introduction & Roles)</h1>
+      <p>ระบบติดตามงานก่อสร้าง (Construction Tracking Platform) ถูกออกแบบและพัฒนาขึ้นเพื่อยกระดับการควบคุมงานก่อสร้างให้เป็นระบบดิจิทัลแบบครบวงจร รองรับการทำงานร่วมกันระหว่างผู้บริหาร (Executive), นายช่างผู้ควบคุมงาน (Site Supervisor), ผู้ตรวจสอบ (Inspector) และผู้รับเหมา โดยมุ่งเน้นการบันทึกข้อมูลหน้างานที่สะดวก รวดเร็ว และประมวลผลความคืบหน้าแบบ Real-time</p>
+
+      <h2>สิทธิ์และบทบาทของผู้ใช้งาน (User Roles)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 22%;">บทบาท (Role)</th>
+            <th style="width: 48%;">สิทธิ์การใช้งาน (Permissions)</th>
+            <th style="width: 30%;">กลุ่มผู้ใช้เป้าหมาย</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-red">Admin</span></td>
+            <td>สิทธิ์สูงสุด: เพิ่ม/ลบโครงการ, จัดการบัญชีผู้ใช้, กำหนดค่าระบบ, อนุมัติข้อมูล</td>
+            <td>ผู้ดูแลระบบ, ผู้จัดการโครงการอาวุโส</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-blue">Editor</span></td>
+            <td>บันทึกรายงานประจำวัน, ปรับ WBS และความคืบหน้า, ส่งอนุมัติวัสดุ, บันทึก Defect</td>
+            <td>นายช่างผู้ควบคุมงานประจำไซต์ (Supervisor)</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-slate">Viewer</span></td>
+            <td>ดูภาพรวมแดชบอร์ด, ดูรายงานประจำวัน, ดูกราฟ S-Curve, สั่งพิมพ์รายงาน PDF</td>
+            <td>ผู้บริหาร, คณะกรรมการตรวจรับ, ลูกค้า</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>โครงสร้างสารบัญของคู่มือ</h2>
+      <ul>
+        <li><strong>หมวดที่ 1:</strong> การเข้าสู่ระบบและแดชบอร์ดภาพรวมโครงการทั้งหมด</li>
+        <li><strong>หมวดที่ 2:</strong> แดชบอร์ดรายละเอียดโครงการและข้อมูลสัญญา</li>
+        <li><strong>หมวดที่ 3:</strong> แผนงาน WBS กราฟ Gantt Chart และเส้น S-Curve พร้อมปุ่มลัดปรับความคืบหน้า [-] / [+]</li>
+        <li><strong>หมวดที่ 4:</strong> การบันทึกรายงานประจำวันหน้างานและการวิเคราะห์ด้วย AI</li>
+        <li><strong>หมวดที่ 5:</strong> การขออนุมัติวัสดุและอุปกรณ์ก่อสร้าง (Material Tracking)</li>
+        <li><strong>หมวดที่ 6:</strong> การตรวจรับงานและรายการข้อบกพร่อง (Checklist & Punch List)</li>
+        <li><strong>หมวดที่ 7:</strong> แฟ้มผลงานผู้ควบคุมงาน การนำเสนอ และการออกรายงาน PDF</li>
+        <li><strong>ภาคผนวก:</strong> ตารางสรุปสัญลักษณ์สีสถานะ และคำถามที่พบบ่อย (FAQ)</li>
+      </ul>
+    </div>
+
+    <!-- ==================== หมวดที่ 1: การเข้าสู่ระบบ ==================== -->
+    <div class="section-block page-break">
+      <h1>หมวดที่ 1: การเข้าสู่ระบบ (User Login)</h1>
+      <p>ก่อนเริ่มต้นใช้งานระบบ ผู้ใช้จะต้องทำการยืนยันตัวตนเพื่อเข้าถึงข้อมูลตามสิทธิ์ที่ได้รับมอบหมาย โดยมีขั้นตอนดังนี้:</p>
+
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          เปิดเว็บเบราว์เซอร์ (Chrome, Edge หรือ Safari) เข้าสู่ URL ของระบบ จากนั้นกรอก <strong>ชื่อผู้ใช้งาน (Username)</strong> เช่น <span class="mono">admin</span> และ <strong>รหัสผ่าน (Password)</strong>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          (ทางเลือก) ติ๊กเครื่องหมายถูกที่ช่อง <em>"จดจำการเข้าสู่ระบบ"</em> เพื่อให้ระบบจดจำสถานะการล็อกอินไว้
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          กดปุ่ม <span class="badge badge-blue">เข้าสู่ระบบ</span> หากรหัสผ่านถูกต้อง ระบบจะนำเข้าสู่แดชบอร์ดหลักทันที และแสดงชื่อผู้ใช้พร้อมสิทธิ์ที่มุมบนขวา
+        </div>
+      </div>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 1 -->
+      <div class="screenshot-container">
+        <img src="images/screen_01_login.png" alt="หน้าจอเข้าสู่ระบบ (Login Screen)" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 1: หน้าจอเข้าสู่ระบบ (Login Screen) - แสดงหน้าต่างสำหรับยืนยันตัวตนผู้ใช้งาน
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 1.2: แดชบอร์ดภาพรวม ==================== -->
+    <div class="section-block page-break">
+      <h1>1.2 แดชบอร์ดภาพรวมโครงการทั้งหมด (Projects Overview)</h1>
+      <p>เมื่อเข้าสู่ระบบแล้วจะพบกับหน้าหลัก (<span class="mono">/projects</span>) ซึ่งเป็นศูนย์รวมข้อมูลโครงการทั้งหมดที่กำลังดำเนินการอยู่:</p>
+      <ul>
+        <li><strong>การ์ดสถิติรวม (KPI Summary Cards):</strong> แสดงจำนวนโครงการทั้งหมด, โครงการที่กำลังดำเนินการ, โครงการที่ล่าช้า, โครงการที่แล้วเสร็จ และมูลค่างบประมาณรวม</li>
+        <li><strong>แถบค้นหาและตัวกรอง (Search & Filter Bar):</strong> พิมพ์ค้นหาตามชื่อโครงการ, ชื่อผู้ควบคุมงาน, สาขา หรือเลือกกรองตามสถานะ</li>
+        <li><strong>การจัดกลุ่มงาน (Work Grouping):</strong> แสดงรายการโครงการแยกตามหมวดหมู่ หรือสลับมุมมองระหว่างแบบการ์ด (Grid View) และแบบตาราง (Table View)</li>
+        <li><strong>ปุ่มทางลัดด้านบน:</strong> ปุ่ม <span class="badge badge-amber">📌 บันทึก</span> (Quick Links), ปุ่ม <span class="badge badge-blue">🎖️ แฟ้มผลงาน</span> (Supervisors) และปุ่ม <span class="badge badge-green">+ เพิ่มโครงการ</span></li>
+      </ul>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 2 -->
+      <div class="screenshot-container">
+        <img src="images/screen_02_projects_overview.png" alt="หน้าแดชบอร์ดภาพรวมโครงการทั้งหมด" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 2: หน้าแดชบอร์ดภาพรวมโครงการทั้งหมด (Main Projects Overview) - สรุปสถิติและสถานะทุกโครงการ
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 2: แดชบอร์ดรายละเอียดโครงการ ==================== -->
+    <div class="section-block page-break">
+      <h1>หมวดที่ 2: แดชบอร์ดรายละเอียดโครงการ (Project Dashboard)</h1>
+      <p>เมื่อคลิกเลือกโครงการใดโครงการหนึ่งจากหน้าหลัก ระบบจะนำเข้าสู่หน้ารายละเอียดของโครงการนั้น (<span class="mono">/projects/[id]</span>):</p>
+
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content"><strong>ข้อมูลสัญญาและงบประมาณ:</strong> แสดงเลขที่สัญญา, ผู้รับจ้าง, วงเงินงบประมาณ, ยอดเบิกจ่ายแล้ว และค่าปรับรายวัน</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content"><strong>กำหนดเวลาและการขยายเวลา:</strong> แสดงวันเริ่มต้นสัญญา, วันสิ้นสุดเดิม และวันสิ้นสุดหลังการขยายเวลาสัญญา (กรณีมีคำสั่งหยุดงานหรือขยายเวลา)</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content"><strong>ตารางงวดงานและงวดเงิน (Milestones):</strong> สรุปรายละเอียดงวดที่ 1 ถึงงวดสุดท้าย แสดงขอบเขตงาน จำนวนเงิน และสถานะการเบิกจ่าย (<span class="badge badge-green">จ่ายแล้ว</span> หรือ <span class="badge badge-amber">รอดำเนินการ</span>)</div>
+      </div>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 3 -->
+      <div class="screenshot-container">
+        <img src="images/screen_03_project_dashboard.png" alt="หน้าแดชบอร์ดโครงการ" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 3: หน้าแดชบอร์ดโครงการ (Project Dashboard) - สรุปงบประมาณ กำหนดเวลา และตารางงวดงาน
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 3: แผนงาน WBS ==================== -->
+    <div class="section-block page-break">
+      <h1>หมวดที่ 3: แผนงาน WBS และปุ่มลัดปรับความคืบหน้า (Planning)</h1>
+      <p>แท็บ <strong>Planning</strong> ใช้สำหรับควบคุมกิจกรรมก่อสร้างย่อยตามหลักวิศวกรรม โดยคำนวณวันทำงาน หักวันหยุดราชการ และรองรับความสัมพันธ์ของงานก่อนหน้า (Predecessors) อัตโนมัติ พร้อมปุ่มทางลัดปรับความคืบหน้าในคลิกเดียว:</p>
+
+      <h2>3.1 ปุ่มลัดเพิ่ม-ลดความคืบหน้า (Quick Progress Stepper: [-] / [+])</h2>
+      <ul>
+        <li>กดปุ่ม <span class="badge badge-blue">[-]</span> เพื่อลดความคืบหน้าลง <strong>10%</strong> (ต่ำสุดที่ 0%)</li>
+        <li>กดปุ่ม <span class="badge badge-green">[+]</span> เพื่อเพิ่มความคืบหน้าขึ้น <strong>10%</strong> (สูงสุดที่ 100%)</li>
+        <li><strong>ระบบปรับปัดเศษอัตโนมัติ:</strong> หากความคืบหน้าอยู่ที่ 95% แล้วกด [+] ระบบจะปรับเป็น 100% ทันที ไม่เกินขีดจำกัด</li>
+        <li><strong>Real-time Update 0ms:</strong> เมื่อกดปุ่ม ตัวเลขแถบเปอร์เซ็นต์, สถานะงาน, ความก้าวหน้าถ่วงน้ำหนักรวมของโครงการ และเส้นกราฟ S-Curve จะขยับเปลี่ยนทันที</li>
+        <li><strong>นำเข้าและส่งออก Excel:</strong> กดปุ่ม <span class="badge badge-green">📥 ดาวน์โหลด Template</span> เพื่อกรอกแล้วนำเข้าผ่านปุ่ม <span class="badge badge-blue">📤 นำเข้าจาก Excel</span></li>
+      </ul>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 4 -->
+      <div class="screenshot-container">
+        <img src="images/screen_04_wbs_planning.png" alt="ตารางแผนงาน WBS พร้อมปุ่มลัด" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 4: ตาราง WBS - แสดงรายการกิจกรรมย่อย พร้อมปุ่มลัด [-] และ [+] ขนาบข้าง Progress Bar สำหรับปรับเปอร์เซ็นต์งานทันที
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 3 (ต่อ): กราฟ S-Curve & Gantt ==================== -->
+    <div class="section-block page-break">
+      <h1>3.2 แผนภูมิ Gantt Chart และกราฟเส้น S-Curve</h1>
+      <p>ช่วยให้นายช่างและผู้บริหารวิเคราะห์ผลการดำเนินงานได้อย่างชัดเจนแบบ Visual Analysis:</p>
+      <ul>
+        <li><strong>Gantt Chart แผนงาน:</strong> แสดงแถบระยะเวลาทำงานของแต่ละกิจกรรม พร้อมเส้น Today Marker แสดงวันที่ปัจจุบัน</li>
+        <li><strong>S-Curve ผลความคืบหน้า:</strong> แสดงเส้นเปรียบเทียบผลงานจริงสะสม (Actual สีน้ำเงิน) กับแผนงานสะสม (Planned สีเทา)</li>
+        <li><strong>ความเบี่ยงเบนแผน (Plan vs Actual):</strong> แสดงตัวเลขประเมินความเร็ว/ช้าของโครงการ เช่น <span class="badge badge-red">-5.2%</span> หากงานล่าช้ากว่าแผน</li>
+      </ul>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 5 -->
+      <div class="screenshot-container">
+        <img src="images/screen_05_scurve_gantt.png" alt="กราฟเปรียบเทียบผลงาน S-Curve และ Gantt Chart" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 5: หน้ากราฟเปรียบเทียบผลงาน S-Curve และ Gantt Chart - ตรวจสอบความเบี่ยงเบนของแผนงาน (Plan vs Actual)
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 4: รายงานประจำวัน ==================== -->
+    <div class="section-block page-break">
+      <h1>หมวดที่ 4: การบันทึกรายงานประจำวันหน้างาน (Daily Reports)</h1>
+      <p>แท็บ <strong>Reports</strong> ออกแบบมาเพื่อให้นายช่างบันทึกเหตุการณ์ประจำวันได้อย่างครบถ้วนและสะดวกรวดเร็วที่สุด พร้อมระบบ AI ช่วยตรวจจับสภาพอากาศและวิเคราะห์ภาพถ่าย:</p>
+
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content"><strong>เลือกวันที่ (Date Selection):</strong> คลิกเลือกวันที่ที่ต้องการบันทึกรายงานบนปฏิทิน</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content"><strong>สภาพอากาศ (Weather):</strong> ระบบดึงสภาพอากาศจากดาวเทียมตรวจอากาศอัตโนมัติ (โฟกัสช่วงเวลาปฏิบัติงาน 8:00 - 17:00 น.) หรือสามารถเลือกปรับเปลี่ยนเองได้</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content"><strong>บันทึกแรงงานและเครื่องจักร:</strong> ระบุจำนวนคนงานแยกตามประเภทช่าง และเครื่องจักรที่เข้าทำงานในวันนั้น</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-content"><strong>ผลการปฏิบัติงานและปัญหา:</strong> กรอกรายละเอียดงานที่ทำได้ พร้อมระบุปัญหาและแนวทางการแก้ไข</div>
+      </div>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 6 -->
+      <div class="screenshot-container">
+        <img src="images/screen_06_daily_reports.png" alt="ปฏิทินและประวัติรายงานประจำวัน" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 6: ปฏิทินบันทึกรายงานประจำวันของโครงการ "งานก่อสร้างโรงเก็บมิเตอร์ฯ กฟส.อ้อมน้อย จ.นครปฐม" แสดงวันที่ที่มีการบันทึกรายงานความก้าวหน้าตลอดเดือน
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 4 (ต่อ): รูปภาพและ AI ==================== -->
+    <div class="section-block page-break">
+      <h1>4.2 การอัปโหลดรูปภาพและการใช้ AI วิเคราะห์ภาพไซต์งาน</h1>
+      <p>ระบบผสานเทคโนโลยี AI Vision ในการวิเคราะห์ภาพถ่ายจากหน้างานก่อสร้างอัตโนมัติ:</p>
+
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">กดปุ่ม <span class="badge badge-blue">📷 แนบรูปภาพหน้างาน</span> เพื่ออัปโหลดภาพถ่ายจากโทรศัพท์มือถือหรือคอมพิวเตอร์</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content"><strong>ระบบ AI วิเคราะห์ภาพ:</strong> ระบบจะประมวลผลรูปภาพเพื่อตรวจนับจำนวนคนงาน, อุปกรณ์ความปลอดภัย (PPE), เครื่องจักร และสรุปข้อความให้โดยอัตโนมัติ</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">กดปุ่ม <span class="badge badge-green">💾 บันทึกรายงาน</span> ข้อมูลจะถูกจัดเก็บเข้าสู่ฐานข้อมูลและส่งแจ้งเตือนสรุปประจำวันเข้ากลุ่ม LINE อัตโนมัติ</div>
+      </div>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 7 -->
+      <div class="screenshot-container">
+        <img src="images/screen_07_daily_report_photos.png" alt="หน้ารายงานประจำวันพร้อมรูปถ่ายจริงหน้างาน 4 ภาพ" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 7: รายละเอียดรายงานประจำวัน (19 ต.ค. 2569) แสดงสภาพอากาศ งานดำเนินการตามแผน [9] และรูปถ่ายจริงหน้างาน 4 ภาพ (ขัดพื้น คสล., ติดตั้งฝ้า และบานหน้าต่าง)
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 5: ขออนุมัติวัสดุ ==================== -->
+    <div class="section-block page-break">
+      <h1>หมวดที่ 5: การขออนุมัติวัสดุ (Material Tracking)</h1>
+      <p>แท็บ <strong>Materials</strong> ใช้สำหรับจัดทำทะเบียนขออนุมัติวัสดุก่อสร้าง (Material Approval Submittal) เพื่อควบคุมคุณภาพวัสดุตามข้อกำหนดของสัญญา:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25%;">สถานะวัสดุ</th>
+            <th style="width: 20%;">สีสัญลักษณ์</th>
+            <th style="width: 55%;">ความหมายและการดำเนินการต่อ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>รอการพิจารณา</strong></td><td><span class="badge badge-amber">Pending</span></td><td>เอกสารอยู่ระหว่างการตรวจสอบโดยผู้ควบคุมงานหรือวิศวกร</td></tr>
+          <tr><td><strong>อนุมัติ (Approved)</strong></td><td><span class="badge badge-green">Approved</span></td><td>ผ่านการอนุมัติ สามารถสั่งซื้อและนำเข้าติดตั้งในโครงการได้</td></tr>
+          <tr><td><strong>อนุมัติแบบมีเงื่อนไข</strong></td><td><span class="badge badge-blue">Condition</span></td><td>อนุมัติให้นำเข้าได้ แต่ต้องส่งเอกสารผลทดสอบหน้างานเพิ่มเติม</td></tr>
+          <tr><td><strong>ส่งกลับแก้ไข / ไม่อนุมัติ</strong></td><td><span class="badge badge-red">Rejected</span></td><td>ไม่เป็นไปตามสเปก ต้องส่งตัวอย่างหรือเอกสารใหม่</td></tr>
+        </tbody>
+      </table>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 8 -->
+      <div class="screenshot-container">
+        <img src="images/screen_08_materials.png" alt="ตารางทะเบียนขออนุมัติวัสดุ" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 8: ตารางทะเบียนขออนุมัติวัสดุ (Materials Approval Submittal) - ติดตามสถานะและเอกสารรับรอง
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 6: Punch List & Checklist ==================== -->
+    <div class="section-block page-break">
+      <h1>หมวดที่ 6: การตรวจรับงานและข้อบกพร่อง (Checklist & Punch List)</h1>
+      <p>ควบคุมคุณภาพงานช่าง (Quality Control) และติดตามจุดบกพร่องก่อนส่งมอบงาน:</p>
+
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content"><strong>แบบตรวจรับงาน (Checklist):</strong> ตรวจงานตามขั้นตอนมาตรฐาน ติ๊กผล <span class="badge badge-green">ผ่าน</span> หรือ <span class="badge badge-red">ไม่ผ่าน</span></div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content"><strong>เปิดรายการบกพร่อง (Punch List):</strong> ระบุชื่องาน ตำแหน่งห้อง/ชั้น และแนบรูปภาพก่อนแก้ไข (Before)</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content"><strong>ตรวจรับงานแก้ไข (After):</strong> เมื่อแก้ไขเสร็จ อัปโหลดภาพหลังแก้ไขเพื่อตรวจสอบเปรียบเทียบ และกดยืนยันปิดรายการ</div>
+      </div>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 9 -->
+      <div class="screenshot-container">
+        <img src="images/screen_09_punchlist.png" alt="รายการข้อบกพร่อง Punch List" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 9: หน้าติดตามรายการบกพร่อง (Punch List) - แสดงตำแหน่ง ระดับความเร่งด่วน และรูป Before/After
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หมวดที่ 7: แฟ้มผลงาน ==================== -->
+    <div class="section-block page-break">
+      <h1>หมวดที่ 7: แฟ้มผลงานผู้คุมงานและการออกรายงาน</h1>
+      <p>เครื่องมืออำนวยความสะดวกสำหรับผู้บริหารและผู้ควบคุมงาน ในการนำเสนอผลงานและพิมพ์รายงาน:</p>
+
+      <ul>
+        <li><strong>แฟ้มประวัติรายบุคคล:</strong> แสดงข้อมูลความคุมงานของช่างแต่ละท่าน, โครงการที่กำลังรับผิดชอบ, ภารกิจย่อยเฉพาะกิจ และบันทึกผลงานเด่น</li>
+        <li><strong>ปุ่มสั่งพิมพ์แฟ้มผลงาน:</strong> กดปุ่ม <span class="badge badge-blue">🖨️ พิมพ์แฟ้มผลงาน</span> เพื่อพิมพ์เอกสารสรุปผลงานประกอบการประเมินเลื่อนขั้น/ผลงานประจำปี (KPI Appraisal) ได้ทันที</li>
+        <li><strong>พิมพ์รายงานประจำวัน (Daily Report PDF):</strong> เลือกวันที่แล้วกดปุ่ม <span class="badge badge-slate">🖨️ พิมพ์รายงาน</span> เพื่อเซฟเป็น PDF A4</li>
+        <li><strong>โหมดการนำเสนอ (Presentation Mode):</strong> สไลด์สรุปสำหรับที่ประชุมผู้บริหารแบบ Full Screen</li>
+      </ul>
+
+      <!-- FULL UNCONSTRAINED SCREENSHOT 10 -->
+      <div class="screenshot-container">
+        <img src="images/screen_10_supervisors_portfolio.png" alt="แฟ้มผลงานผู้คุมงาน" class="doc-img" onclick="openLightbox(this)" />
+        <div class="img-caption">
+          ภาพที่ 10: หน้าแฟ้มผลงานผู้ควบคุมงาน (Supervisor Portfolio) - ติดตาม KPI สรุปผลงานรายบุคคล
+          <span class="zoom-hint no-print">🔍 คลิกเพื่อดูขนาดเต็ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== ภาคผนวก ==================== -->
+    <div class="section-block page-break">
+      <h1>ภาคผนวก: สรุปสถานะและคำถามพบบ่อย (FAQ)</h1>
+
+      <h2>ตารางสรุปความหมายของแถบสถานะ (Status Reference)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25%;">สัญลักษณ์ / สี</th>
+            <th style="width: 30%;">สถานะที่แสดง</th>
+            <th style="width: 45%;">คำอธิบายการประเมินผล</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="badge badge-green">เสร็จแล้ว (Completed)</span></td><td>ความคืบหน้า 100%</td><td>งานเสร็จสมบูรณ์เรียบร้อยแล้ว</td></tr>
+          <tr><td><span class="badge badge-blue">กำลังดำเนินการ</span></td><td>Actual ตามทันแผนงาน</td><td>ผลงานจริงเป็นไปตามแผนงานที่กำหนดไว้</td></tr>
+          <tr><td><span class="badge badge-red">ล่าช้า (Delayed)</span></td><td>Actual ต่ำกว่าแผน > 5%</td><td>งานล่าช้ากว่าแผน ต้องเร่งรัดหรือมีแผนแก้ไข</td></tr>
+          <tr><td><span class="badge badge-slate">ในอนาคต (Upcoming)</span></td><td>ยังไม่ถึงวันเริ่มงาน</td><td>งานตามแผนงานที่รอเริ่มตามกำหนดเวลา</td></tr>
+          <tr><td><span class="badge badge-amber">หยุดงาน / พักงาน</span></td><td>Suspension Period</td><td>ช่วงเวลาหยุดงานตามคำสั่งขยายเวลาสัญญา</td></tr>
+        </tbody>
+      </table>
+
+      <h2>คำถามที่พบบ่อย (Frequently Asked Questions - FAQ)</h2>
+      <div style="margin-top: 10px;">
+        <p><strong>Q1: กดปุ่ม [+] ใน WBS แล้วตัวเลขขึ้นทันทีเลยหรือไม่ ต้องกดเซฟอีกไหม?</strong><br>
+        <em>A:</em> ขึ้นทันทีครับ ระบบมีระบบ Optimistic Update ทำให้ตัวเลข กราฟ และสถานะเปลี่ยนใน 0 วินาที และระบบจะบันทึกลงฐานข้อมูลในพื้นหลังให้อัตโนมัติทันที</p>
+
+        <p><strong>Q2: หากวันนั้นฝนตกหนักจนทำงานไม่ได้ ต้องบันทึกอย่างไร?</strong><br>
+        <em>A:</em> ในแท็บ Reports ให้เลือกสภาพอากาศเป็น "ฝนตกหนัก" และระบุเวลาที่ฝนตกในช่องปัญหาเพื่อใช้เป็นหลักฐานขอขยายสัญญา</p>
+
+        <p><strong>Q3: ผู้ใช้งานลืมรหัสผ่านต้องทำอย่างไร?</strong><br>
+        <em>A:</em> ติดต่อผู้ดูแลระบบ (Admin) เพื่อดูรหัสผ่านหรือขอรีเซ็ตรหัสผ่านใหม่จากหน้าจัดการผู้ใช้งาน (<span class="mono">/admin/users</span>)</p>
+
+        <p><strong>Q4: การนำเข้าแผนงานจาก Excel ทำไมบางแถวแสดงวันที่ไม่ตรง?</strong><br>
+        <em>A:</em> ตรวจสอบคอลัมน์ "งานก่อนหน้า" (Predecessors) หากใส่เลข WBS ระบบจะคำนวณวันเริ่มต้นต่อจากงานก่อนหน้าโดยอัตโนมัติ หักวันหยุดราชการให้เรียบร้อย</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lightbox Script -->
+  <script>
+    function openLightbox(imgElement) {
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightbox-img');
+      const lightboxCaption = document.getElementById('lightbox-caption');
+      
+      lightboxImg.src = imgElement.src;
+      lightboxCaption.textContent = imgElement.alt || 'คลิกที่ใดก็ได้เพื่อปิดหน้าต่างซูม';
+      lightbox.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      const lightbox = document.getElementById('lightbox');
+      lightbox.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
+</body>
+</html>

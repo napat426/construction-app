@@ -13,6 +13,7 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   FolderOpen,
   ArrowLeft,
   ChevronRight,
@@ -23,6 +24,10 @@ import {
   Sparkles,
   ExternalLink,
   Info,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
+  Check,
 } from 'lucide-react'
 import type { SupervisorTask, SupervisorTaskGroup, Project } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
@@ -80,6 +85,12 @@ export function SupervisorPortfolioClient({
   const [isReorderMode, setIsReorderMode] = useState(false)
   // Year Filter (Default: 2569)
   const [selectedYear, setSelectedYear] = useState<string>('all')
+
+  // Drag & drop and reorder state
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null)
+  const [isDraggingState, setIsDraggingState] = useState(false)
+  const [reorderSuccessMsg, setReorderSuccessMsg] = useState<string | null>(null)
 
   // Permission: Can this user edit?
   // User can edit if logged in and either Admin OR matches display_name / supervisorName
@@ -280,21 +291,23 @@ export function SupervisorPortfolioClient({
     })
   }
 
-  // Handle Move Task Left/Right within Group
-  const handleMoveTask = (groupId: string, taskId: string, direction: 'prev' | 'next') => {
-    const groupTasks = supervisorTasks
-      .filter((t) => t.group_id === groupId)
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    const idx = groupTasks.findIndex((t) => t.id === taskId)
-    if (idx === -1) return
-    const targetIdx = direction === 'prev' ? idx - 1 : idx + 1
-    if (targetIdx < 0 || targetIdx >= groupTasks.length) return
+  // Toast feedback helper
+  const showReorderFeedback = (msg: string) => {
+    setReorderSuccessMsg(msg)
+    setTimeout(() => {
+      setReorderSuccessMsg((cur) => (cur === msg ? null : cur))
+    }, 2500)
+  }
 
-    const temp = groupTasks[idx]
-    groupTasks[idx] = groupTasks[targetIdx]
-    groupTasks[targetIdx] = temp
+  // Handle reorder tasks within a group
+  const handleReorderTasks = (groupId: string, newGroupTasks: SupervisorTask[]) => {
+    // Preserve any tasks in this group that might not be in the current filtered view
+    const otherTasksInGroup = tasks.filter(
+      (t) => t.supervisor === supervisorName && t.group_id === groupId && !newGroupTasks.some((nt) => nt.id === t.id)
+    )
+    const allOrderedInGroup = [...newGroupTasks, ...otherTasksInGroup]
+    const orderedIds = allOrderedInGroup.map((t) => t.id)
 
-    const orderedIds = groupTasks.map((t) => t.id)
     setTasks((prev) =>
       prev.map((t) => {
         if (t.supervisor !== supervisorName || t.group_id !== groupId) return t
@@ -305,6 +318,41 @@ export function SupervisorPortfolioClient({
     startTransition(async () => {
       await reorderSupervisorTasks(supervisorName, groupId, orderedIds)
     })
+    showReorderFeedback('บันทึกการจัดเรียงลำดับผลงานแล้ว')
+  }
+
+  // Handle Move Task Left/Right (Previous/Next) within Group
+  const handleMoveTask = (groupId: string, taskId: string, direction: 'prev' | 'next') => {
+    const currentGroupTasks = filteredSupervisorTasks
+      .filter((t) => t.group_id === groupId)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    const idx = currentGroupTasks.findIndex((t) => t.id === taskId)
+    if (idx === -1) return
+    const targetIdx = direction === 'prev' ? idx - 1 : idx + 1
+    if (targetIdx < 0 || targetIdx >= currentGroupTasks.length) return
+
+    const reordered = [...currentGroupTasks]
+    const [moved] = reordered.splice(idx, 1)
+    reordered.splice(targetIdx, 0, moved)
+
+    handleReorderTasks(groupId, reordered)
+  }
+
+  // Handle Drop Task within Group (Drag & Drop)
+  const handleDropTask = (groupId: string, draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return
+    const currentGroupTasks = filteredSupervisorTasks
+      .filter((t) => t.group_id === groupId)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    const fromIdx = currentGroupTasks.findIndex((t) => t.id === draggedId)
+    const toIdx = currentGroupTasks.findIndex((t) => t.id === targetId)
+    if (fromIdx === -1 || toIdx === -1) return
+
+    const reordered = [...currentGroupTasks]
+    const [moved] = reordered.splice(fromIdx, 1)
+    reordered.splice(toIdx, 0, moved)
+
+    handleReorderTasks(groupId, reordered)
   }
 
   // Color helper for task group headers
@@ -859,29 +907,34 @@ export function SupervisorPortfolioClient({
                     <span className="text-xs font-semibold text-slate-400 print:text-[8pt] print:text-slate-500">
                       ({groupTasks.length} งาน)
                     </span>
+                    {canEdit && groupTasks.length > 1 && (
+                      <span className="hidden sm:inline-flex items-center text-[11px] text-slate-400 dark:text-slate-500 font-medium print:hidden">
+                        • ลากการ์ดหรือกดลูกศร ◀ ▶ เพื่อสลับลำดับ
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5 print:hidden">
                     {/* Reorder Group Controls */}
-                    {isReorderMode && (
-                      <div className="flex items-center gap-1 bg-white dark:bg-[#1e1e38] p-1 rounded-lg border border-slate-200 dark:border-[#252548]">
+                    {canEdit && supervisorGroups.length > 1 && (
+                      <div className="flex items-center gap-0.5 bg-white dark:bg-[#181834] p-0.5 rounded-lg border border-slate-200 dark:border-[#252548] shadow-2xs mr-1">
                         <button
                           type="button"
                           disabled={gIdx === 0}
                           onClick={() => handleMoveGroup(group.id, 'up')}
-                          className="px-2 py-0.5 rounded text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
-                          title="เลื่อนกลุ่มนี้ขึ้น"
+                          className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-[#202042] disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                          title="เลื่อนกลุ่มนี้ขึ้นด้านบน"
                         >
-                          ⬆️ ขึ้น
+                          <ArrowUp size={13} />
                         </button>
                         <button
                           type="button"
                           disabled={gIdx === supervisorGroups.length - 1}
                           onClick={() => handleMoveGroup(group.id, 'down')}
-                          className="px-2 py-0.5 rounded text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
-                          title="เลื่อนกลุ่มนี้ลง"
+                          className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-[#202042] disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                          title="เลื่อนกลุ่มนี้ลงด้านล่าง"
                         >
-                          ⬇️ ลง
+                          <ArrowDown size={13} />
                         </button>
                       </div>
                     )}
@@ -929,12 +982,59 @@ export function SupervisorPortfolioClient({
                           const coverPhoto = t.photo_urls && t.photo_urls.length > 0 ? t.photo_urls[0] : null
                           const isCompleted = t.status === 'completed'
                           const isDelayed = t.status === 'delayed'
+                          const isBeingDragged = draggedTaskId === t.id
+                          const isDropTarget = dragOverTaskId === t.id && draggedTaskId !== t.id
 
                           return (
                             <div
                               key={t.id}
-                              onClick={() => setSelectedTaskForDetail(t)}
-                              className="group relative bg-slate-50/70 dark:bg-[#16162e] hover:bg-white dark:hover:bg-[#1a1a38] border border-slate-200/80 dark:border-[#202042] hover:border-primary-400 dark:hover:border-primary-500 rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between print-avoid-break print:bg-white print:border-slate-300"
+                              draggable={canEdit}
+                              onDragStart={(e) => {
+                                if (!canEdit) return
+                                e.dataTransfer.setData('text/plain', t.id)
+                                e.dataTransfer.effectAllowed = 'move'
+                                setDraggedTaskId(t.id)
+                                setIsDraggingState(true)
+                              }}
+                              onDragOver={(e) => {
+                                if (!canEdit || !draggedTaskId) return
+                                e.preventDefault()
+                                e.dataTransfer.dropEffect = 'move'
+                                if (dragOverTaskId !== t.id) {
+                                  setDragOverTaskId(t.id)
+                                }
+                              }}
+                              onDragLeave={() => {
+                                if (dragOverTaskId === t.id) {
+                                  setDragOverTaskId(null)
+                                }
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault()
+                                if (!canEdit || !draggedTaskId) return
+                                if (draggedTaskId !== t.id) {
+                                  handleDropTask(group.id, draggedTaskId, t.id)
+                                }
+                                setDraggedTaskId(null)
+                                setDragOverTaskId(null)
+                                setTimeout(() => setIsDraggingState(false), 80)
+                              }}
+                              onDragEnd={() => {
+                                setDraggedTaskId(null)
+                                setDragOverTaskId(null)
+                                setTimeout(() => setIsDraggingState(false), 80)
+                              }}
+                              onClick={() => {
+                                if (isDraggingState) return
+                                setSelectedTaskForDetail(t)
+                              }}
+                              className={`group relative bg-slate-50/70 dark:bg-[#16162e] hover:bg-white dark:hover:bg-[#1a1a38] border rounded-xl overflow-hidden shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between print-avoid-break print:bg-white print:border-slate-300 ${
+                                isBeingDragged
+                                  ? 'opacity-40 scale-[0.98] ring-2 ring-primary-500 border-dashed border-primary-500'
+                                  : isDropTarget
+                                  ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-[#121226] scale-[1.01] border-primary-500 bg-primary-50/20'
+                                  : 'border-slate-200/80 dark:border-[#202042] hover:border-primary-400 dark:hover:border-primary-500'
+                              }`}
                             >
                               <div>
                                 {/* Card Cover Photo */}
@@ -957,21 +1057,32 @@ export function SupervisorPortfolioClient({
 
                                 {/* Card Content */}
                                 <div className="p-3.5 space-y-2 print:p-2.5 print:space-y-1.5">
-                                  {/* Status Badges */}
+                                  {/* Status Badges & Drag Grip */}
                                   <div className="flex items-center justify-between gap-1 flex-wrap">
-                                    {isCompleted ? (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1 print:border-emerald-300 print:text-[8pt]">
-                                        <CheckCircle2 size={10} /> สำเร็จแล้ว
-                                      </span>
-                                    ) : isDelayed ? (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 inline-flex items-center gap-1 print:border-rose-300 print:text-[8pt]">
-                                        <AlertTriangle size={10} /> ล่าช้า
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 print:border-blue-300 print:text-[8pt]">
-                                        กำลังทำ
-                                      </span>
-                                    )}
+                                    <div className="flex items-center gap-1.5">
+                                      {canEdit && groupTasks.length > 1 && (
+                                        <div
+                                          className="p-1 -ml-1 rounded text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-[#202042] cursor-grab active:cursor-grabbing transition-colors print:hidden"
+                                          title="คลิกลากเพื่อสลับลำดับผลงาน"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <GripVertical size={13} />
+                                        </div>
+                                      )}
+                                      {isCompleted ? (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1 print:border-emerald-300 print:text-[8pt]">
+                                          <CheckCircle2 size={10} /> สำเร็จแล้ว
+                                        </span>
+                                      ) : isDelayed ? (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 inline-flex items-center gap-1 print:border-rose-300 print:text-[8pt]">
+                                          <AlertTriangle size={10} /> ล่าช้า
+                                        </span>
+                                      ) : (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 print:border-blue-300 print:text-[8pt]">
+                                          กำลังทำ
+                                        </span>
+                                      )}
+                                    </div>
 
                                     {t.has_issue && (
                                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20 flex items-center gap-1 print:border-amber-300 print:text-[8pt]">
@@ -1009,24 +1120,39 @@ export function SupervisorPortfolioClient({
                                   คลิกดูรายละเอียด <Maximize2 size={10} />
                                 </span>
 
-                                {isReorderMode && (
-                                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                      type="button"
-                                      disabled={tIdx === 0}
-                                      onClick={() => handleMoveTask(group.id, t.id, 'prev')}
-                                      className="px-1.5 py-0.5 bg-slate-200 dark:bg-[#202042] rounded font-bold disabled:opacity-30 cursor-pointer"
+                                {canEdit && (
+                                  <div
+                                    className="flex items-center gap-1.5"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span
+                                      className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#1e1e38] text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-[#252548]"
+                                      title={`ผลงานลำดับที่ ${tIdx + 1} ในกลุ่มนี้`}
                                     >
-                                      ◀
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={tIdx === groupTasks.length - 1}
-                                      onClick={() => handleMoveTask(group.id, t.id, 'next')}
-                                      className="px-1.5 py-0.5 bg-slate-200 dark:bg-[#202042] rounded font-bold disabled:opacity-30 cursor-pointer"
-                                    >
-                                      ▶
-                                    </button>
+                                      #{tIdx + 1}
+                                    </span>
+                                    {groupTasks.length > 1 && (
+                                      <div className="inline-flex rounded-lg border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#181834] p-0.5 shadow-2xs">
+                                        <button
+                                          type="button"
+                                          disabled={tIdx === 0}
+                                          onClick={() => handleMoveTask(group.id, t.id, 'prev')}
+                                          className="p-1 rounded text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-[#202042] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                                          title="เลื่อนมาด้านหน้า (ก่อนหน้านี้)"
+                                        >
+                                          <ChevronLeft size={13} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={tIdx === groupTasks.length - 1}
+                                          onClick={() => handleMoveTask(group.id, t.id, 'next')}
+                                          className="p-1 rounded text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-[#202042] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                                          title="เลื่อนไปด้านหลัง (ถัดไป)"
+                                        >
+                                          <ChevronRight size={13} />
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -1057,7 +1183,7 @@ export function SupervisorPortfolioClient({
             </div>
             <div className="p-4 sm:p-5 print:p-2.5">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 print-grid-2">
-                {orphanTasks.map((t) => {
+                {orphanTasks.map((t, oIdx) => {
                   const coverPhoto = t.photo_urls && t.photo_urls.length > 0 ? t.photo_urls[0] : null
                   const isCompleted = t.status === 'completed'
                   const isDelayed = t.status === 'delayed'
@@ -1130,6 +1256,12 @@ export function SupervisorPortfolioClient({
                         <span className="group-hover:text-amber-600 font-semibold flex items-center gap-1">
                           คลิกดูรายละเอียด <Maximize2 size={10} />
                         </span>
+                        <span
+                          className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/40 text-[10px] font-bold text-amber-700 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800/60"
+                          title={`ลำดับที่ ${oIdx + 1}`}
+                        >
+                          #{oIdx + 1}
+                        </span>
                       </div>
                     </div>
                   )
@@ -1197,6 +1329,14 @@ export function SupervisorPortfolioClient({
           onClose={() => setGroupModalState({ isOpen: false, group: null })}
           onSave={handleSaveGroup}
         />
+      )}
+
+      {/* Toast Notification for Reordering */}
+      {reorderSuccessMsg && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900/90 dark:bg-white/95 text-white dark:text-slate-900 text-xs font-bold shadow-xl backdrop-blur-sm animate-fade-in border border-slate-700/50 dark:border-slate-200 print:hidden">
+          <Check size={14} className="text-emerald-400 dark:text-emerald-600" />
+          <span>{reorderSuccessMsg}</span>
+        </div>
       )}
     </div>
   )

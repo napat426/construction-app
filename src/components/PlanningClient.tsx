@@ -27,7 +27,8 @@ import {
   Sparkles,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { deleteTask, updateTaskProgressQuick } from '@/app/actions/tasks'
+import { deleteTask, updateTaskProgressQuick, importWbsTasksBulk } from '@/app/actions/tasks'
+import { saveMilestones } from '@/app/actions/milestones'
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended, parsePredecessor } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
@@ -208,7 +209,6 @@ export function PlanningClient({
   const handleSaveAiPlan = async (generatedMilestones: ProjectMilestone[], generatedTasks: any[], mode: 'replace' | 'append') => {
     // 1. Save milestones
     if (generatedMilestones && generatedMilestones.length > 0) {
-      const { saveMilestones } = await import('@/app/actions/milestones')
       const mRes = await saveMilestones(project.id, generatedMilestones)
       if (mRes?.error) {
         throw new Error(mRes.error)
@@ -217,7 +217,6 @@ export function PlanningClient({
 
     // 2. Save tasks
     if (generatedTasks && generatedTasks.length > 0) {
-      const { importWbsTasksBulk } = await import('@/app/actions/tasks')
       const tRes = await importWbsTasksBulk(project.id, generatedTasks, mode)
       if (tRes?.error) {
         throw new Error(tRes.error)
@@ -2651,12 +2650,14 @@ export function PlanningClient({
       )}
 
       {/* AI Smart Milestone & WBS Generator Modal */}
-      <AIPlanningModal
-        project={project}
-        isOpen={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-        onSavePlan={handleSaveAiPlan}
-      />
+      {isAiModalOpen && (
+        <AIPlanningModal
+          project={project}
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          onSavePlan={handleSaveAiPlan}
+        />
+      )}
     </div>
   )
 }

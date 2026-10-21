@@ -24,7 +24,6 @@ import {
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import type { Project, ProjectMilestone } from '@/lib/types'
-import { countWorkingDays } from '@/lib/scheduler'
 
 interface Props {
   project: Project
@@ -47,14 +46,14 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
   const [step, setStep] = useState<'input' | 'preview'>('input')
 
   // Control Parameters (Defaults from project)
-  const initialBudget = project.budget || 0
+  const initialBudget = project?.budget || 0
   const [contractAmount, setContractAmount] = useState<number>(initialBudget)
-  const [startDate, setStartDate] = useState<string>(project.start_date || '')
-  const [endDate, setEndDate] = useState<string>(project.end_date || '')
+  const [startDate, setStartDate] = useState<string>(project?.start_date || '')
+  const [endDate, setEndDate] = useState<string>(project?.end_date || '')
 
   // Calculate default duration in days
   const initialDays = useMemo(() => {
-    if (project.start_date && project.end_date) {
+    if (project?.start_date && project?.end_date) {
       const s = new Date(project.start_date)
       const e = new Date(project.end_date)
       const diffTime = Math.abs(e.getTime() - s.getTime())
@@ -62,7 +61,7 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
       return diffDays > 0 ? diffDays : 180
     }
     return 180
-  }, [project.start_date, project.end_date])
+  }, [project?.start_date, project?.end_date])
 
   const [durationDays, setDurationDays] = useState<number>(initialDays)
 
@@ -228,7 +227,7 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
       setProcessStatus('AI กำลังวิเคราะห์สัดส่วนมูลค่าหมวดงานและผูกแผนงาน WBS...')
 
       const payload = {
-        projectName: project.name,
+        projectName: project?.name || 'โครงการ',
         contractAmount,
         durationDays,
         startDate,
@@ -420,7 +419,7 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
                       className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#181834] text-slate-900 dark:text-white focus:outline-none focus:border-primary-500 font-mono"
                     />
                     <span className="text-[10px] text-slate-400 mt-0.5 block">
-                      ยอดปัจจุบัน: ฿{contractAmount.toLocaleString('th-TH')}
+                      ยอดปัจจุบัน: ฿{(contractAmount || 0).toLocaleString('th-TH')}
                     </span>
                   </div>
 

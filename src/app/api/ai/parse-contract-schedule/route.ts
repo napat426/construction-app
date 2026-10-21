@@ -34,28 +34,7 @@ export async function POST(req: Request) {
     const targetAmount = Number(contractAmount) || 0
     const targetDays = Number(durationDays) || 120
 
-    // Prepare content parts for Gemini (both text and inline media)
     const contentParts: any[] = []
-
-    // Helper for files
-    const attachFiles = (files: any[], label: string) => {
-      files.forEach((file: any) => {
-        if (!file?.base64) return
-        const mime = file.mimeType || 'image/jpeg'
-        if (mime.startsWith('image/') || mime === 'application/pdf') {
-          contentParts.push({
-            inlineData: {
-              mimeType: mime,
-              data: file.base64,
-            },
-          })
-        }
-      })
-    }
-
-    attachFiles(boqFiles, 'ปร.5/ปร.6')
-    attachFiles(milestoneFiles, 'งวดงาน')
-
     let combinedTextContext = `ข้อมูลโครงการ:
 - ชื่อโครงการ: "${projectName || 'โครงการก่อสร้าง'}"
 - วงเงินสัญญาเป้าหมาย: ${targetAmount > 0 ? targetAmount.toLocaleString('th-TH') + ' บาท' : 'ตามที่ระบุในเอกสาร'}
@@ -64,6 +43,46 @@ export async function POST(req: Request) {
 - วันสิ้นสุดสัญญา: ${endDate || 'ไม่ระบุ'}
 
 `
+
+    // Helper for files - extract text from PDF if possible to make Gemini lightning fast
+    const processFiles = async (files: any[], label: string) => {
+      for (const file of files) {
+        if (!file?.base64) continue
+        const mime = file.mimeType || 'image/jpeg'
+        const isPdf = mime === 'application/pdf' || file.name?.toLowerCase().endsWith('.pdf')
+
+        if (isPdf) {
+          try {
+            const { PDFParse } = await import('pdf-parse')
+            const buf = Buffer.from(file.base64, 'base64')
+            const parser = new PDFParse({ data: buf })
+            const parsed = await parser.getText()
+            await parser.destroy()
+
+            const extracted = parsed?.text?.trim() || ''
+            if (extracted.length > 50) {
+              combinedTextContext += `\n[ ข้อมูลตารางที่ดึงได้จากเอกสาร PDF ${file.name || label} ]:\n${extracted.slice(0, 150000)}\n`
+              continue // Extracted successfully! Do not send heavy base64 to Gemini.
+            }
+          } catch (e) {
+            console.warn('[PDFParse Error, fallback to vision]:', e)
+          }
+        }
+
+        // If image or scanned PDF without text layer, send as inlineData
+        if (mime.startsWith('image/') || isPdf) {
+          contentParts.push({
+            inlineData: {
+              mimeType: mime,
+              data: file.base64,
+            },
+          })
+        }
+      }
+    }
+
+    await processFiles(boqFiles, 'ปร.5/ปร.6')
+    await processFiles(milestoneFiles, 'งวดงาน')
 
     if (boqText && boqText.trim()) {
       combinedTextContext += `\n[ ข้อมูลจากเอกสาร ปร.5 / ปร.6 / สรุปหมวดงาน ]:\n${boqText.trim()}\n`
@@ -151,11 +170,10 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(apiKey)
     const CANDIDATE_MODELS = [
-      'gemini-2.5-flash',
       'gemini-flash-latest',
       'gemini-2.5-flash-lite',
-      'gemini-flash-lite-latest',
       'gemini-3.1-flash-lite',
+      'gemini-2.5-flash',
     ]
 
     let resultJson: any = null
@@ -181,7 +199,7 @@ export async function POST(req: Request) {
           const res = (await Promise.race([
             model.generateContent(promptPayload),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error(`Timeout 25s on ${modelName}`)), 25000)
+              setTimeout(() => reject(new Error(`Timeout 12s on ${modelName}`)), 12000)
             ),
           ])) as any
 

@@ -170,10 +170,9 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(apiKey)
     const CANDIDATE_MODELS = [
-      'gemini-flash-latest',
-      'gemini-2.5-flash-lite',
+      'gemini-flash-lite-latest',
       'gemini-3.1-flash-lite',
-      'gemini-2.5-flash',
+      'gemini-3.6-flash',
     ]
 
     let resultJson: any = null
@@ -185,7 +184,7 @@ export async function POST(req: Request) {
           const model = genAI.getGenerativeModel({
             model: modelName,
             generationConfig: {
-              temperature: 0.2,
+              temperature: 0.1,
               responseMimeType: 'application/json',
             },
           })
@@ -199,7 +198,7 @@ export async function POST(req: Request) {
           const res = (await Promise.race([
             model.generateContent(promptPayload),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error(`Timeout 12s on ${modelName}`)), 12000)
+              setTimeout(() => reject(new Error(`Timeout 45s on ${modelName}`)), 45000)
             ),
           ])) as any
 

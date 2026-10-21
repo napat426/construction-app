@@ -153,7 +153,7 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
             name: file.name,
             size: file.size,
             mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            textPreview: extracted.slice(0, 5000),
+            textPreview: extracted.slice(0, 150000),
           })
         } else {
           const b64 = await readFileAsBase64(file)
@@ -194,7 +194,7 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
             name: file.name,
             size: file.size,
             mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            textPreview: extracted.slice(0, 5000),
+            textPreview: extracted.slice(0, 150000),
           })
         } else {
           const b64 = await readFileAsBase64(file)

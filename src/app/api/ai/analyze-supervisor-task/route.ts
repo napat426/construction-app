@@ -176,9 +176,36 @@ ${relatedProjectName ? `เกี่ยวข้องกับโครงก�
       throw lastError || new Error('ไม่สามารถประมวลผลข้อมูลจากรูปภาพได้')
     }
 
+    // Helper to safely sanitize AI outputs into clean strings
+    const sanitizeString = (val: any): string => {
+      if (!val) return ''
+      if (typeof val === 'string') return val.trim()
+      if (Array.isArray(val)) {
+        return val
+          .map((v) => (typeof v === 'string' ? v.trim() : JSON.stringify(v)))
+          .filter(Boolean)
+          .join('\n')
+      }
+      if (typeof val === 'object') {
+        return Object.values(val)
+          .map((v) => (typeof v === 'string' ? v.trim() : JSON.stringify(v)))
+          .filter(Boolean)
+          .join('\n')
+      }
+      return String(val).trim()
+    }
+
+    const sanitizedData = {
+      title: sanitizeString(resultJson.title),
+      description: sanitizeString(resultJson.description),
+      has_issue: Boolean(resultJson.has_issue),
+      issue_detail: sanitizeString(resultJson.issue_detail),
+      issue_solution: sanitizeString(resultJson.issue_solution),
+    }
+
     return NextResponse.json({
       success: true,
-      data: resultJson,
+      data: sanitizedData,
     })
   } catch (error: any) {
     console.error('Supervisor AI Vision Error:', error)

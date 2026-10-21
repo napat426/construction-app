@@ -122,7 +122,19 @@ export function SupervisorTaskModal({
       return
     }
 
-    if (title.trim() || description.trim()) {
+    const toCleanString = (val: any): string => {
+      if (val === null || val === undefined) return ''
+      if (typeof val === 'string') return val
+      if (Array.isArray(val)) {
+        return val.map((item) => toCleanString(item)).filter(Boolean).join('\n')
+      }
+      if (typeof val === 'object') {
+        return Object.values(val).map((item) => toCleanString(item)).filter(Boolean).join('\n')
+      }
+      return String(val)
+    }
+
+    if (toCleanString(title).trim() || toCleanString(description).trim()) {
       const ok = confirm(
         'มีข้อความอยู่ในช่อง "ชื่องาน" หรือ "รายละเอียดผลการดำเนินงาน" อยู่แล้ว\n\nต้องการให้ AI วิเคราะห์รูปภาพแล้วกรอกข้อมูลทับของเดิมหรือไม่?'
       )
@@ -155,12 +167,12 @@ export function SupervisorTaskModal({
 
       if (data.data) {
         const { title: aiTitle, description: aiDesc, has_issue, issue_detail, issue_solution } = data.data
-        if (aiTitle) setTitle(aiTitle)
-        if (aiDesc) setDescription(aiDesc)
+        if (aiTitle) setTitle(toCleanString(aiTitle).trim())
+        if (aiDesc) setDescription(toCleanString(aiDesc).trim())
         if (has_issue) {
           setHasIssue(true)
-          if (issue_detail) setIssueDetail(issue_detail)
-          if (issue_solution) setIssueSolution(issue_solution)
+          if (issue_detail) setIssueDetail(toCleanString(issue_detail).trim())
+          if (issue_solution) setIssueSolution(toCleanString(issue_solution).trim())
           setAiMessage('⚠️ AI วิเคราะห์พบปัญหาอุปสรรคและได้เลือกช่อง "ปัญหาอุปสรรค" ไว้ให้แล้ว (คุณสามารถยกเลิกการเลือกได้ด้านล่างหากไม่ต้องการ)')
         } else {
           setAiMessage('✨ AI วิเคราะห์รูปภาพและกรอก ชื่องาน และ รายละเอียดผลการดำเนินงาน ให้เรียบร้อยแล้ว!')
@@ -175,7 +187,25 @@ export function SupervisorTaskModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) {
+
+    const toCleanString = (val: any): string => {
+      if (val === null || val === undefined) return ''
+      if (typeof val === 'string') return val
+      if (Array.isArray(val)) {
+        return val.map((item) => toCleanString(item)).filter(Boolean).join('\n')
+      }
+      if (typeof val === 'object') {
+        return Object.values(val).map((item) => toCleanString(item)).filter(Boolean).join('\n')
+      }
+      return String(val)
+    }
+
+    const cleanTitle = toCleanString(title).trim()
+    const cleanDesc = toCleanString(description).trim()
+    const cleanIssueDetail = toCleanString(issueDetail).trim()
+    const cleanIssueSolution = toCleanString(issueSolution).trim()
+
+    if (!cleanTitle) {
       setError('กรุณาระบุชื่องาน')
       return
     }
@@ -192,15 +222,15 @@ export function SupervisorTaskModal({
         id: initialTask?.id,
         supervisor,
         group_id: groupId,
-        title: title.trim(),
-        description: description.trim() || null,
+        title: cleanTitle,
+        description: cleanDesc || null,
         start_date: startDate || null,
         due_date: dueDate || null,
         completed_date: completedDate || null,
         status,
         has_issue: hasIssue,
-        issue_detail: hasIssue ? issueDetail.trim() : null,
-        issue_solution: hasIssue ? issueSolution.trim() : null,
+        issue_detail: hasIssue ? cleanIssueDetail || null : null,
+        issue_solution: hasIssue ? cleanIssueSolution || null : null,
         related_project_id: relatedProjectId || null,
         photo_urls: photoUrls,
       })

@@ -219,7 +219,7 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
       // Try to find by name match (stripping any emoji e.g. "📁 ประชุมและอบรม" -> "ประชุมและอบรม")
       const cleanTarget = (resolvedGroupId || '').replace(/^📁\s*/, '').trim()
       const matchByName = storage.groups.find(
-        (g) => g.supervisor === task.supervisor && (g.name === cleanTarget || g.name.trim() === cleanTarget)
+        (g) => g.supervisor === task.supervisor && (g.name === cleanTarget || (g.name || '').trim() === cleanTarget)
       )
       if (matchByName) {
         resolvedGroupId = matchByName.id
@@ -231,6 +231,11 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
       }
     }
 
+    const cleanTitle = String(task.title || '').trim()
+    const cleanDescription = task.description ? String(task.description).trim() : null
+    const cleanIssueDetail = task.issue_detail ? String(task.issue_detail).trim() : null
+    const cleanIssueSolution = task.issue_solution ? String(task.issue_solution).trim() : null
+
     if (task.id) {
       // Update
       storage.tasks = storage.tasks.map((t) =>
@@ -238,6 +243,10 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
           ? {
               ...t,
               ...task,
+              title: cleanTitle,
+              description: cleanDescription,
+              issue_detail: cleanIssueDetail,
+              issue_solution: cleanIssueSolution,
               group_id: resolvedGroupId,
               updated_at: now,
             }
@@ -249,15 +258,15 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
         id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         group_id: resolvedGroupId,
         supervisor: task.supervisor,
-        title: task.title,
-        description: task.description || null,
+        title: cleanTitle,
+        description: cleanDescription,
         start_date: task.start_date || null,
         due_date: task.due_date || null,
         completed_date: task.completed_date || null,
         status: task.status || 'pending',
         has_issue: Boolean(task.has_issue),
-        issue_detail: task.issue_detail || null,
-        issue_solution: task.issue_solution || null,
+        issue_detail: cleanIssueDetail,
+        issue_solution: cleanIssueSolution,
         photo_urls: task.photo_urls || [],
         related_project_id: task.related_project_id || null,
         sort_order: storage.tasks.filter((t) => t.supervisor === task.supervisor && t.group_id === resolvedGroupId).length + 1,

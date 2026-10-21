@@ -117,127 +117,103 @@ ${milestoneExtractedText.trim() ? milestoneExtractedText : '(ไม่มีเ�
     const systemPrompt = `คุณคือวิศวกรวิชาชีพผู้เชี่ยวชาญระดับสูงด้านการวางแผนงานก่อสร้าง ควบคุมต้นทุน และบริหารสัญญาโครงการ (Senior Construction Project Manager & Planning Engineer - PMP, CPM, AACE)
 
 ภารกิจ:
-วิเคราะห์เอกสารก่อสร้าง 2 ส่วนเพื่อจัดทำแผนงานก่อสร้างและงวดงานระดับมืออาชีพ:
-1. แผนงานกิจกรรมก่อสร้าง WBS (Tasks): แตกกิจกรรมและกำหนดมูลค่า (cost) อิงตาม "BOQ / ปร.4 / ปร.5 / ปร.6" เท่านั้น!
-2. แผนการเบิกจ่ายงวดงานตามสัญญา (Milestones): สรุปขอบเขตและเงินค่างวดตาม "ตารางงวดงานท้ายสัญญา"
-
-เป้าหมายตัวเลขโครงการ:
+จัดทำแผนงานก่อสร้างและงวดงานระดับมืออาชีพสำหรับโครงการ:
+- ชื่อโครงการ: "${projectName || 'โครงการก่อสร้าง'}"
 - วงเงินสัญญารวม: ${targetAmount > 0 ? targetAmount.toLocaleString('th-TH') + ' บาท' : 'ตามเอกสาร'}
 - ระยะเวลาก่อสร้างรวม: ${targetDays} วัน
 
 ======================================================================
-🚨 กฎเหล็กหัวใจสำคัญด้านวิศวกรรมและการเงินโครงการ (CRITICAL PRINCIPLES):
+🚨 กฎเหล็กทางวิศวกรรมที่สำคัญที่สุด (STRICT ENGINEERING & CONSTRUCTION RULES):
 ======================================================================
 
-1. การแยกขาดระหว่าง "เงินงวดสัญญา (Cash Disbursement)" กับ "ต้นทุนงานจริง (Task Cost from BOQ)":
-   - **ตารางงวดงาน (Milestones)**:
-     * คือแผนการเบิกจ่ายเงิน (Cash Flow) ของสัญญา ซึ่งเจ้าของโครงการมักกดเงินงวดแรกๆ ให้ต่ำ และจ่ายงวดหลังๆ สูง เพื่อป้องกันผู้รับเหมาทิ้งงาน
-     * ตัวเลขเงินงวด (% หรือ amount) ในแต่ละงวด "ไม่ใช่" ต้นทุนจริงของกิจกรรมที่ส่งมอบในงวดนั้น!
-     * ⚠️ ห้ามเด็ดขาด (STRICTLY FORBIDDEN): ห้ามนำยอดเงินงวด (amount) ของแต่ละงวด มาเฉลี่ยหรือยัดใส่กิจกรรมงานในงวดนั้นเด็ดขาด!
-   
-   - **เอกสาร BOQ / ปร.4 / ปร.5 / ปร.6**:
-     * คือ "แหล่งความจริงแห่งเดียว (Single Source of Truth)" สำหรับกำหนดชื่องานและต้นทุน (task.cost)!
-     * ตัวอย่างข้อผิดพลาดที่ห้ามทำเด็ดขาด:
-       ❌ ห้ามทำ: งวดที่ 8 เบิกเงิน 12% เป็นเงิน 2,907,324 บาท โดยสัญญาระบุส่งมอบงานเดินสายสัญญาณโทรศัพท์ แล้วไปตั้งค่างาน "เดินสายสัญญาณโทรศัพท์ = 2,907,324 บาท" -> ผิดหลักวิศวกรรมอย่างร้ายแรง!
-       ✅ ที่ถูกต้อง: ใน BOQ งานเดินสายสัญญาณและระบบโทรศัพท์ มีมูลค่าจริงเพียง 150,000 - 350,000 บาท กิจกรรม "งานระบบสายสัญญาณ" ต้องมี cost = 150,000 - 350,000 บาทเท่านั้น! ส่วนเงินงวด 2.9 ล้านคือเงินเบิกจ่ายสะสมของสัญญา!
-       ❌ ห้ามทำ: งวดสุดท้ายส่งมอบงาน As-built drawing และทำความสะอาด แล้วตั้งค่างาน As-built = 1,407,324 บาท -> ผิดหลักวิศวกรรมอย่างร้ายแรง!
-       ✅ ที่ถูกต้อง: งานทำความสะอาด As-built Drawing ใน BOQ มีมูลค่าเพียง 50,000 - 150,000 บาทเท่านั้น!
+1. 🚫 ห้ามแตกกิจกรรมแบบเหมารวมหยาบๆ เด็ดขาด! (STRICTLY FORBIDDEN COARSE TASKS):
+   - ❌ ห้ามสร้างกิจกรรมเดียวว่า "งานโครงสร้าง คสล. อาคารสำนักงานและอาคารอยู่เวร" แล้วใส่ 60 วันเด็ดขาด!
+   - วิศวกรหน้างานไม่สามารถใช้คุมงานหรือตรวจรับความก้าวหน้ารายสัปดาห์ได้เลยถ้ากิจกรรมไม่ไล่ระดับขั้นตอน!
+   - ✅ ต้องแตกย่อยและไล่ระดับขั้นตอนงานก่อสร้างจริง (Sequential Construction Hierarchy) ทั้งโครงการอย่างน้อย 22 - 32 กิจกรรมเสมอ!
 
-2. สัจธรรมสัดส่วนต้นทุนวิศวกรรมก่อสร้าง (Engineering Cost Breakdown):
-   - งานที่มีเนื้องานและค่าวัสดุก้อนใหญ่ (โครงสร้าง คสล., เสาเข็ม, ก่ออิฐฉาบปูน, ระบบไฟฟ้า M&E, งานถนนภายนอก) จะต้องมีสัดส่วนมูลค่ามากที่สุดในโครงการ
-   - หากใน BOQ มีรายละเอียดตัวเลข ให้ยึดตัวเลขตาม BOQ 100%
-   - หากเอกสาร BOQ ที่แนบมาเป็นเพียงภาพรวมหรือสรุปหมวด ให้กระจายต้นทุนตามสัดส่วน Benchmark วิศวกรรมมาตรฐาน:
-     * งานเตรียมพื้นที่ วางผัง และงานชั่วคราว: 1 - 2% (~250k - 500k)
-     * งานเสาเข็มและดินขุด/ฐานราก: 10 - 15% (~2.5M - 3.6M)
-     * งานโครงสร้าง คสล. ชั้น 1, 2 และโครงสร้างหลังคา: 28 - 35% (~6.8M - 8.5M)
-     * งานสถาปัตยกรรม (งานก่อฉาบ, ผิวพื้น, ผนัง, ฝ้าเพดาน, ประตูหน้าต่าง, ทาสี): 22 - 28% (~5.3M - 6.8M)
-     * งานระบบไฟฟ้ากำลัง แสงสว่าง และหม้อแปลง: 7 - 10% (~1.7M - 2.4M)
-     * งานระบบสุขาภิบาล บำบัดน้ำเสีย และประปา: 5 - 8% (~1.2M - 1.9M)
-     * งานระบบปรับอากาศและระบายอากาศ (ถ้ามี): 4 - 7%
-     * งานระบบสื่อสาร สายสัญญาณ โทรศัพท์ และแจ้งเหตุเพลิงไหม้: 1 - 2% (200,000 - 450,000 บาทเท่านั้น!)
-     * งานถนน คอนกรีต รางระบายน้ำ ท่อระบายน้ำ บ่อพัก และรั้วรอบโครงการ: 8 - 14% (~2.0M - 3.4M)
-     * งานทำความสะอาด ทดสอบระบบ และจัดทำแบบ As-built: 0.3 - 0.5% (60,000 - 120,000 บาทเท่านั้น!)
+2. 📐 ลำดับขั้นการแตกกิจกรรม WBS ทางวิศวกรรมอาคารที่ต้องมี (MANDATORY ENGINEERING WBS HIERARCHY):
+   หมวดที่ 1: งานเตรียมการและงานเสาเข็ม
+   - งานเตรียมพื้นที่ วางผัง จัดทำรั้วชั่วคราว และอาคารชั่วคราว (10-15 วัน)
+   - งานเจาะสำรวจดิน ตอก/เจาะเสาเข็ม และทดสอบกำลังรับน้ำหนักเสาเข็ม (20-28 วัน)
+   - งานขุดดิน ตัดหัวเสาเข็ม ทรายหยาบ และเทคอนกรีตหยาบรองก้นหลุม (10-15 วัน)
 
-3. ความสัมพันธ์ทางคณิตศาสตร์:
-   - ผลรวมของ milestone.amount ทั้งหมดทั้งโครงการ = ${targetAmount} บาท (100%)
-   - ผลรวมของ task.cost ทั้งหมดทั้งโครงการ = ${targetAmount} บาท (100%)
-   - ⚠️ ในแต่ละงวด: ผลรวมของ task.cost ในงวดนั้น "ไม่ต้องเท่ากับ" milestone.amount ของงวดนั้น! เพราะเงินงวดคือเงินเบิกจ่าย ส่วน task cost คือต้นทุนวิศวกรรมจริงจาก BOQ
+   หมวดที่ 2: งานโครงสร้าง คสล. ใต้ดินและชั้นล่าง
+   - งานโครงสร้างฐานราก คสล. และเสาตอม่อ (20-25 วัน)
+   - งานคานคอดิน ถมดินบดอัด วางท่อกำจัดปลวก และพื้น คสล. ชั้น 1 (25-30 วัน)
 
-4. ระยะเวลากิจกรรม (Duration) และ Critical Path Method (CPM):
-   - ⚠️ ห้ามใส่ระยะเวลา 20 วัน หรือตัวเลขเดียวกันทุกงานโดยเด็ดขาด!
-   - ระยะเวลาทำงานต้องสะท้อนหน้างานจริง:
-     * งานเตรียมพื้นที่ วางผัง: 7 - 15 วัน
-     * งานเสาเข็มและทดสอบกำลัง: 14 - 25 วัน
-     * งานฐานราก ตอม่อ คานคอดิน: 20 - 35 วัน
-     * งานโครงสร้างชั้น 1 และ ชั้น 2: 25 - 40 วันต่อชั้น
-     * งานโครงสร้างหลังคาและมุงหลังคา: 15 - 25 วัน
-     * งานก่ออิฐและกรีดฝังท่อ: 30 - 50 วัน (ทำคู่ขนาน)
-     * งานฉาบปูนภายในและภายนอก: 25 - 40 วัน
-     * งานเดินสายเมนไฟฟ้าและท่อประปาหลัก: 30 - 60 วัน (ทำคู่ขนาน)
-     * งานฝ้าเพดาน ปูกระเบื้อง: 20 - 35 วัน
-     * งานติดตั้งอุปกรณ์ไฟฟ้า ดวงโคม และสุขภัณฑ์: 15 - 25 วัน
-     * งานเดินสายสัญญาณและโทรศัพท์: 10 - 20 วัน
-     * งานถนนคอนกรีตและระบายน้ำภายนอก: 25 - 45 วัน
-     * งานทำความสะอาด As-built: 7 - 12 วัน
-   - การคิดระยะเวลารวมโครงการ ${targetDays} วัน เป็นแบบ CPM (งานสถาปัตย์ งานระบบ และงานภายนอก สามารถเริ่มทำคู่ขนาน Overlapping ไปกับงานโครงสร้างได้ ไม่ใช่ต่อคิวเส้นตรง)
-   - predecessors: ระบุรหัส WBS ของงานก่อนหน้าตามลำดับจริง เช่น "1.1", "1.2", "2.1" หรือใส่ null หากเป็นงานเริ่มต้น
+   หมวดที่ 3: งานโครงสร้าง คสล. ชั้นบนและโครงหลังคา
+   - งานเสา คสล. ชั้น 1 และคาน-พื้น คสล. ชั้น 2 (25-30 วัน)
+   - งานเสา คสล. ชั้น 2 และคานรับหลังคา คสล. (15-20 วัน)
+   - งานติดตั้งโครงสร้างเหล็กหลังคา ทาสีกันสนิม (20-25 วัน)
+   - งานมุงแผ่นหลังคา ติดตั้งฉนวนกันความร้อน และรางระบายน้ำฝน (15-20 วัน)
 
-5. โครงสร้างกิจกรรม WBS (Tasks):
-   - แตกกิจกรรมให้สมจริงและครอบคลุมงานก่อสร้างทั้งโครงการ (รวมทั้งสิ้นประมาณ 18 - 32 กิจกรรม เฉลี่ยงวดละ 2 - 4 กิจกรรม)
-   - ระบุ milestone_no บนแต่ละกิจกรรม เพื่อบ่งชี้ว่างานนี้สัมพันธ์กับงวดงานส่งมอบที่เท่าไหร่
+   หมวดที่ 4: งานสถาปัตยกรรม (เนื้องานจริง)
+   - งานก่ออิฐผนัง ติดตั้งเสาเอ็น-ทับหลัง และติดตั้งวงกบประตูหน้าต่าง (25-35 วัน)
+   - งานเดินท่อร้อยสายไฟฟ้าและท่อประปาฝังผนัง (Rough-in) (15-20 วัน ทำคู่ขนาน)
+   - งานฉาบปูนผนังภายในและภายนอกอาคาร (25-30 วัน)
+   - งานติดตั้งโครงคร่าวฝ้าเพดาน และกรุแผ่นยิปซัม/แผ่นฝ้าชายคา (20-25 วัน)
+   - งานปูกระเบื้องพื้น ปูกระเบื้องผนังห้องน้ำ และบัวเชิงผนัง (20-25 วัน)
+   - งานติดตั้งกรอบบานประตู-หน้าต่าง อลูมิเนียม และกระจก (15-20 วัน)
+   - งานติดตั้งสุขภัณฑ์และอุปกรณ์ประกอบห้องน้ำ (15-20 วัน)
+   - งานทาสีรองพื้นและทาสีน้ำอะคริลิกจริงภายใน-ภายนอก (20-25 วัน)
 
-ตอบกลับเป็น JSON เท่านั้น ตามโครงสร้างนี้ (ห้ามใส่ Markdown หรือข้อความเกริ่นนำ):
+   หมวดที่ 5: งานระบบวิศวกรรมประกอบอาคาร (M&E)
+   - งานเดินท่อเมนประปา ท่อระบายน้ำทิ้ง และติดตั้งถังบำบัดน้ำเสีย (20-25 วัน)
+   - งานเดินสายเมนไฟฟ้า ติดตั้งตู้ MDB, แผงย่อย และระบบส่องสว่าง/เต้ารับ (25-30 วัน)
+   - งานระบบสายดิน (Grounding) และระบบป้องกันฟ้าผ่า (15 วัน)
+   - งานระบบสื่อสาร สายสัญญาณ LAN, โทรศัพท์ และระบบแจ้งเหตุเพลิงไหม้ (15-20 วัน)
+   - งานติดตั้งระบบปรับอากาศและพัดลมระบายอากาศ (HVAC) (20 วัน)
+
+   หมวดที่ 6: งานผังบริเวณและภูมิทัศน์ภายนอก
+   - งานวางท่อระบายน้ำ คสล. บ่อพักน้ำฝน และบ่อดักไขมันภายนอก (20-25 วัน)
+   - งานถนน คสล. คันหิน ทางเท้า และลานจอดรถ คสล. (25-35 วัน)
+   - งานก่อสร้างรั้ว คสล. รอบโครงการ และประตูเลื่อนทางเข้า (20 วัน)
+
+   หมวดที่ 7: งานทดสอบระบบและส่งมอบโครงการ
+   - งานทดสอบระบบไฟฟ้า สุขาภิบาล และระบบความปลอดภัย (Commissioning) (10 วัน)
+   - งานทำความสะอาดพื้นที่ เก็บรายละเอียด และจัดทำแบบ As-built Drawing (7-10 วัน)
+
+3. 💰 กฎการกำหนดมูลค่างาน (Cost Allocation from BOQ):
+   - แยกขาดระหว่าง "เงินงวดสัญญา (Disbursement)" กับ "ต้นทุนงานจริง (Task Cost from BOQ)"
+   - ⚠️ ห้ามเด็ดขาด: ห้ามนำยอดเงินงวดสัญญา (เช่น งวด 8 จ่าย 2.9 ล้าน) มาใส่ในงานสายสัญญาณโทรศัพท์!
+   - งานสายสัญญาณ LAN/โทรศัพท์ มีต้นทุนใน BOQ เพียง 250,000 - 350,000 บาทเท่านั้น!
+   - งานทำความสะอาด As-built มีต้นทุนใน BOQ เพียง 50,000 - 80,000 บาทเท่านั้น!
+   - งานโครงสร้าง คสล., ฐานราก, สถาปัตย์, ระบบไฟฟ้าหลัก, งานถนน คสล. ต้องได้มูลค่าก้อนใหญ่ตามความเป็นจริง!
+   - ผลรวมของ task.cost ทุกงานรวมกันทั้งโครงการ = ${targetAmount > 0 ? targetAmount : 'วงเงินสัญญารวม'} บาท (100%)
+   - ผลรวมของ milestone.amount ทุกงวดรวมกันทั้งโครงการ = ${targetAmount > 0 ? targetAmount : 'วงเงินสัญญารวม'} บาท (100%)
+
+4. ⏱️ การจัดสายงานวิกฤต (CPM) และ Predecessors:
+   - ห้ามใส่ 20 วันเท่ากันทุกงาน!
+   - predecessors ต้องเชื่อมโยงตามลำดับวิศวกรรมจริง เช่น 1.1 -> 1.2 -> 1.3 -> 2.1 -> 2.2 -> 2.3 เป็นต้น
+
+ตอบกลับเป็น JSON เท่านั้น (ห้ามใส่ Markdown หรือข้อความเกริ่นนำใดๆ):
 {
   "milestones": [
     {
       "milestone_no": 1,
       "name": "งวดที่ 1",
-      "work_scope": "จัดทำผังบริเวณ ก่อสร้างรั้วชั่วคราว และตอกเสาเข็มแล้วเสร็จ",
+      "work_scope": "ขอบเขตงานงวดที่ 1...",
       "percentage": 5.0,
       "amount": 1211385,
-      "expected_days": 25
-    },
-    {
-      "milestone_no": 8,
-      "name": "งวดที่ 8",
-      "work_scope": "ติดตั้งระบบไฟฟ้าแสงสว่าง สุขภัณฑ์ และเดินสายสัญญาณโทรศัพท์แล้วเสร็จ",
-      "percentage": 12.0,
-      "amount": 2907324,
-      "expected_days": 180
+      "expected_days": 30
     }
   ],
   "tasks": [
     {
       "wbs_no": "1.1",
-      "name": "งานเตรียมพื้นที่ วางผังโครงการ และรั้วชั่วคราว",
+      "name": "งานเตรียมพื้นที่ วางผัง จัดทำรั้วชั่วคราว และสำนักงานสนาม",
       "milestone_no": 1,
-      "duration": 10,
-      "cost": 250000,
+      "duration": 12,
+      "cost": 350000,
       "predecessors": null
     },
     {
       "wbs_no": "1.2",
-      "name": "งานตอกเสาเข็มคอนกรีตอัดแรงและทดสอบกำลัง",
+      "name": "งานเจาะสำรวจดิน ตอกเสาเข็ม และทดสอบกำลังรับน้ำหนัก",
       "milestone_no": 1,
-      "duration": 20,
-      "cost": 1850000,
-      "predecessors": "1.1"
-    },
-    {
-      "wbs_no": "8.1",
-      "name": "งานติดตั้งดวงโคมไฟฟ้า สวิตช์ และเต้ารับ",
-      "milestone_no": 8,
       "duration": 25,
-      "cost": 650000,
-      "predecessors": "7.2"
-    },
-    {
-      "wbs_no": "8.2",
-      "name": "งานระบบสื่อสาร สายสัญญาณ และโทรศัพท์",
-      "milestone_no": 8,
-      "duration": 15,
-      "cost": 280000,
-      "predecessors": "8.1"
+      "cost": 1250000,
+      "predecessors": "1.1"
     }
   ]
 }`
@@ -323,94 +299,204 @@ ${milestoneExtractedText.trim() ? milestoneExtractedText : '(ไม่มีเ�
       }
     }
 
-    // Process tasks and map to milestones
-    let finalTasks = rawTasks.map((t: any, idx: number) => {
-      const wbsNo = String(t.wbs_no || `${t.milestone_no || 1}.${idx + 1}`).trim()
-      const name = String(t.name || `กิจกรรมที่ ${wbsNo}`).trim()
-      const dur = Math.max(1, Number(t.duration) || 7)
-      let cost = Math.max(0, Number(t.cost) || 0)
-      const predecessors = t.predecessors ? String(t.predecessors).trim() : null
+    // 🏗️ CIVIL ENGINEERING WBS DECOMPOSITION ENGINE:
+    // หาก AI แตกงานหยาบเกินไป (เช่น รวบเป็น 1 งานต่องวด หรือมีงานโครงสร้าง คสล. ก้อนเดียว 60 วัน)
+    // ระบบจะทำการแตกย่อยเป็นขั้นตอนก่อสร้างจริงทันที เพื่อให้วิศวกรใช้คุมงานได้จริง 100%
+    const decomposeCoarseTasks = (tasks: any[]) => {
+      const output: any[] = []
 
-      return {
-        wbs_no: wbsNo,
-        name,
-        milestone_no: Number(t.milestone_no) || 1,
-        duration: dur,
-        cost,
-        predecessors,
+      for (const t of tasks) {
+        const name = String(t.name || '').trim()
+        const m = Number(t.milestone_no) || 1
+        const c = Math.max(0, Number(t.cost) || 0)
+        const dur = Math.max(1, Number(t.duration) || 20)
+
+        // 1. งานโครงสร้าง คสล. เหมารวม
+        if (/โครงสร้าง.*คสล/i.test(name) && !/ฐานราก|ตอม่อ|คานคอดิน|ชั้น\s*[12]/i.test(name)) {
+          output.push(
+            { name: 'งานโครงสร้างฐานราก คสล. และเสาตอม่อ', milestone_no: m, duration: 25, cost: Math.round(c * 0.28) },
+            { name: 'งานคานคอดิน และพื้น คสล. ชั้น 1', milestone_no: m, duration: 25, cost: Math.round(c * 0.30) },
+            { name: 'งานเสา คสล. ชั้น 1 และคาน-พื้น คสล. ชั้น 2', milestone_no: m, duration: 30, cost: Math.round(c * 0.27) },
+            { name: 'งานเสา คสล. ชั้น 2 และคานรับหลังคา คสล.', milestone_no: m, duration: 20, cost: Math.round(c * 0.15) }
+          )
+          continue
+        }
+
+        // 2. งานโครงสร้างหลังคาและมุงหลังคา เหมารวม
+        if ((/โครงสร้างหลังคา/i.test(name) && /มุงหลังคา/i.test(name)) || (/หลังคา/i.test(name) && /มุง/i.test(name))) {
+          output.push(
+            { name: 'งานติดตั้งโครงสร้างเหล็กหลังคา และทาสีกันสนิม', milestone_no: m, duration: 25, cost: Math.round(c * 0.55) },
+            { name: 'งานมุงแผ่นหลังคา ติดตั้งฉนวนกันความร้อน และรางระบายน้ำฝน', milestone_no: m, duration: 20, cost: Math.round(c * 0.45) }
+          )
+          continue
+        }
+
+        // 3. งานก่ออิฐ ฉาบปูน ฝ้าเพดาน เหมารวม
+        if ((/ก่ออิฐ/i.test(name) && /ฉาบปูน/i.test(name)) || (/ก่ออิฐ/i.test(name) && /ฝ้า/i.test(name))) {
+          output.push(
+            { name: 'งานก่ออิฐผนัง ติดตั้งเสาเอ็น-ทับหลัง และติดตั้งวงกบประตูหน้าต่าง', milestone_no: m, duration: 30, cost: Math.round(c * 0.45) },
+            { name: 'งานเดินท่อร้อยสายไฟฟ้าและท่อประปาฝังผนัง (Rough-in)', milestone_no: m, duration: 20, cost: Math.round(c * 0.15) },
+            { name: 'งานฉาบปูนผนังภายในและภายนอกอาคาร', milestone_no: m, duration: 25, cost: Math.round(c * 0.40) }
+          )
+          continue
+        }
+
+        // 4. งานตกแต่งพื้น ผนัง ประตูหน้าต่าง เหมารวม
+        if ((/พื้น/i.test(name) && /ผนัง/i.test(name) && /ประตู/i.test(name)) || (/ปูกระเบื้อง/i.test(name) && /ประตู/i.test(name))) {
+          output.push(
+            { name: 'งานติดตั้งโครงคร่าวฝ้าเพดาน และกรุแผ่นยิปซัมบอร์ด/แผ่นฝ้าชายคา', milestone_no: m, duration: 20, cost: Math.round(c * 0.30) },
+            { name: 'งานปูกระเบื้องพื้น ปูกระเบื้องผนังห้องน้ำ และบัวเชิงผนัง', milestone_no: m, duration: 25, cost: Math.round(c * 0.45) },
+            { name: 'งานติดตั้งกรอบบานประตู-หน้าต่าง อลูมิเนียม และกระจก', milestone_no: m, duration: 20, cost: Math.round(c * 0.25) }
+          )
+          continue
+        }
+
+        // 5. งานทาสีและติดตั้งสุขภัณฑ์ เหมารวม
+        if (/ทาสี/i.test(name) && /สุขภัณฑ์/i.test(name)) {
+          output.push(
+            { name: 'งานติดตั้งสุขภัณฑ์และอุปกรณ์ประกอบห้องน้ำ', milestone_no: m, duration: 20, cost: Math.round(c * 0.45) },
+            { name: 'งานทาสีรองพื้นและทาสีน้ำอะคริลิกจริงภายใน-ภายนอก', milestone_no: m, duration: 25, cost: Math.round(c * 0.55) }
+          )
+          continue
+        }
+
+        // 6. งานระบบไฟฟ้าและสุขาภิบาล เหมารวม
+        if (/ไฟฟ้า/i.test(name) && /สุขาภิบาล/i.test(name)) {
+          output.push(
+            { name: 'งานเดินท่อเมนประปา ท่อระบายน้ำทิ้ง และติดตั้งถังบำบัดน้ำเสีย', milestone_no: m, duration: 25, cost: Math.round(c * 0.35) },
+            { name: 'งานเดินสายเมนไฟฟ้า ติดตั้งตู้ MDB, แผงย่อย และระบบส่องสว่าง/เต้ารับ', milestone_no: m, duration: 30, cost: Math.round(c * 0.50) },
+            { name: 'งานระบบสายดิน (Grounding) และระบบป้องกันฟ้าผ่า', milestone_no: m, duration: 15, cost: Math.round(c * 0.15) }
+          )
+          continue
+        }
+
+        // 7. งานระบบสายสัญญาณและโทรศัพท์ (มักมาจากงวดเงิน 12% 2.9 ล้าน)
+        if (/สายสัญญาณ.*โทรศัพท์|โทรคมนาคม/i.test(name)) {
+          output.push(
+            { name: 'งานติดตั้งดวงโคมไฟแสงสว่าง สวิตช์ เต้ารับ และอุปกรณ์ไฟฟ้าปลายทาง', milestone_no: m, duration: 25, cost: Math.round(c * 0.60) },
+            { name: 'งานระบบสื่อสาร สายสัญญาณ LAN, โทรศัพท์ และระบบแจ้งเหตุเพลิงไหม้', milestone_no: m, duration: 15, cost: Math.min(350000, Math.round(c * 0.15)) },
+            { name: 'งานติดตั้งระบบปรับอากาศและพัดลมระบายอากาศ (HVAC)', milestone_no: m, duration: 20, cost: Math.round(c * 0.25) }
+          )
+          continue
+        }
+
+        // 8. งานระบบสื่อสารและตกแต่งภายใน เหมารวม
+        if (/สื่อสาร.*ตกแต่งภายใน/i.test(name)) {
+          output.push(
+            { name: 'งานตกแต่งภายใน เคาน์เตอร์บริการ บิลท์อิน และป้ายบอกทางอาคาร', milestone_no: m, duration: 25, cost: Math.round(c * 0.65) },
+            { name: 'งานติดตั้งระบบกล้องวงจรปิด CCTV และระบบควบคุมการเข้า-ออก (Access Control)', milestone_no: m, duration: 20, cost: Math.round(c * 0.35) }
+          )
+          continue
+        }
+
+        // 9. งานถนน คสล. ระบบระบายน้ำ และภูมิทัศน์ เหมารวม
+        if (/ถนน/i.test(name) && /ระบายน้ำ/i.test(name)) {
+          output.push(
+            { name: 'งานวางท่อระบายน้ำ คสล. บ่อพักน้ำฝน และบ่อดักไขมันภายนอก', milestone_no: m, duration: 25, cost: Math.round(c * 0.35) },
+            { name: 'งานถนน คสล. คันหิน ทางเท้า และลานจอดรถ คสล.', milestone_no: m, duration: 30, cost: Math.round(c * 0.45) },
+            { name: 'งานก่อสร้างรั้ว คสล. รอบโครงการ และประตูเลื่อนทางเข้า', milestone_no: m, duration: 20, cost: Math.round(c * 0.20) }
+          )
+          continue
+        }
+
+        // 10. งานเก็บรายละเอียด ทำความสะอาด และ As-built
+        if (/เก็บรายละเอียด|ทำความสะอาด|as[- ]?built/i.test(name)) {
+          output.push(
+            { name: 'งานทดสอบระบบไฟฟ้า สุขาภิบาล และระบบความปลอดภัย (Commissioning)', milestone_no: m, duration: 10, cost: 70000 },
+            { name: 'งานทำความสะอาดพื้นที่ เก็บรายละเอียด และจัดทำแบบ As-built Drawing', milestone_no: m, duration: 10, cost: 50000 }
+          )
+          continue
+        }
+
+        output.push({
+          name,
+          milestone_no: m,
+          duration: dur,
+          cost: c,
+        })
       }
+
+      return output
+    }
+
+    // รัน Decomposition
+    let decomposedTasks = decomposeCoarseTasks(rawTasks)
+    if (decomposedTasks.length < 15) {
+      decomposedTasks = decomposeCoarseTasks(decomposedTasks)
+    }
+
+    // จัดเรียง WBS Number และเชื่อมโยง Predecessors ตามลำดับขั้นตอนวิศวกรรม CPM
+    const milestoneMap = new Map<number, any[]>()
+    decomposedTasks.forEach((t) => {
+      const m = t.milestone_no || 1
+      if (!milestoneMap.has(m)) milestoneMap.set(m, [])
+      milestoneMap.get(m)!.push(t)
     })
 
-    // 🛡️ ENGINEERING SANITY GUARDRAILS (วิศวกรรมคุ้มกันข้อผิดพลาด):
-    // ป้องกันกรณี AI พลาดเอายอดเงินงวดหลายล้านมายัดใส่งานย่อยเฉพาะทาง
+    const sortedMilestones = Array.from(milestoneMap.keys()).sort((a, b) => a - b)
+    let previousLastWbs: string | null = null
+    const finalTasks: any[] = []
+
+    for (const m of sortedMilestones) {
+      const mTasks = milestoneMap.get(m)!
+      mTasks.forEach((t, idx) => {
+        const wbs = `${m}.${idx + 1}`
+        const pred = idx === 0 ? previousLastWbs : `${m}.${idx}`
+        finalTasks.push({
+          wbs_no: wbs,
+          name: t.name,
+          milestone_no: m,
+          duration: Math.max(7, Number(t.duration) || 20),
+          cost: Math.max(0, Number(t.cost) || 0),
+          predecessors: pred,
+        })
+      })
+      if (mTasks.length > 0) {
+        previousLastWbs = `${m}.${mTasks.length}`
+      }
+    }
+
+    // 🛡️ ENGINEERING COST BALANCING & SCALING:
+    // ล็อคเพดานงานย่อยเฉพาะทางให้สมเหตุสมผลตาม BOQ และเกลี่ยเงินส่วนที่เหลือให้งานโครงสร้าง/สถาปัตย์
     if (finalTasks.length > 0 && targetAmount > 0) {
+      // 1. Lock fixed caps for small specialized trades
       finalTasks.forEach((t: any) => {
         const lowerName = t.name.toLowerCase()
-        // 1. As-built / Cleaning / Final Handover: ไม่ควรเกิน 0.6% หรือ 150,000 บาท
-        if (/as[- ]?built|ทำความสะอาด|เก็บรายละเอียด|ส่งมอบงาน/i.test(lowerName)) {
-          const maxAllowed = Math.min(150000, Math.round(targetAmount * 0.006))
-          if (t.cost > maxAllowed) {
-            t.cost = maxAllowed
-          }
-        }
-        // 2. Telecom / Telephone / Signal Cabling: ไม่ควรเกิน 1.8% หรือ 450,000 บาท
-        if (/สายสัญญาณ|โทรศัพท์|lan|network|โทรคมนาคม|สายนำสัญญาณ/i.test(lowerName)) {
-          const maxAllowed = Math.min(450000, Math.round(targetAmount * 0.018))
-          if (t.cost > maxAllowed) {
-            t.cost = maxAllowed
-          }
-        }
-        // 3. Site Prep / Temporary Work: ไม่ควรเกิน 2.5% หรือ 600,000 บาท
-        if (/เตรียมพื้นที่|วางผัง|รั้วชั่วคราว|รื้อถอน/i.test(lowerName)) {
-          const maxAllowed = Math.min(600000, Math.round(targetAmount * 0.025))
-          if (t.cost > maxAllowed) {
-            t.cost = maxAllowed
-          }
+        if (/as[- ]?built|ทำความสะอาด|เก็บรายละเอียด/i.test(lowerName)) {
+          t.cost = Math.min(80000, t.cost || 50000)
+        } else if (/commissioning|ทดสอบระบบ/i.test(lowerName)) {
+          t.cost = Math.min(100000, t.cost || 70000)
+        } else if (/สายสัญญาณ|โทรศัพท์|lan|network|โทรคมนาคม|สายนำสัญญาณ/i.test(lowerName)) {
+          t.cost = Math.min(350000, t.cost || 300000)
         }
       })
 
-      // ปรับจูนสัดส่วนยอดรวม Tasks ให้เท่ากับ 100% ของ targetAmount พอดี โดยคงสัดส่วน BOQ ไว้
-      const currentTaskSum = finalTasks.reduce((acc: number, curr: any) => acc + curr.cost, 0)
-      if (currentTaskSum > 0) {
-        const scale = targetAmount / currentTaskSum
-        let runningSum = 0
-        let maxTaskIdx = 0
+      // 2. Scale remaining major tasks proportionally to hit targetAmount 100% exact
+      const isFixedTrade = (name: string) => /as[- ]?built|ทำความสะอาด|เก็บรายละเอียด|commissioning|ทดสอบระบบ|สายสัญญาณ|โทรศัพท์/i.test(name)
+      const fixedSum = finalTasks.filter((t: any) => isFixedTrade(t.name)).reduce((s: number, t: any) => s + t.cost, 0)
+      const scalableTasks = finalTasks.filter((t: any) => !isFixedTrade(t.name))
+      const scalableSum = scalableTasks.reduce((s: number, t: any) => s + t.cost, 0)
+
+      if (scalableSum > 0) {
+        const remainingTarget = targetAmount - fixedSum
+        const scale = remainingTarget / scalableSum
+        let running = fixedSum
+        let maxIdx = 0
         let maxCost = 0
 
-        finalTasks.forEach((t: any, idx: number) => {
+        scalableTasks.forEach((t: any, idx: number) => {
           t.cost = Math.round(t.cost * scale)
-          runningSum += t.cost
+          running += t.cost
           if (t.cost > maxCost) {
             maxCost = t.cost
-            maxTaskIdx = idx
+            maxIdx = idx
           }
         })
 
-        const diff = targetAmount - runningSum
-        if (diff !== 0 && finalTasks[maxTaskIdx]) {
-          finalTasks[maxTaskIdx].cost += diff
+        const diff = targetAmount - running
+        if (diff !== 0 && scalableTasks[maxIdx]) {
+          scalableTasks[maxIdx].cost += diff
         }
-      }
-
-      // ตรวจสอบ duration: หาก AI เกลี่ยตัวเลขเดิมทุกงาน (เช่น 20 วันเท่ากันหมด) ให้เกลี่ยตามหลักวิศวกรรม
-      const durations = finalTasks.map((t: any) => t.duration)
-      const isAllSameDuration = durations.length > 3 && durations.every((d: number) => d === durations[0])
-      if (isAllSameDuration) {
-        finalTasks.forEach((t: any) => {
-          const lowerName = t.name.toLowerCase()
-          if (/as[- ]?built|ทำความสะอาด|เก็บรายละเอียด/i.test(lowerName)) t.duration = 10
-          else if (/เตรียมพื้นที่|วางผัง|รั้ว/i.test(lowerName)) t.duration = 12
-          else if (/เสาเข็ม/i.test(lowerName)) t.duration = 20
-          else if (/ฐานราก|ตอม่อ|คานคอดิน/i.test(lowerName)) t.duration = 25
-          else if (/โครงสร้าง/i.test(lowerName)) t.duration = 30
-          else if (/หลังคา/i.test(lowerName)) t.duration = 20
-          else if (/ก่ออิฐ|ฉาบปูน/i.test(lowerName)) t.duration = 35
-          else if (/ไฟฟ้า|ประปา|สุขาภิบาล/i.test(lowerName)) t.duration = 30
-          else if (/สายสัญญาณ|โทรศัพท์/i.test(lowerName)) t.duration = 15
-          else if (/ปูกระเบื้อง|ฝ้า/i.test(lowerName)) t.duration = 25
-          else if (/ถนน|ระบายน้ำภายนอก/i.test(lowerName)) t.duration = 35
-          else t.duration = 20
-        })
       }
     }
 

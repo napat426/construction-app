@@ -236,26 +236,33 @@ export async function saveSupervisorTask(task: Partial<SupervisorTask> & { super
     const cleanIssueDetail = task.issue_detail ? String(task.issue_detail).trim() : null
     const cleanIssueSolution = task.issue_solution ? String(task.issue_solution).trim() : null
 
-    if (task.id) {
-      // Update
-      storage.tasks = storage.tasks.map((t) =>
-        t.id === task.id
-          ? {
-              ...t,
-              ...task,
-              title: cleanTitle,
-              description: cleanDescription,
-              issue_detail: cleanIssueDetail,
-              issue_solution: cleanIssueSolution,
-              group_id: resolvedGroupId,
-              updated_at: now,
-            }
-          : t
+    const taskId = task.id || `task-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+
+    // Find existing task by ID first; if ID mismatch occurs (e.g. from optimistic ID), fallback to matching supervisor + exact title
+    let existingIndex = storage.tasks.findIndex((t) => t.id === taskId)
+    if (existingIndex === -1 && task.id) {
+      existingIndex = storage.tasks.findIndex(
+        (t) => t.supervisor === task.supervisor && t.title === cleanTitle
       )
+    }
+
+    if (existingIndex !== -1) {
+      // Update existing task
+      storage.tasks[existingIndex] = {
+        ...storage.tasks[existingIndex],
+        ...task,
+        id: storage.tasks[existingIndex].id, // preserve authoritative ID
+        title: cleanTitle,
+        description: cleanDescription,
+        issue_detail: cleanIssueDetail,
+        issue_solution: cleanIssueSolution,
+        group_id: resolvedGroupId,
+        updated_at: now,
+      }
     } else {
       // Create new
       const newTask: SupervisorTask = {
-        id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        id: taskId,
         group_id: resolvedGroupId,
         supervisor: task.supervisor,
         title: cleanTitle,

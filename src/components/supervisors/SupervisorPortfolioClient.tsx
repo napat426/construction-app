@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useTransition } from 'react'
+import React, { useState, useMemo, useTransition, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Building2,
@@ -67,6 +67,14 @@ export function SupervisorPortfolioClient({
   const [groups, setGroups] = useState<SupervisorTaskGroup[]>(initialGroups)
   const [tasks, setTasks] = useState<SupervisorTask[]>(initialTasks)
   const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    setGroups(initialGroups)
+  }, [initialGroups])
+
+  useEffect(() => {
+    setTasks(initialTasks)
+  }, [initialTasks])
 
   // Modals & Active items
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<SupervisorTask | null>(null)
@@ -208,22 +216,27 @@ export function SupervisorPortfolioClient({
 
   // Handle Save Task
   const handleSaveTask = async (taskPayload: any) => {
+    const isEdit = Boolean(taskPayload.id)
+    const payloadWithId = {
+      ...taskPayload,
+      id: taskPayload.id || `task-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    }
+
     startTransition(async () => {
-      await saveSupervisorTask(taskPayload)
       // Optimistic update
       setTasks((prev) => {
-        if (taskPayload.id) {
-          return prev.map((t) => (t.id === taskPayload.id ? { ...t, ...taskPayload } : t))
+        if (isEdit) {
+          return prev.map((t) => (t.id === payloadWithId.id ? { ...t, ...payloadWithId } : t))
         } else {
           const newTask: SupervisorTask = {
-            id: `task-${Date.now()}`,
             sort_order: prev.length + 1,
             created_at: new Date().toISOString(),
-            ...taskPayload,
+            ...payloadWithId,
           }
           return [...prev, newTask]
         }
       })
+      await saveSupervisorTask(payloadWithId)
     })
   }
 
@@ -1311,6 +1324,7 @@ export function SupervisorPortfolioClient({
       {/* Task Create / Edit Modal */}
       {taskModalState.isOpen && (
         <SupervisorTaskModal
+          key={taskModalState.task?.id || 'new-task'}
           initialTask={taskModalState.task}
           groups={supervisorGroups}
           projects={projects}

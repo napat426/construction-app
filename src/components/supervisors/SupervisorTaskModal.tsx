@@ -160,9 +160,25 @@ export function SupervisorTaskModal({
         }),
       })
 
-      const data = await res.json()
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพด้วย AI')
+      const rawText = await res.text()
+      let data: any = null
+      try {
+        data = JSON.parse(rawText)
+      } catch {
+        if (!res.ok) {
+          if (res.status === 504) {
+            throw new Error('ระบบ AI ใช้เวลาประมวลผลเกินกำหนด (Server Timeout) กรุณาลองใหม่อีกครั้ง')
+          }
+          if (res.status === 413) {
+            throw new Error('ขนาดรูปภาพใหญ่เกินกำหนด กรุณาลองใช้รูปภาพที่มีขนาดเล็กลง')
+          }
+          throw new Error(`เซิร์ฟเวอร์ขัดข้องชั่วคราว (HTTP ${res.status}) กรุณาลองใหม่อีกครั้ง`)
+        }
+        throw new Error('ไม่สามารถอ่านข้อมูลผลการวิเคราะห์จาก AI ได้')
+      }
+
+      if (!res.ok || data?.error) {
+        throw new Error(data?.error || `เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพด้วย AI (HTTP ${res.status})`)
       }
 
       if (data.data) {

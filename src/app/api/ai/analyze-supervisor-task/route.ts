@@ -81,10 +81,10 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(apiKey)
     const CANDIDATE_MODELS = [
+      'gemini-2.5-flash',
       'gemini-flash-latest',
-      'gemini-3.8-flash',
-      'gemini-3.7-flash',
-      'gemini-3.6-flash',
+      'gemini-2.5-flash-lite',
+      'gemini-flash-lite-latest',
       'gemini-3.1-flash-lite',
     ]
 
@@ -124,7 +124,7 @@ ${relatedProjectName ? `เกี่ยวข้องกับโครงก�
           const res = await Promise.race([
             model.generateContent([prompt, ...validParts]),
             new Promise((_, reject) =>
-              setTimeout(() => reject(new Error(`Timeout 25s on ${modelName}`)), 25000)
+              setTimeout(() => reject(new Error(`Timeout 10s on ${modelName}`)), 10000)
             ),
           ]) as any
 
@@ -154,7 +154,7 @@ ${relatedProjectName ? `เกี่ยวข้องกับโครงก�
           prompt,
           images: thaiImages,
           temperature: 0.2,
-          timeoutMs: 35000,
+          timeoutMs: 12000,
         })
 
         if (thaiRes) {

@@ -24,12 +24,14 @@ import {
   Loader2,
   CheckCircle2,
   HelpCircle,
+  Sparkles,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { deleteTask, updateTaskProgressQuick } from '@/app/actions/tasks'
 import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
 import { computeTaskDates, computeProjectExtension, countWorkingDays, isDateSuspended, parsePredecessor } from '@/lib/scheduler'
 import type { UserSession } from '@/lib/auth'
+import { AIPlanningModal } from './planning/AIPlanningModal'
 
 export interface DefaultWbsTaskItem {
   wbs_no: string
@@ -201,6 +203,30 @@ export function PlanningClient({
   const [fileName, setFileName] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false)
+
+  const handleSaveAiPlan = async (generatedMilestones: ProjectMilestone[], generatedTasks: any[], mode: 'replace' | 'append') => {
+    // 1. Save milestones
+    if (generatedMilestones && generatedMilestones.length > 0) {
+      const { saveMilestones } = await import('@/app/actions/milestones')
+      const mRes = await saveMilestones(project.id, generatedMilestones)
+      if (mRes?.error) {
+        throw new Error(mRes.error)
+      }
+    }
+
+    // 2. Save tasks
+    if (generatedTasks && generatedTasks.length > 0) {
+      const { importWbsTasksBulk } = await import('@/app/actions/tasks')
+      const tRes = await importWbsTasksBulk(project.id, generatedTasks, mode)
+      if (tRes?.error) {
+        throw new Error(tRes.error)
+      }
+    }
+
+    // Reload page to reflect both new milestones and recalculated Gantt chart
+    window.location.reload()
+  }
 
   const handleDownloadTemplate = () => {
     const listToUse = defaultWbsTasks && defaultWbsTasks.length > 0 ? defaultWbsTasks : FALLBACK_DEFAULT_WBS
@@ -1187,6 +1213,19 @@ export function PlanningClient({
         </div>
 
         <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {/* AI Smart Milestone & WBS Generator Button */}
+          {user && (user.role === 'admin' || user.role === 'editor') && (
+            <button
+              type="button"
+              onClick={() => setIsAiModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-800 transition-all cursor-pointer shadow-xs hover:shadow-sm"
+              title="สร้างงวดงานและแผนงาน WBS อัตโนมัติด้วย AI จาก ปร.5/ปร.6 และเอกสารงวดงาน"
+            >
+              <Sparkles size={14} className="text-amber-300" />
+              <span>AI สร้างแผนงาน & งวดงาน</span>
+            </button>
+          )}
+
           {/* Download Template Button */}
           <button
             type="button"
@@ -2610,6 +2649,14 @@ export function PlanningClient({
           </div>
         </div>
       )}
+
+      {/* AI Smart Milestone & WBS Generator Modal */}
+      <AIPlanningModal
+        project={project}
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        onSavePlan={handleSaveAiPlan}
+      />
     </div>
   )
 }

@@ -861,25 +861,96 @@ export function PlanningClient({
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   @page {
-    size: landscape;
+    size: A4 landscape;
     margin: 8mm 10mm 6mm 10mm;
+  }
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 8mm 10mm 6mm 10mm;
+    }
+    html, body {
+      width: 297mm !important;
+      height: 210mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .page {
+      width: 277mm !important;
+      max-width: 277mm !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
+  @media screen {
+    body {
+      background: #f1f5f9;
+      padding-top: 58px;
+      padding-bottom: 40px;
+    }
+    .page {
+      background: white;
+      width: 277mm;
+      max-width: 96vw;
+      margin: 20px auto;
+      padding: 8mm 10mm;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    .screen-toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #0f172a;
+      color: white;
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      z-index: 9999;
+      font-family: 'Sarabun', sans-serif;
+    }
+    .toolbar-info {
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .print-btn {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 7px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      transition: background 0.15s ease;
+    }
+    .print-btn:hover {
+      background: #4f46e5;
+    }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 9px;
     color: #1e293b;
-    background: white;
-    width: 100%;
-    margin: 0;
-    padding: 0;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
   .page {
-    width: 100%;
-    max-width: 277mm;
-    margin: 0 auto;
     page-break-inside: avoid;
     break-inside: avoid;
   }
@@ -917,9 +988,6 @@ export function PlanningClient({
   .leg-swatch { display: inline-block; width: 10px; height: 8px; border-radius: 1px; }
   .leg-susp { display: inline-block; width: 10px; height: 8px; border-radius: 1px; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjgpIiBzdHJva2Utd2lkdGg9IjIuNSI+PC9wYXRoPjwvc3ZnPg=='); background-color: rgba(239, 68, 68, 0.15); border-left: 1px solid rgba(239, 68, 68, 0.8); border-right: 1px solid rgba(239, 68, 68, 0.8); }
   .leg-today { display: inline-block; width: 0; height: 10px; border-left: 2px dashed #ef4444; }
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
 </style>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
@@ -933,7 +1001,15 @@ export function PlanningClient({
   });
 </script>
 </head>
-<body>${pagesHtml}</body>
+<body>
+  <div class="no-print screen-toolbar">
+    <div class="toolbar-info">
+      <span>📄 <strong>โหมดพิมพ์ Gantt Chart (แนวนอน A4):</strong> ในหน้าต่างพิมพ์ ให้เลือก <strong>การวางแนว (Layout): แนวนอน (Landscape)</strong></span>
+    </div>
+    <button onclick="window.print()" class="print-btn">🖨️ สั่งพิมพ์ (Print)</button>
+  </div>
+  ${pagesHtml}
+</body>
 </html>`
 
     const win = window.open('', '_blank', 'width=1200,height=800')
@@ -988,23 +1064,95 @@ export function PlanningClient({
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   @page {
-    size: landscape;
+    size: A4 landscape;
     margin: 10mm 12mm;
+  }
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 10mm 12mm;
+    }
+    html, body {
+      width: 297mm !important;
+      height: 210mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .page-container {
+      width: 275mm !important;
+      max-width: 275mm !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
+  @media screen {
+    body {
+      background: #f1f5f9;
+      padding-top: 58px;
+      padding-bottom: 40px;
+    }
+    .page-container {
+      background: white;
+      width: 275mm;
+      max-width: 96vw;
+      margin: 20px auto;
+      padding: 12mm 15mm;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    .screen-toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #0f172a;
+      color: white;
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      z-index: 9999;
+      font-family: 'Sarabun', sans-serif;
+    }
+    .toolbar-info {
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .print-btn {
+      background: #6366f1;
+      color: white;
+      border: none;
+      padding: 7px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      transition: background 0.15s ease;
+    }
+    .print-btn:hover {
+      background: #4f46e5;
+    }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: white;
-    width: 100%;
-    margin: 0;
-    padding: 0;
+    color: #1e293b;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
   .page-container {
-    width: 100%;
-    max-width: 275mm;
-    margin: 0 auto;
     page-break-inside: avoid;
     break-inside: avoid;
   }
@@ -1016,9 +1164,6 @@ export function PlanningClient({
   .legend { display: flex; gap: 16px; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #64748b; flex-wrap: wrap; }
   .leg { display: flex; align-items: center; gap: 4px; }
   .note { margin-top: 8px; font-size: 8px; color: #94a3b8; line-height: 1.6; background: #f8fafc; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0; }
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
 </style>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
@@ -1033,6 +1178,12 @@ export function PlanningClient({
 </script>
 </head>
 <body>
+  <div class="no-print screen-toolbar">
+    <div class="toolbar-info">
+      <span>📈 <strong>โหมดพิมพ์ S-Curve (แนวนอน A4):</strong> ในหน้าต่างพิมพ์ ให้เลือก <strong>การวางแนว (Layout): แนวนอน (Landscape)</strong></span>
+    </div>
+    <button onclick="window.print()" class="print-btn">🖨️ สั่งพิมพ์ (Print)</button>
+  </div>
   <div class="page-container">
     <div class="header">
       <div>

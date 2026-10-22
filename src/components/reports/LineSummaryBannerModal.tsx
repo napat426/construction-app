@@ -13,11 +13,11 @@ import {
   Check,
   RefreshCw,
   Edit2,
-  Maximize2,
-  Share2,
   Eye,
   Layers,
-  ChevronDown,
+  Scissors,
+  Type,
+  Columns,
 } from 'lucide-react'
 import { toBlob, toPng } from 'html-to-image'
 import type {
@@ -27,7 +27,7 @@ import type {
   ContractAmendment,
   Inspection,
 } from '@/lib/types'
-import { computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
+import { computeProjectExtension } from '@/lib/scheduler'
 import { compressImage } from '@/lib/image'
 
 interface LineSummaryBannerModalProps {
@@ -51,6 +51,21 @@ interface WorkCategory {
 }
 
 const COMMON_ICONS = ['🛠️', '⚡', '🏗️', '🏢', '🧱', '💧', '🚗', '📋', '⚙️', '🌳']
+
+// Clean verbose BOQ/WBS descriptions into concise executive summaries
+function cleanTaskName(rawName: string): string {
+  return rawName
+    .replace(/^งาน\s*/, '') // Remove redundant "งาน" at start
+    .replace(/\s*และอุปกรณ์ประกอบ.*$/i, '')
+    .replace(/\s*และอุปกรณ์.*$/i, '')
+    .replace(/\s*ทั้งหมด.*$/i, '')
+    .replace(/\s*ตามแบบรูปรายการ.*$/i, '')
+    .replace(/\s*ตามแบบ.*$/i, '')
+    .replace(/\s*และงานอื่นๆ\s*ที่เกี่ยวข้อง.*$/i, '')
+    .replace(/\s*และงานอื่นๆ.*$/i, '')
+    .replace(/\s*รายการที่\s*\d+(\.\d+)*/g, '')
+    .trim()
+}
 
 function formatThaiDateShort(date: Date | string | null | undefined): string {
   if (!date) return '—'
@@ -96,6 +111,11 @@ export function LineSummaryBannerModal({
       ? `รายงานสถานะ${pName}`
       : `รายงานสถานะการก่อสร้าง ${pName}`
   })
+
+  // Font size adjustments (User control: ย่อ/ขยาย ตัวอักษร)
+  const [titleFontSize, setTitleFontSize] = useState<number>(18) // 11px to 28px
+  const [bulletFontSize, setBulletFontSize] = useState<number>(9.5) // 7px to 14px
+  const [columnRatio, setColumnRatio] = useState<'auto' | 'equal' | 'wide-left'>('auto')
 
   const [progressVal, setProgressVal] = useState<number>(() => {
     return Number((actualProgress || 0).toFixed(1))
@@ -163,7 +183,6 @@ export function LineSummaryBannerModal({
 
   // 3. Work Categories State (Civil, Electrical, Overall, etc.)
   const autoDraftCategories = useCallback((): WorkCategory[] => {
-    // Categorize tasks by keywords or work_group
     const civilKeywords = ['โครงสร้าง', 'คสล', 'ฐานราก', 'เสา', 'คาน', 'พื้น', 'อาคาร', 'หลังคา', 'ผนัง', 'ประตู', 'หน้าต่าง', 'ทาสี', 'ถนน', 'ลาน', 'รั้ว', 'ท่อ', 'ระบายน้ำ', 'ดิน', 'เตรียมพื้นที่']
     const elecKeywords = ['ไฟฟ้า', 'เคเบิล', 'สายไฟ', 'หม้อแปลง', 'rmu', 'ground', 'ล่อฟ้า', 'ตู้', 'mdb', 'ส่องสว่าง', 'โคมไฟ', 'วงจร', 'สื่อสาร', 'cctv']
 
@@ -185,15 +204,16 @@ export function LineSummaryBannerModal({
       }
     })
 
-    // Helper to format bullet
+    // Helper to format bullet with clean concise text
     const toBullet = (t: WBSTask) => {
+      const shortName = cleanTaskName(t.name)
       const prog = t.actual_progress ?? 0
       if (prog === 100) {
-        return `${t.name} แล้วเสร็จ 100%`
+        return `${shortName} แล้วเสร็จ 100%`
       } else if (prog > 0) {
-        return `${t.name} แล้วเสร็จ ${prog}%`
+        return `${shortName} แล้วเสร็จ ${prog}%`
       } else {
-        return `${t.name} (เตรียมเข้าดำเนินการ)`
+        return `${shortName} (เตรียมเข้าดำเนินการ)`
       }
     }
 
@@ -368,6 +388,38 @@ export function LineSummaryBannerModal({
     setCategories(categories.map(c => c.id === id ? { ...c, bullets: lines } : c))
   }
 
+  // Auto clean bullets for a specific category
+  const handleCleanCategoryBullets = (id: string) => {
+    setCategories(categories.map(c => {
+      if (c.id !== id) return c
+      const cleaned = c.bullets.map(b => {
+        const progMatch = b.match(/(แล้วเสร็จ\s*\d+(?:\.\d+)?%|\(เตรียมเข้าดำเนินการ\)|อยู่ระหว่าง.+|\d+(?:\.\d+)?%)$/)
+        const progText = progMatch ? progMatch[0] : ''
+        const main = progText ? b.replace(progText, '').trim() : b
+        const cleanedMain = cleanTaskName(main)
+        return progText ? `${cleanedMain} ${progText}` : cleanedMain
+      })
+      return { ...c, bullets: cleaned }
+    }))
+  }
+
+  // Grid layout calculation for categories
+  const resolvedGridColumns = useMemo(() => {
+    if (categories.length === 1) return '1fr'
+    if (categories.length === 3) return '1fr 1fr 1fr'
+
+    // Exactly 2 categories
+    if (columnRatio === 'equal') return '1fr 1fr'
+    if (columnRatio === 'wide-left') return '1.6fr 1fr'
+
+    // 'auto' mode: if cat 1 has significantly more items than cat 2
+    const len1 = categories[0]?.bullets?.length || 0
+    const len2 = categories[1]?.bullets?.length || 0
+    if (len1 >= 5 && len2 <= 2) return '1.6fr 1fr'
+    if (len2 >= 5 && len1 <= 2) return '1fr 1.6fr'
+    return '1fr 1fr'
+  }, [categories, columnRatio])
+
   // Export handlers
   const [isExporting, setIsExporting] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
@@ -423,23 +475,23 @@ export function LineSummaryBannerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-[1400px] flex flex-col max-h-[94vh] shadow-2xl overflow-hidden text-white">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-[1440px] flex flex-col max-h-[95vh] shadow-2xl overflow-hidden text-white">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60 flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-3.5 border-b border-slate-800 bg-slate-950/70 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
-              <Share2 size={20} />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
+              <Type size={18} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-white">สร้างการ์ดสรุปสถานะโครงการ 16:9 สำหรับส่ง LINE</h2>
+                <h2 className="text-sm font-bold text-white">สร้างการ์ดสรุปสถานะโครงการ 16:9 สำหรับส่ง LINE</h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                   สัดส่วน 16:9 (Full HD)
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
-                สามารถปรับแต่งหัวข้อ, คัดเลือกรูปภาพ 3 รูป และสรุปความก้าวหน้าตามหมวดงานได้อย่างอิสระ
+              <p className="text-[11px] text-slate-400">
+                สามารถปรับขนาดตัวอักษร, ตัดทอนคำให้กระชับ, คัดเลือกรูปภาพ 3 รูป และสรุปความก้าวหน้าตามหมวดงานได้อิสระ
               </p>
             </div>
           </div>
@@ -455,10 +507,10 @@ export function LineSummaryBannerModal({
               type="button"
               onClick={handleCopyImage}
               disabled={isExporting}
-              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
               title="คัดลอกรูปภาพลง Clipboard เพื่อนำไปกดวาง (Ctrl+V) ในแชท LINE ได้ทันที"
             >
-              <Copy size={15} />
+              <Copy size={14} />
               <span>{isExporting ? 'กำลังประมวลผล...' : '📋 คัดลอกรูปส่ง LINE (Ctrl+V)'}</span>
             </button>
 
@@ -466,33 +518,33 @@ export function LineSummaryBannerModal({
               type="button"
               onClick={handleDownloadImage}
               disabled={isExporting}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-primary-600/20 transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-primary-600/20 transition-all cursor-pointer disabled:opacity-50"
             >
-              <Download size={15} />
+              <Download size={14} />
               <span>💾 ดาวน์โหลดรูปภาพ (PNG)</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer ml-2"
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer ml-1"
             >
               <X size={18} />
             </button>
           </div>
         </div>
 
-        {/* Modal Body: Two Columns (Left: Editor Controls, Right: Live 16:9 Canvas Preview) */}
+        {/* Modal Body: Two Columns (Left: Controls, Right: Live 16:9 Canvas Preview) */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
           
           {/* Left Panel: Controls */}
-          <div className="w-full lg:w-[420px] flex-shrink-0 bg-slate-900/90 border-r border-slate-800 p-5 overflow-y-auto space-y-5">
+          <div className="w-full lg:w-[440px] flex-shrink-0 bg-slate-900/90 border-r border-slate-800 p-4.5 overflow-y-auto space-y-4">
             
             {/* Action Bar */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
               <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                 <Edit2 size={13} className="text-cyan-400" />
-                ปรับแต่งข้อความและรูปภาพ
+                ตั้งค่าข้อความและขนาดอักษร
               </span>
               <button
                 type="button"
@@ -505,17 +557,42 @@ export function LineSummaryBannerModal({
               </button>
             </div>
 
-            {/* Title & Progress Inputs */}
-            <div className="space-y-3">
+            {/* Title & Font Size Controls */}
+            <div className="space-y-2.5">
               <div>
-                <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                  หัวข้อรายงาน (Title)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-400">
+                    หัวข้อรายงาน (Title)
+                  </label>
+
+                  {/* Title font size zoom controls */}
+                  <div className="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
+                    <span className="text-[10px] text-slate-400 font-bold">ขนาดหัวข้อ:</span>
+                    <button
+                      type="button"
+                      onClick={() => setTitleFontSize(prev => Math.max(11, prev - 1))}
+                      className="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold flex items-center justify-center cursor-pointer transition-colors"
+                      title="ย่อขนาดตัวอักษรหัวข้อ (A-)"
+                    >
+                      A-
+                    </button>
+                    <span className="text-[10px] font-mono text-cyan-400 font-bold w-6 text-center">{titleFontSize}px</span>
+                    <button
+                      type="button"
+                      onClick={() => setTitleFontSize(prev => Math.min(26, prev + 1))}
+                      className="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold flex items-center justify-center cursor-pointer transition-colors"
+                      title="ขยายขนาดตัวอักษรหัวข้อ (A+)"
+                    >
+                      A+
+                    </button>
+                  </div>
+                </div>
+
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
+                  className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
                   placeholder="เช่น รายงานสถานะการก่อสร้าง..."
                 />
               </div>
@@ -530,7 +607,7 @@ export function LineSummaryBannerModal({
                     step="0.1"
                     value={progressVal}
                     onChange={(e) => setProgressVal(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-bold"
+                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-bold"
                   />
                 </div>
                 <div>
@@ -541,7 +618,7 @@ export function LineSummaryBannerModal({
                     type="text"
                     value={progressLabel}
                     onChange={(e) => setProgressLabel(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
@@ -555,7 +632,7 @@ export function LineSummaryBannerModal({
                     type="text"
                     value={contractEndLabel}
                     onChange={(e) => setContractEndLabel(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
+                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-medium"
                   />
                 </div>
                 <div>
@@ -566,7 +643,7 @@ export function LineSummaryBannerModal({
                     type="text"
                     value={contractEndDateStr}
                     onChange={(e) => setContractEndDateStr(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-bold"
+                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-bold"
                   />
                 </div>
               </div>
@@ -595,7 +672,7 @@ export function LineSummaryBannerModal({
                         photos[idx]
                           ? 'border-cyan-500/50 bg-slate-800'
                           : 'border-slate-700 bg-slate-800/50 hover:border-slate-500'
-                      } ${isTall ? 'h-24' : 'h-16'} flex flex-col items-center justify-center overflow-hidden cursor-pointer group transition-all`}
+                      } ${isTall ? 'h-20' : 'h-14'} flex flex-col items-center justify-center overflow-hidden cursor-pointer group transition-all`}
                     >
                       {photos[idx] ? (
                         <>
@@ -623,7 +700,7 @@ export function LineSummaryBannerModal({
                         </>
                       ) : (
                         <div className="text-center p-1">
-                          <ImageIcon size={16} className="mx-auto text-slate-500 mb-0.5" />
+                          <ImageIcon size={15} className="mx-auto text-slate-500 mb-0.5" />
                           <span className="text-[9px] text-slate-400 block font-bold">+ เลือกรูป</span>
                         </div>
                       )}
@@ -637,26 +714,98 @@ export function LineSummaryBannerModal({
             </div>
 
             {/* Work Categories Controls */}
-            <div className="space-y-3 pt-2 border-t border-slate-800">
-              <div className="flex items-center justify-between">
+            <div className="space-y-2.5 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <Layers size={13} className="text-cyan-400" />
                   หมวดงาน ({categories.length} หมวด)
                 </span>
-                {categories.length < 3 && (
-                  <button
-                    type="button"
-                    onClick={handleAddCategory}
-                    className="flex items-center gap-1 text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
-                  >
-                    <Plus size={12} />
-                    <span>เพิ่มหมวด</span>
-                  </button>
-                )}
+
+                <div className="flex items-center gap-1.5">
+                  {/* Bullets Font Size Control (ย่อ/ขยาย ขนาดรายการงาน) */}
+                  <div className="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
+                    <span className="text-[10px] text-slate-400 font-bold">ขนาดรายการ:</span>
+                    <button
+                      type="button"
+                      onClick={() => setBulletFontSize(prev => Math.max(7, Number((prev - 0.5).toFixed(1))))}
+                      className="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold flex items-center justify-center cursor-pointer transition-colors"
+                      title="ย่อขนาดตัวอักษรรายการงาน (A-)"
+                    >
+                      A-
+                    </button>
+                    <span className="text-[10px] font-mono text-cyan-400 font-bold w-6 text-center">{bulletFontSize}px</span>
+                    <button
+                      type="button"
+                      onClick={() => setBulletFontSize(prev => Math.min(13, Number((prev + 0.5).toFixed(1))))}
+                      className="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-bold flex items-center justify-center cursor-pointer transition-colors"
+                      title="ขยายขนาดตัวอักษรรายการงาน (A+)"
+                    >
+                      A+
+                    </button>
+                  </div>
+
+                  {categories.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={handleAddCategory}
+                      className="flex items-center gap-1 text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                    >
+                      <Plus size={12} />
+                      <span>เพิ่มหมวด</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
+              {/* Column width ratio selector if 2 categories */}
+              {categories.length === 2 && (
+                <div className="flex items-center justify-between text-[10px] bg-slate-800/60 p-1.5 rounded-lg border border-slate-700/60">
+                  <span className="text-slate-400 font-bold flex items-center gap-1">
+                    <Columns size={12} className="text-cyan-400" /> สัดส่วนคอลัมน์:
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setColumnRatio('auto')}
+                      className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                        columnRatio === 'auto'
+                          ? 'bg-cyan-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                      title="ปรับความกว้างอัตโนมัติตามจำนวนรายการข้อความ"
+                    >
+                      อัตโนมัติ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setColumnRatio('wide-left')}
+                      className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                        columnRatio === 'wide-left'
+                          ? 'bg-cyan-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                      title="ให้หมวดซ้ายกว้าง 65% (เหมาะสำหรับหมวดซ้ายที่มีหลายข้อ)"
+                    >
+                      ซ้ายกว้าง (65:35)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setColumnRatio('equal')}
+                      className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer ${
+                        columnRatio === 'equal'
+                          ? 'bg-cyan-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                      title="แบ่งพื้นที่เท่ากัน 50:50"
+                    >
+                      เท่ากัน (50:50)
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
-                {categories.map((cat, cIdx) => (
+                {categories.map((cat) => (
                   <div
                     key={cat.id}
                     className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3 space-y-2"
@@ -686,22 +835,35 @@ export function LineSummaryBannerModal({
                         />
                       </div>
 
-                      {categories.length > 1 && (
+                      <div className="flex items-center gap-1">
+                        {/* Clean verbose wording button */}
                         <button
                           type="button"
-                          onClick={() => handleRemoveCategory(cat.id)}
-                          className="w-6 h-6 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
-                          title="ลบหมวดนี้"
+                          onClick={() => handleCleanCategoryBullets(cat.id)}
+                          className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-700 hover:bg-cyan-600 text-cyan-300 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                          title="ตัดคำยาวเยิ่นเย้อออกอัตโนมัติ เช่น 'และอุปกรณ์ประกอบ', 'ตามแบบรูปรายการ' ให้ข้อความกระชับ"
                         >
-                          <Trash2 size={13} />
+                          <Scissors size={11} />
+                          <span>ตัดคำให้กระชับ</span>
                         </button>
-                      )}
+
+                        {categories.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCategory(cat.id)}
+                            className="w-6 h-6 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+                            title="ลบหมวดนี้ออก (หากไม่มีงานด้านนี้)"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
                         <span>รายการความก้าวหน้า (บรรทัดละ 1 ข้อ)</span>
-                        <span>{cat.bullets.length} รายการ</span>
+                        <span className="text-cyan-400 font-bold">{cat.bullets.length} ข้อความ</span>
                       </div>
                       <textarea
                         rows={Math.min(7, Math.max(3, cat.bullets.length))}
@@ -719,8 +881,8 @@ export function LineSummaryBannerModal({
           </div>
 
           {/* Right Panel: Live 16:9 Canvas Preview */}
-          <div className="flex-1 bg-slate-950 flex flex-col items-center justify-center p-4 lg:p-8 overflow-y-auto">
-            <div className="w-full max-w-[1000px] flex flex-col gap-2">
+          <div className="flex-1 bg-slate-950 flex flex-col items-center justify-center p-3 lg:p-6 overflow-y-auto">
+            <div className="w-full max-w-[1020px] flex flex-col gap-2">
               <div className="flex items-center justify-between text-xs text-slate-400 px-1">
                 <span className="flex items-center gap-1.5">
                   <Eye size={13} className="text-cyan-400" />
@@ -741,7 +903,7 @@ export function LineSummaryBannerModal({
                     width: '100%',
                     backgroundColor: '#e6f4fa',
                     boxSizing: 'border-box',
-                    padding: '18px 22px 18px 22px',
+                    padding: '16px 20px 16px 20px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
@@ -758,33 +920,39 @@ export function LineSummaryBannerModal({
                       justifyContent: 'space-between',
                       marginBottom: '10px',
                       flexShrink: 0,
+                      gap: '10px',
                     }}
                   >
-                    {/* Left: Project Title */}
+                    {/* Left: Project Title (Fully visible, wraps gracefully up to 2 lines, adjustable font size) */}
                     <div
                       style={{
                         backgroundColor: '#ffffff',
-                        padding: '8px 18px',
+                        padding: '6px 16px',
                         borderRadius: '12px',
                         boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-                        border: '1px solid #bae6fd',
+                        border: '1.5px solid #bae6fd',
                         display: 'flex',
                         alignItems: 'center',
-                        maxWidth: '58%',
+                        maxWidth: '65%',
+                        flex: '1 1 auto',
+                        minHeight: '44px',
                       }}
                     >
                       <h1
                         style={{
                           margin: 0,
-                          fontSize: 'clamp(14px, 2.3vw, 22px)',
+                          fontSize: `clamp(11px, ${titleFontSize * 0.12}vw, ${titleFontSize}px)`,
                           fontWeight: 800,
                           color: '#0369a1',
-                          letterSpacing: '-0.02em',
-                          whiteSpace: 'nowrap',
+                          letterSpacing: '-0.01em',
+                          lineHeight: 1.25,
+                          wordBreak: 'break-word',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
                           overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          lineHeight: 1.2,
                         }}
+                        title={title}
                       >
                         {title}
                       </h1>
@@ -810,7 +978,7 @@ export function LineSummaryBannerModal({
                           flexDirection: 'column',
                           justifyContent: 'center',
                           boxShadow: '0 2px 6px rgba(245,158,11,0.25)',
-                          minWidth: '110px',
+                          minWidth: '105px',
                         }}
                       >
                         <div
@@ -846,7 +1014,7 @@ export function LineSummaryBannerModal({
                           flexDirection: 'column',
                           justifyContent: 'center',
                           boxShadow: '0 2px 6px rgba(3,105,161,0.25)',
-                          minWidth: '125px',
+                          minWidth: '120px',
                         }}
                       >
                         <div
@@ -929,12 +1097,12 @@ export function LineSummaryBannerModal({
                         minHeight: 0,
                       }}
                     >
-                      {/* Top Half: Work Category Cards */}
+                      {/* Top Half: Work Category Cards (Supports natural wrapping, NO ellipsis cutoffs) */}
                       <div
                         style={{
                           flex: 1,
                           display: 'grid',
-                          gridTemplateColumns: `repeat(${categories.length}, minmax(0, 1fr))`,
+                          gridTemplateColumns: resolvedGridColumns,
                           gap: '10px',
                           minHeight: 0,
                         }}
@@ -945,7 +1113,7 @@ export function LineSummaryBannerModal({
                             style={{
                               backgroundColor: '#ffffff',
                               borderRadius: '14px',
-                              padding: '10px 14px',
+                              padding: '8px 12px',
                               border: '1.5px solid #bae6fd',
                               boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
                               display: 'flex',
@@ -960,16 +1128,17 @@ export function LineSummaryBannerModal({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '6px',
-                                marginBottom: '6px',
-                                paddingBottom: '4px',
+                                marginBottom: '5px',
+                                paddingBottom: '3px',
                                 borderBottom: '1px solid #f0f9ff',
+                                flexShrink: 0,
                               }}
                             >
-                              <span style={{ fontSize: 'clamp(12px, 1.5vw, 17px)' }}>{cat.icon}</span>
+                              <span style={{ fontSize: 'clamp(12px, 1.4vw, 16px)' }}>{cat.icon}</span>
                               <h3
                                 style={{
                                   margin: 0,
-                                  fontSize: 'clamp(11px, 1.4vw, 15px)',
+                                  fontSize: 'clamp(11px, 1.3vw, 15px)',
                                   fontWeight: 800,
                                   color: '#0369a1',
                                   whiteSpace: 'nowrap',
@@ -981,51 +1150,75 @@ export function LineSummaryBannerModal({
                               </h3>
                             </div>
 
-                            {/* Bullets List */}
+                            {/* Bullets List: Wraps text naturally with NO ellipsis, bold progress highlight */}
                             <div
                               style={{
                                 flex: 1,
                                 overflow: 'hidden',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '3px',
+                                gap: cat.bullets.length >= 7 ? '2px' : '4px',
                                 justifyContent: 'flex-start',
                               }}
                             >
-                              {cat.bullets.slice(0, 8).map((b, bIdx) => (
-                                <div
-                                  key={bIdx}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'baseline',
-                                    gap: '5px',
-                                    fontSize: 'clamp(7.5px, 0.95vw, 10.5px)',
-                                    color: '#1e293b',
-                                    lineHeight: 1.35,
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  <span
+                              {cat.bullets.slice(0, 8).map((b, bIdx) => {
+                                // Extract trailing progress (e.g. "แล้วเสร็จ 100%", "แล้วเสร็จ 50%", "(เตรียมเข้าดำเนินการ)")
+                                const progRegex = /(แล้วเสร็จ\s*\d+(?:\.\d+)?%|\(เตรียมเข้าดำเนินการ\)|อยู่ระหว่าง.+|\d+(?:\.\d+)?%)$/
+                                const progMatch = b.match(progRegex)
+                                const progText = progMatch ? progMatch[0] : ''
+                                const mainText = progText ? b.replace(progRegex, '').trim() : b
+
+                                return (
+                                  <div
+                                    key={bIdx}
                                     style={{
-                                      width: '4px',
-                                      height: '4px',
-                                      borderRadius: '50%',
-                                      backgroundColor: '#0284c7',
-                                      flexShrink: 0,
-                                      marginTop: '4px',
-                                    }}
-                                  />
-                                  <span
-                                    style={{
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
+                                      display: 'flex',
+                                      alignItems: 'flex-start',
+                                      gap: '4px',
+                                      fontSize: `clamp(6.8px, ${bulletFontSize * 0.1}vw, ${bulletFontSize}px)`,
+                                      color: '#1e293b',
+                                      lineHeight: 1.25,
+                                      fontWeight: 500,
                                     }}
                                   >
-                                    {b}
-                                  </span>
-                                </div>
-                              ))}
+                                    <span
+                                      style={{
+                                        width: '4px',
+                                        height: '4px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#0284c7',
+                                        flexShrink: 0,
+                                        marginTop: '4.5px',
+                                      }}
+                                    />
+                                    <div
+                                      style={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        wordBreak: 'break-word',
+                                        whiteSpace: 'normal',
+                                      }}
+                                    >
+                                      <span>{mainText} </span>
+                                      {progText && (
+                                        <span
+                                          style={{
+                                            fontWeight: 700,
+                                            color: progText.includes('100%')
+                                              ? '#059669'
+                                              : progText.includes('%')
+                                              ? '#0284c7'
+                                              : '#d97706',
+                                            whiteSpace: 'nowrap',
+                                          }}
+                                        >
+                                          {progText}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })}
                             </div>
                           </div>
                         ))}
@@ -1120,9 +1313,9 @@ export function LineSummaryBannerModal({
               </div>
 
               {/* Tips & Shortcuts below preview */}
-              <div className="flex items-center justify-between text-[11px] text-slate-400 px-2 pt-1">
-                <span>💡 คลิกปุ่ม <strong>&apos;📋 คัดลอกรูปส่ง LINE&apos;</strong> ด้านบน แล้วสามารถเปิด LINE แล้วกด <strong>Ctrl+V</strong> เพื่อส่งได้ทันที!</span>
-                <span>อัตราส่วน 16:9 • เหมาะสำหรับเปิดดูบนมือถือและคอมพิวเตอร์</span>
+              <div className="flex items-center justify-between text-[11px] text-slate-400 px-2 pt-0.5">
+                <span>💡 คลิกปุ่ม <strong>&apos;📋 คัดลอกรูปส่ง LINE&apos;</strong> ด้านบน แล้วเปิดแชท LINE กด <strong>Ctrl+V</strong> เพื่อส่งได้ทันที!</span>
+                <span>อัตราส่วน 16:9 • ปรับขยาย A+ / ย่อ A- ได้ทุกข้อความ</span>
               </div>
             </div>
           </div>

@@ -317,8 +317,18 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
   return (
     <>
       <div className="space-y-6">
-        {user && (user.role === 'admin' || user.role === 'editor') && (
-          <div className="flex items-center justify-end gap-2.5 flex-wrap">
+        <div className="flex items-center justify-end gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsLineBannerOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-xs transition-all cursor-pointer flex-shrink-0"
+            title="เปิดหน้าต่างสร้างภาพสรุปสถานะโครงการ 16:9 สำหรับแชร์ลงกลุ่ม LINE"
+          >
+            <Share2 size={15} />
+            <span>📱 สรุปภาพ 16:9 ส่ง LINE</span>
+          </button>
+
+          {user && (user.role === 'admin' || user.role === 'editor') && (
             <button
               id="open-baseline-btn"
               onClick={() => setShowEditModal(true)}
@@ -327,8 +337,8 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
               <Settings size={15} />
               แก้ไข Baseline / ค่าเริ่มต้น
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="card rounded-2xl p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
           <div className="space-y-2">
@@ -799,16 +809,6 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsLineBannerOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-                title="เปิดหน้าต่างสร้างภาพสรุปสถานะ 16:9 สำหรับแชร์ลง LINE"
-              >
-                <Share2 size={14} />
-                <span>📱 สรุปภาพ 16:9 ส่ง LINE</span>
-              </button>
-
               <Link
                 href={`/projects/${project.id}/planning`}
                 className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#252548] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"

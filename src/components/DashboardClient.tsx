@@ -828,6 +828,45 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             </div>
           </div>
 
+          {/* Key Highlights Strip (สถานะเทียบแผน, การส่งมอบงวดงาน, การเบิกจ่าย) */}
+          <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-slate-50/80 dark:bg-[#14142a]/80 border border-slate-200 dark:border-[#1e1e38]">
+            {/* 1. Schedule Variance */}
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold ${
+                metrics.progressStatus === 'delayed'
+                  ? 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/40'
+                  : metrics.progressStatus === 'ahead'
+                  ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40'
+                  : 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40'
+              }`}
+            >
+              <span>{metrics.progressStatus === 'delayed' ? '⚠️' : metrics.progressStatus === 'ahead' ? '🚀' : '🟢'}</span>
+              <span>
+                {metrics.progressStatus === 'delayed'
+                  ? `ล่าช้ากว่าแผน ${Math.abs(metrics.svDays)} วัน (${metrics.sv.toFixed(1)}%)`
+                  : metrics.progressStatus === 'ahead'
+                  ? `เร็วกว่าแผน +${Math.abs(metrics.svDays)} วัน (+${metrics.sv.toFixed(1)}%)`
+                  : `ดำเนินงานตามแผน (${metrics.sv >= 0 ? '+' : ''}${metrics.sv.toFixed(1)}%)`}
+              </span>
+            </div>
+
+            {/* 2. Milestones Delivery */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#252548]">
+              <span>📦</span>
+              <span>
+                ส่งมอบแล้ว {milestones.filter(m => m.is_paid || m.status === 'Paid' || m.status === 'Approved').length}/{milestones.length} งวด
+              </span>
+            </div>
+
+            {/* 3. Disbursement */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#252548]">
+              <span>💰</span>
+              <span>
+                เบิกจ่ายแล้ว {metrics.paidPercent.toFixed(1)}% ({((metrics.paid || 0) / 1_000_000).toFixed(2)} ลบ. / {((metrics.budget || 0) / 1_000_000).toFixed(2)} ลบ.)
+              </span>
+            </div>
+          </div>
+
           {/* Categorized Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {categorizedTasks.map((group, gIdx) => (

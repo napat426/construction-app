@@ -18,6 +18,9 @@ import {
   Scissors,
   Type,
   Columns,
+  TrendingUp,
+  Package,
+  DollarSign,
 } from 'lucide-react'
 import { toBlob, toPng } from 'html-to-image'
 import type {
@@ -130,6 +133,58 @@ export function LineSummaryBannerModal({
   const [contractEndDateStr, setContractEndDateStr] = useState<string>(() => {
     return formatThaiDateShort(currentEndDate)
   })
+
+  // 1.1 Calculate Schedule Variance (เร็ว/ช้ากว่าแผน กี่วัน)
+  const svPercent = (actualProgress || 0) - (plannedProgress || 0)
+  const totalContractDays = ext.totalDays || (project.start_date && currentEndDate ? Math.max(1, Math.round((currentEndDate.getTime() - new Date(project.start_date).getTime()) / 86400000)) : 0)
+  const defaultSvDays = totalContractDays > 0 ? Math.round((svPercent / 100) * totalContractDays) : 0
+  const isDelayed = svPercent < -0.5 || defaultSvDays < 0
+  const isAhead = svPercent > 0.5 && defaultSvDays > 0
+
+  const defaultVarianceText = useMemo(() => {
+    if (isDelayed) {
+      return `ล่าช้ากว่าแผน ~${Math.abs(defaultSvDays)} วัน (${svPercent.toFixed(1)}%)`
+    } else if (isAhead) {
+      return `เร็วกว่าแผน +${Math.abs(defaultSvDays)} วัน (+${svPercent.toFixed(1)}%)`
+    } else {
+      return `ดำเนินงานตามแผน (${svPercent >= 0 ? '+' : ''}${svPercent.toFixed(1)}%)`
+    }
+  }, [isDelayed, isAhead, defaultSvDays, svPercent])
+
+  // 1.2 Calculate Milestone Delivery (การส่งมอบงาน)
+  const deliveredMilestones = useMemo(() => {
+    return milestones.filter(m => m.is_paid || m.status === 'Paid' || m.status === 'Approved')
+  }, [milestones])
+
+  const defaultMilestonesText = useMemo(() => {
+    if (milestones.length === 0) return 'ตามแผนส่งมอบงวดงาน'
+    return `ส่งมอบแล้ว ${deliveredMilestones.length}/${milestones.length} งวด`
+  }, [milestones, deliveredMilestones])
+
+  // 1.3 Calculate Disbursement (การเบิกจ่าย)
+  const contractAmount = project.budget || 0
+  const paidAmount = useMemo(() => {
+    return milestones
+      .filter(m => m.is_paid || m.status === 'Paid')
+      .reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
+  }, [milestones])
+  const paidPercent = contractAmount > 0 ? (paidAmount / contractAmount) * 100 : 0
+
+  const defaultDisbursementText = useMemo(() => {
+    if (contractAmount <= 0) return `เบิกจ่าย ${paidPercent.toFixed(1)}%`
+    const paidM = (paidAmount / 1_000_000).toFixed(2)
+    return `เบิกจ่ายแล้ว ${paidPercent.toFixed(1)}% (${paidM} ลบ.)`
+  }, [contractAmount, paidAmount, paidPercent])
+
+  // Additional KPI toggles & editable text states
+  const [showVariance, setShowVariance] = useState<boolean>(true)
+  const [varianceText, setVarianceText] = useState<string>(defaultVarianceText)
+
+  const [showMilestones, setShowMilestones] = useState<boolean>(true)
+  const [milestonesText, setMilestonesText] = useState<string>(defaultMilestonesText)
+
+  const [showDisbursement, setShowDisbursement] = useState<boolean>(true)
+  const [disbursementText, setDisbursementText] = useState<string>(defaultDisbursementText)
 
   // 2. Photos State: [Left Vertical, Bottom-Left Horizontal, Bottom-Right Horizontal]
   const [photos, setPhotos] = useState<string[]>(['', '', ''])
@@ -304,6 +359,12 @@ export function LineSummaryBannerModal({
     setCategories(autoDraftCategories())
     setProgressVal(Number((actualProgress || 0).toFixed(1)))
     setContractEndDateStr(formatThaiDateShort(currentEndDate))
+    setVarianceText(defaultVarianceText)
+    setMilestonesText(defaultMilestonesText)
+    setDisbursementText(defaultDisbursementText)
+    setShowVariance(true)
+    setShowMilestones(true)
+    setShowDisbursement(true)
   }
 
   // 4. Photo Picker Modal State
@@ -646,6 +707,100 @@ export function LineSummaryBannerModal({
                     className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500 font-bold"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Additional Status Details (KPI Strip Controls) */}
+            <div className="space-y-2.5 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <TrendingUp size={13} className="text-cyan-400" />
+                  ข้อมูลสถานะเพิ่มเติม (แสดงบนแบนเนอร์)
+                </span>
+                <span className="text-[10px] text-slate-500">เปิด/ปิด หรือพิมพ์แก้ไขได้</span>
+              </div>
+
+              {/* 1. Schedule Variance Toggle & Input */}
+              <div className="space-y-1 bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={showVariance}
+                      onChange={(e) => setShowVariance(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-cyan-500 bg-slate-900 border-slate-700 cursor-pointer"
+                    />
+                    <span>⏱️ เร็ว/ช้ากว่าแผน</span>
+                  </label>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    isDelayed ? 'bg-red-950/60 text-red-400' : isAhead ? 'bg-emerald-950/60 text-emerald-400' : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    {isDelayed ? 'ล่าช้า' : isAhead ? 'เร็วกว่าแผน' : 'ตามแผน'}
+                  </span>
+                </div>
+                {showVariance && (
+                  <input
+                    type="text"
+                    value={varianceText}
+                    onChange={(e) => setVarianceText(e.target.value)}
+                    placeholder="เช่น ล่าช้ากว่าแผน ~3 วัน (-0.1%)"
+                    className="w-full px-2.5 py-1 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-cyan-500 focus:outline-none"
+                  />
+                )}
+              </div>
+
+              {/* 2. Milestones Delivery Toggle & Input */}
+              <div className="space-y-1 bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={showMilestones}
+                      onChange={(e) => setShowMilestones(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-cyan-500 bg-slate-900 border-slate-700 cursor-pointer"
+                    />
+                    <span>📦 การส่งมอบงวดงาน</span>
+                  </label>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">
+                    {deliveredMilestones.length}/{milestones.length} งวด
+                  </span>
+                </div>
+                {showMilestones && (
+                  <input
+                    type="text"
+                    value={milestonesText}
+                    onChange={(e) => setMilestonesText(e.target.value)}
+                    placeholder="เช่น ส่งมอบแล้ว 1/4 งวด"
+                    className="w-full px-2.5 py-1 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-cyan-500 focus:outline-none"
+                  />
+                )}
+              </div>
+
+              {/* 3. Disbursement Toggle & Input */}
+              <div className="space-y-1 bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={showDisbursement}
+                      onChange={(e) => setShowDisbursement(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded text-cyan-600 focus:ring-cyan-500 bg-slate-900 border-slate-700 cursor-pointer"
+                    />
+                    <span>💰 การเบิกจ่ายงบประมาณ</span>
+                  </label>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">
+                    {paidPercent.toFixed(1)}%
+                  </span>
+                </div>
+                {showDisbursement && (
+                  <input
+                    type="text"
+                    value={disbursementText}
+                    onChange={(e) => setDisbursementText(e.target.value)}
+                    placeholder="เช่น เบิกจ่ายแล้ว 15.0% (12.74 ลบ.)"
+                    className="w-full px-2.5 py-1 text-xs bg-slate-900 border border-slate-700 rounded-lg text-white font-medium focus:border-cyan-500 focus:outline-none"
+                  />
+                )}
               </div>
             </div>
 
@@ -1040,6 +1195,83 @@ export function LineSummaryBannerModal({
                       </div>
                     </div>
                   </div>
+
+                  {/* ── Sub-Header: Project KPI Chips (เร็ว/ช้ากว่าแผน, ส่งมอบงวดงาน, การเบิกจ่าย) ── */}
+                  {(showVariance || showMilestones || showDisbursement) && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '8px',
+                        flexShrink: 0,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      {showVariance && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 12px',
+                            borderRadius: '9999px',
+                            backgroundColor: isDelayed ? '#fef2f2' : isAhead ? '#ecfdf5' : '#f0f9ff',
+                            border: `1.5px solid ${isDelayed ? '#fca5a5' : isAhead ? '#6ee7b7' : '#bae6fd'}`,
+                            fontSize: 'clamp(8.5px, 1.1vw, 12px)',
+                            fontWeight: 800,
+                            color: isDelayed ? '#b91c1c' : isAhead ? '#047857' : '#0369a1',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                          }}
+                        >
+                          <span>{isDelayed ? '⚠️' : isAhead ? '🚀' : '🟢'}</span>
+                          <span>{varianceText}</span>
+                        </div>
+                      )}
+
+                      {showMilestones && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 12px',
+                            borderRadius: '9999px',
+                            backgroundColor: '#ffffff',
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: 'clamp(8.5px, 1.1vw, 12px)',
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                          }}
+                        >
+                          <span>📦</span>
+                          <span>{milestonesText}</span>
+                        </div>
+                      )}
+
+                      {showDisbursement && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 12px',
+                            borderRadius: '9999px',
+                            backgroundColor: '#ffffff',
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: 'clamp(8.5px, 1.1vw, 12px)',
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                          }}
+                        >
+                          <span>💰</span>
+                          <span>{disbursementText}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* ── Main Content Grid (16:9 Split) ── */}
                   <div

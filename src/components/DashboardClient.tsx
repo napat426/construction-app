@@ -25,15 +25,16 @@ import { EditBaselineModal } from './EditBaselineModal'
 import { computeTaskDates, computeProjectExtension, countWorkingDays } from '@/lib/scheduler'
 
 const DocumentManager = dynamic(() => import('./ai/DocumentManager').then(mod => mod.DocumentManager), { ssr: false })
-import type { Project, WBSTask, ProjectMilestone, ContractAmendment } from '@/lib/types'
+import type { Project, WBSTask, ProjectMilestone, ContractAmendment, Inspection } from '@/lib/types'
 import type { UserSession } from '@/lib/auth'
+import { LineSummaryBannerModal } from './reports/LineSummaryBannerModal'
 
 interface DashboardClientProps {
   project: Project
   tasks: WBSTask[]
   milestones: ProjectMilestone[]
-  
   amendments?: ContractAmendment[]
+  inspections?: Inspection[]
   user?: UserSession | null
   workGroups?: string[]
   supervisorsList?: string[]
@@ -57,8 +58,9 @@ function formatDate(dateStr: string | null): string {
   })
 }
 
-export function DashboardClient({ project, tasks, milestones, amendments = [], user, workGroups = [], supervisorsList = [] }: DashboardClientProps) {
+export function DashboardClient({ project, tasks, milestones, amendments = [], inspections = [], user, workGroups = [], supervisorsList = [] }: DashboardClientProps) {
   const [showEditModal, setShowEditModal] = useState(false)
+  const [isLineBannerOpen, setIsLineBannerOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [paymentDate, setPaymentDate] = useState('')
   const [paymentAmount, setPaymentAmount] = useState('')
@@ -254,20 +256,77 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
     }
   }, [project, tasks, milestones, amendments, today])
 
+  // Categorize tasks for Work Status Summary section
+  const categorizedTasks = useMemo(() => {
+    const civilKeywords = ['โครงสร้าง', 'คสล', 'ฐานราก', 'เสา', 'คาน', 'พื้น', 'อาคาร', 'หลังคา', 'ผนัง', 'ประตู', 'หน้าต่าง', 'ทาสี', 'ถนน', 'ลาน', 'รั้ว', 'ท่อ', 'ระบายน้ำ', 'ดิน', 'เตรียมพื้นที่']
+    const elecKeywords = ['ไฟฟ้า', 'เคเบิล', 'สายไฟ', 'หม้อแปลง', 'rmu', 'ground', 'ล่อฟ้า', 'ตู้', 'mdb', 'ส่องสว่าง', 'โคมไฟ', 'วงจร', 'สื่อสาร', 'cctv', 'สุขาภิบาล', 'ประปา']
+
+    const civil: WBSTask[] = []
+    const elec: WBSTask[] = []
+    const general: WBSTask[] = []
+
+    tasks.forEach(t => {
+      const name = (t.name || '').toLowerCase()
+      if (elecKeywords.some(k => name.includes(k))) {
+        elec.push(t)
+      } else if (civilKeywords.some(k => name.includes(k))) {
+        civil.push(t)
+      } else {
+        general.push(t)
+      }
+    })
+
+    const groups: { icon: string; title: string; tasks: WBSTask[]; avgProgress: number }[] = []
+
+    if (civil.length > 0) {
+      const avg = civil.reduce((s, t) => s + (t.actual_progress || 0), 0) / civil.length
+      groups.push({
+        icon: '🛠️',
+        title: 'งานโยธาและโครงสร้าง',
+        tasks: civil,
+        avgProgress: avg,
+      })
+    }
+
+    if (elec.length > 0) {
+      const avg = elec.reduce((s, t) => s + (t.actual_progress || 0), 0) / elec.length
+      groups.push({
+        icon: '⚡',
+        title: 'งานระบบไฟฟ้าและสุขาภิบาล',
+        tasks: elec,
+        avgProgress: avg,
+      })
+    }
+
+    if (general.length > 0 || groups.length === 0) {
+      const tasksToShow = general.length > 0 ? general : tasks
+      const avg = tasksToShow.reduce((s, t) => s + (t.actual_progress || 0), 0) / Math.max(1, tasksToShow.length)
+      groups.push({
+        icon: '🏢',
+        title: groups.length > 0 ? 'งานสถาปัตยกรรมและทั่วไป' : 'ภาพรวมงานก่อสร้าง',
+        tasks: tasksToShow,
+        avgProgress: avg,
+      })
+    }
+
+    return groups
+  }, [tasks])
+
   const labelCls = 'text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider'
 
   return (
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-end gap-2.5 flex-wrap">
-          <Link
-            href={`/projects/${project.id}/reports?tab=executive`}
+          <button
+            type="button"
+            onClick={() => setIsLineBannerOpen(true)}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-xs transition-all cursor-pointer flex-shrink-0"
-            title="เปิดหน้าสรุปสถานะโครงการเพื่อสร้างรูปภาพ 16:9 ส่งแชท LINE"
+            title="เปิดหน้าต่างสร้างภาพสรุปสถานะโครงการ 16:9 สำหรับแชร์ลงกลุ่ม LINE"
           >
             <Share2 size={15} />
             <span>📱 สรุปภาพ 16:9 ส่ง LINE</span>
-          </Link>
+          </button>
 
           {user && (user.role === 'admin' || user.role === 'editor') && (
             <button
@@ -729,6 +788,115 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
           </div>
         </div>
 
+        {/* ══ ROW 3.5: สรุปสถานะความก้าวหน้าตามหมวดงาน (Work Status Summary) ══ */}
+        <div className="card rounded-2xl p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#1e1e38]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold">
+                <Briefcase size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  สรุปสถานะความก้าวหน้าตามหมวดงาน
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1e1e38] text-slate-600 dark:text-slate-300">
+                    {tasks.length} รายการ
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  สรุปภาพรวมความคืบหน้ารายหมวดงานโยธา/โครงสร้าง/ไฟฟ้า และสร้างรูปภาพ 16:9 สรุปส่งกลุ่ม LINE ได้ทันที
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsLineBannerOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                title="เปิดหน้าต่างสร้างภาพสรุปสถานะ 16:9 สำหรับแชร์ลง LINE"
+              >
+                <Share2 size={14} />
+                <span>📱 สรุปภาพ 16:9 ส่ง LINE</span>
+              </button>
+
+              <Link
+                href={`/projects/${project.id}/planning`}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#252548] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
+              >
+                <span>Gantt Chart ↗</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Categorized Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {categorizedTasks.map((group, gIdx) => (
+              <div
+                key={gIdx}
+                className="bg-slate-50 dark:bg-[#14142a]/60 border border-slate-200 dark:border-[#1e1e38] rounded-xl p-4 flex flex-col justify-between space-y-3"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <span>{group.icon}</span>
+                      <span>{group.title}</span>
+                    </span>
+                    <span className="text-xs font-mono font-bold text-teal-600 dark:text-teal-400">
+                      {group.avgProgress.toFixed(1)}%
+                    </span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full bg-slate-200 dark:bg-[#1e1e38] rounded-full h-1.5 overflow-hidden mb-3">
+                    <div
+                      className="bg-teal-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, Math.max(0, group.avgProgress))}%` }}
+                    />
+                  </div>
+
+                  {/* Tasks List */}
+                  <div className="space-y-1.5">
+                    {group.tasks.slice(0, 6).map((t, tIdx) => {
+                      const prog = t.actual_progress ?? 0
+                      return (
+                        <div key={tIdx} className="flex items-start justify-between text-xs gap-2 py-0.5">
+                          <span className="text-slate-600 dark:text-slate-400 line-clamp-1 flex-1" title={t.name}>
+                            • {t.name}
+                          </span>
+                          <span
+                            className={`font-mono text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                              prog === 100
+                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                : prog > 0
+                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400'
+                                : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                            }`}
+                          >
+                            {prog === 100 ? 'เสร็จ 100%' : prog > 0 ? `${prog}%` : '0%'}
+                          </span>
+                        </div>
+                      )
+                    })}
+
+                    {group.tasks.length > 6 && (
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-1 text-center font-medium">
+                        + อีก {group.tasks.length - 6} รายการ
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 dark:border-[#1e1e38]/60 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>ทั้งหมด {group.tasks.length} รายการ</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                    เสร็จ {group.tasks.filter(t => (t.actual_progress ?? 0) === 100).length} รายการ
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* ══ ROW 4: ข้อมูลสัญญา & กรรมการ (full width) ══ */}
         <div className="card rounded-2xl p-5">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
@@ -784,6 +952,22 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], u
           onClose={() => setShowEditModal(false)} 
           workGroups={workGroups}
           supervisorsList={supervisorsList}
+        />
+      )}
+
+      {/* ── Line Summary Banner Modal 16:9 ── */}
+      {isLineBannerOpen && (
+        <LineSummaryBannerModal
+          isOpen={isLineBannerOpen}
+          onClose={() => setIsLineBannerOpen(false)}
+          project={project}
+          tasks={tasks}
+          milestones={milestones}
+          amendments={amendments}
+          inspections={inspections}
+          actualProgress={metrics.evCumulative}
+          plannedProgress={metrics.pvCumulative}
+          initialPhotos={inspections.flatMap(i => (i.photo_urls || []).map(p => ({ url: p.split('|||')[0] }))).slice(0, 3)}
         />
       )}
     </>

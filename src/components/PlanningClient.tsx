@@ -870,8 +870,9 @@ export function PlanningClient({
       margin: 8mm 10mm 6mm 10mm;
     }
     html, body {
-      width: 297mm !important;
-      height: 210mm !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
       margin: 0 !important;
       padding: 0 !important;
       background: white !important;
@@ -1065,29 +1066,33 @@ export function PlanningClient({
 <style>
   @page {
     size: A4 landscape;
-    margin: 10mm 12mm;
+    margin: 8mm 10mm 6mm 10mm;
   }
   @media print {
     @page {
       size: A4 landscape;
-      margin: 10mm 12mm;
+      margin: 8mm 10mm 6mm 10mm;
     }
     html, body {
-      width: 297mm !important;
-      height: 210mm !important;
+      width: 100% !important;
+      height: auto !important;
+      min-height: 0 !important;
       margin: 0 !important;
       padding: 0 !important;
       background: white !important;
+      overflow: hidden !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
     .page-container {
-      width: 275mm !important;
-      max-width: 275mm !important;
-      margin: 0 auto !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
       padding: 0 !important;
       box-shadow: none !important;
       border-radius: 0 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     .no-print {
       display: none !important;
@@ -1160,10 +1165,10 @@ export function PlanningClient({
   .proj-name { font-size: 14px; font-weight: 700; color: #1e293b; }
   .proj-sub { font-size: 9px; color: #64748b; margin-top: 2px; }
   .chart-wrap { width: 100%; }
-  svg { width: 100%; height: auto; max-height: 140mm; overflow: visible; }
+  svg { width: 100%; height: auto; max-height: 125mm; overflow: visible; }
   .legend { display: flex; gap: 16px; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #64748b; flex-wrap: wrap; }
   .leg { display: flex; align-items: center; gap: 4px; }
-  .note { margin-top: 8px; font-size: 8px; color: #94a3b8; line-height: 1.6; background: #f8fafc; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0; }
+  .note { margin-top: 6px; font-size: 8px; color: #94a3b8; line-height: 1.5; background: #f8fafc; padding: 5px 8px; border-radius: 4px; border: 1px solid #e2e8f0; }
 </style>
 <script>
   window.addEventListener('DOMContentLoaded', function() {

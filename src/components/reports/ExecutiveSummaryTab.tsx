@@ -23,7 +23,6 @@ import {
   UploadCloud,
   Loader2,
   Eye,
-  Share2,
 } from 'lucide-react'
 import type {
   Project,
@@ -40,7 +39,6 @@ import { computeProjectExtension, computeTaskDates, countWorkingDays } from '@/l
 import { saveExecutiveSummarySnapshot, deleteExecutiveSummarySnapshot, uploadReportPhoto } from '@/app/actions/reports'
 import { compressImage } from '@/lib/image'
 import { ReportPresentationModal } from './ReportPresentationModal'
-import { LineSummaryBannerModal } from './LineSummaryBannerModal'
 
 interface Props {
   project: Project
@@ -1169,7 +1167,6 @@ export function ExecutiveSummaryTab({
   // Fullscreen Presentation Mode State
   const [isPresentationOpen, setIsPresentationOpen] = useState(false)
   const [presentationReportId, setPresentationReportId] = useState<string>('live')
-  const [isLineBannerOpen, setIsLineBannerOpen] = useState(false)
 
   const currentPresentationReport = useMemo(() => {
     return allAvailableReports.find(r => r.id === presentationReportId) || currentActiveReport
@@ -1612,17 +1609,6 @@ export function ExecutiveSummaryTab({
                 <span>📽 โหมดนำเสนอ / เต็มจอ</span>
               </button>
 
-              {/* 16:9 LINE Summary Banner Button */}
-              <button
-                type="button"
-                onClick={() => setIsLineBannerOpen(true)}
-                title="สร้างรูปภาพสรุปสถานะโครงการขนาด 16:9 สำหรับแชร์ลงกลุ่ม LINE"
-                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-xs transition-all cursor-pointer"
-              >
-                <Share2 size={14} className="text-teal-200" />
-                <span>📱 สรุปภาพ 16:9 ส่ง LINE</span>
-              </button>
-
               {/* Print Single Button */}
               <button
                 type="button"
@@ -1938,22 +1924,6 @@ export function ExecutiveSummaryTab({
             />
           </div>
         </ReportPresentationModal>
-      )}
-
-      {/* 16:9 LINE Summary Banner Modal */}
-      {isLineBannerOpen && (
-        <LineSummaryBannerModal
-          isOpen={isLineBannerOpen}
-          onClose={() => setIsLineBannerOpen(false)}
-          project={project}
-          tasks={tasks}
-          milestones={milestones}
-          amendments={amendments}
-          inspections={inspections}
-          actualProgress={actualProgress}
-          plannedProgress={plannedProgress}
-          initialPhotos={currentActiveReport?.selectedPhotos || []}
-        />
       )}
     </div>
   )

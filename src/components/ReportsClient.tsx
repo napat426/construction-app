@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ClipboardCheck, FileClock, CalendarDays, Truck, FileSpreadsheet } from 'lucide-react'
 import type { Project, Inspection, DailyReport, WeeklyReport, WBSTask, ProjectMilestone, ConcretePour, ContractAmendment } from '@/lib/types'
 
@@ -39,7 +40,14 @@ export function ReportsClient({
   amendments = [],
   user,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<TabType>('inspections')
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab') as TabType
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (tabParam && ['executive', 'inspections', 'daily', 'weekly', 'concrete'].includes(tabParam)) {
+      return tabParam
+    }
+    return 'executive'
+  })
 
   const tabs = [
     { id: 'executive', label: '📊 สรุปสถานะโครงการ', icon: FileSpreadsheet },

@@ -42,31 +42,31 @@ interface UploadedFileItem {
 }
 
 const SAMPLE_MILESTONES: Record<number, string> = {
-  4: `งวดที่ 1: งานเตรียมการ รื้อถอน งานเสาเข็ม และฐานรากแล้วเสร็จ (20% หรือจ่ายเมื่อแล้วเสร็จภายใน 45 วัน)
-งวดที่ 2: งานโครงสร้าง คสล. ทั้งหมด และงานโครงหลังคาแล้วเสร็จ (30% หรือจ่ายเมื่อแล้วเสร็จภายใน 90 วัน)
-งวดที่ 3: งานมุงหลังคา ก่ออิฐฉาบปูน งานระบบสุขาภิบาลและไฟฟ้าแล้วเสร็จ (30% หรือจ่ายเมื่อแล้วเสร็จภายใน 140 วัน)
-งวดที่ 4: งานทาสี ปูกระเบื้อง ติดตั้งสุขภัณฑ์ ดวงโคม และเก็บทำความสะอาดส่งมอบงานงวดสุดท้าย (20% หรือจ่ายเมื่อแล้วเสร็จภายใน 180 วัน)`,
-  6: `งวดที่ 1: งานเตรียมการ รื้อถอน และงานตอกเสาเข็มแล้วเสร็จ (10%)
-งวดที่ 2: งานโครงสร้างฐานราก เสาตอม่อ คานคอดิน และพื้นชั้นล่างแล้วเสร็จ (15%)
-งวดที่ 3: งานโครงสร้างเสา คาน พื้นชั้นบน และโครงสร้างหลังคาแล้วเสร็จ (20%)
-งวดที่ 4: งานมุงหลังคา ก่ออิฐผนัง และกรีดผนังฝังท่อระบบไฟฟ้า-ประปาแล้วเสร็จ (20%)
-งวดที่ 5: งานฉาบปูน ปูกระเบื้อง ติดตั้งฝ้าเพดาน และเดินสายเมนระบบ (20%)
-งวดที่ 6: งานทาสี ติดตั้งดวงโคม สุขภัณฑ์ ทดสอบระบบ และส่งมอบงานงวดสุดท้าย (15%)`,
-  8: `งวดที่ 1: งานเตรียมการ รื้อถอน ปรับพื้นที่ และตอกเสาเข็มทดสอบแล้วเสร็จ (10%)
-งวดที่ 2: งานตอกเสาเข็มทั้งหมด ขุดดิน และเทคอนกรีตฐานรากแล้วเสร็จ (10%)
-งวดที่ 3: งานเสาตอม่อ คานคอดิน และหล่อพื้นชั้น 1 แล้วเสร็จ (15%)
-งวดที่ 4: งานเสา คาน พื้นชั้น 2 และติดตั้งโครงหลังคาเหล็กแล้วเสร็จ (15%)
-งวดที่ 5: งานมุงหลังคา ก่ออิฐผนัง และจับเซี้ยมฉาบปูนแล้วเสร็จ (15%)
-งวดที่ 6: งานระบบไฟฟ้า ประปา สุขาภิบาล และปูกระเบื้องพื้นผนังแล้วเสร็จ (15%)
-งวดที่ 7: งานติดตั้งประตู หน้าต่าง ฝ้าเพดาน และสุขภัณฑ์แล้วเสร็จ (10%)
-งวดที่ 8: งานทาสี เก็บงานสถาปัตย์ ทดสอบระบบ และตรวจรับมอบงานงวดสุดท้าย (10%)`,
+  4: `งวดที่ 1: งานฐานรากและโครงสร้างชั้น 1 (25%)
+งวดที่ 2: งานโครงสร้างชั้นบนและหลังคา (25%)
+งวดที่ 3: งานสถาปัตยกรรมและงานระบบ (30%)
+งวดที่ 4: งานเก็บรายละเอียดและส่งมอบ (20%)`,
+  6: `งวดที่ 1: งานเสาเข็มและฐานราก (15%)
+งวดที่ 2: งานคานคอดินและพื้นชั้น 1 (15%)
+งวดที่ 3: งานโครงสร้างชั้นบนและหลังคา (20%)
+งวดที่ 4: งานก่ออิฐฉาบปูนและงานระบบ (20%)
+งวดที่ 5: งานฝ้า กระเบื้อง และสุขภัณฑ์ (15%)
+งวดที่ 6: งานทาสี ทดสอบระบบ และส่งมอบ (15%)`,
+  8: `งวดที่ 1: งานเสาเข็มและฐานราก (10%)
+งวดที่ 2: งานคานคอดินและพื้นชั้น 1 (10%)
+งวดที่ 3: งานเสา คาน และพื้นชั้น 2 (15%)
+งวดที่ 4: งานโครงหลังคาและมุง (15%)
+งวดที่ 5: งานก่ออิฐฉาบปูน (15%)
+งวดที่ 6: งานระบบไฟฟ้าและสุขาภิบาล (15%)
+งวดที่ 7: งานฝ้า กระเบื้อง และสุขภัณฑ์ (10%)
+งวดที่ 8: งานทาสี ทดสอบระบบ และส่งมอบ (10%)`,
 }
 
-const SAMPLE_BOQ_TEXT = `หมวดที่ 1: งานเตรียมการ รื้อถอน และเสาเข็ม (สัดส่วนประมาณ 10% ของงบประมาณ)
-หมวดที่ 2: งานโครงสร้างวิศวกรรม คสล. ฐานราก เสา คาน พื้น หลังคา (สัดส่วนประมาณ 35% ของงบประมาณ)
-หมวดที่ 3: งานสถาปัตยกรรม ผนัง ฝ้า พื้น ประตูหน้าต่าง ทาสี (สัดส่วนประมาณ 30% ของงบประมาณ)
-หมวดที่ 4: งานระบบไฟฟ้าและสื่อสาร (สัดส่วนประมาณ 12% ของงบประมาณ)
-หมวดที่ 5: งานระบบสุขาภิบาล ป้องกันอัคคีภัย และปรับอากาศ (สัดส่วนประมาณ 13% ของงบประมาณ)`
+const SAMPLE_BOQ_TEXT = `หมวดที่ 1: งานเตรียมการและฐานราก (10%)
+หมวดที่ 2: งานโครงสร้างวิศวกรรม คสล. (35%)
+หมวดที่ 3: งานสถาปัตยกรรม (30%)
+หมวดที่ 4: งานระบบไฟฟ้าและสื่อสาร (12%)
+หมวดที่ 5: งานระบบสุขาภิบาลและปรับอากาศ (13%)`
 
 export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props) {
   // Step: 'input' | 'preview'
@@ -76,7 +76,6 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
   const initialBudget = project?.budget || 0
   const [contractAmount, setContractAmount] = useState<number>(initialBudget)
   const [startDate, setStartDate] = useState<string>(project?.start_date || '')
-  const [endDate, setEndDate] = useState<string>(project?.end_date || '')
 
   // Calculate default duration in days
   const initialDays = useMemo(() => {
@@ -92,13 +91,30 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
 
   const [durationDays, setDurationDays] = useState<number>(initialDays)
 
+  // Auto-calculated end date based on startDate and durationDays
+  const calculatedEndDate = useMemo(() => {
+    if (!startDate || !durationDays || durationDays <= 0) return ''
+    try {
+      const parts = startDate.split('-').map(Number)
+      if (parts.length !== 3) return ''
+      const d = new Date(parts[0], parts[1] - 1, parts[2])
+      d.setDate(d.getDate() + durationDays - 1)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    } catch {
+      return ''
+    }
+  }, [startDate, durationDays])
+
   // Input Mode for Zone 1 (BOQ / ปร.5 / ปร.6)
   const [boqInputType, setBoqInputType] = useState<'file' | 'text'>('file')
   const [boqFiles, setBoqFiles] = useState<UploadedFileItem[]>([])
   const [boqText, setBoqText] = useState('')
 
-  // Input Mode for Zone 2 (งวดงานท้ายสัญญา) - default to 'text' for direct typing
-  const [milestoneInputType, setMilestoneInputType] = useState<'text' | 'file'>('text')
+  // Input Mode for Zone 2 (งวดงานท้ายสัญญา) - default to 'file' matching Zone 1
+  const [milestoneInputType, setMilestoneInputType] = useState<'file' | 'text'>('file')
   const [milestoneFiles, setMilestoneFiles] = useState<UploadedFileItem[]>([])
   const [milestoneText, setMilestoneText] = useState('')
 
@@ -258,7 +274,7 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
         contractAmount,
         durationDays,
         startDate,
-        endDate,
+        endDate: calculatedEndDate || project?.end_date || '',
         boqText: combinedBoqText,
         boqFiles: boqFiles.filter((f) => f.base64).map((f) => ({ name: f.name, mimeType: f.mimeType, base64: f.base64 })),
         milestoneText: combinedMilestoneText,
@@ -466,28 +482,29 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1">
-                        📅 วันเริ่มสัญญา
-                      </label>
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full text-xs px-2 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#181834] text-slate-900 dark:text-white focus:outline-none focus:border-primary-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1">
-                        📅 สิ้นสุดสัญญา
-                      </label>
-                      <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full text-xs px-2 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#181834] text-slate-900 dark:text-white focus:outline-none focus:border-primary-500"
-                      />
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block mb-1">
+                      📅 วันเริ่มต้นสัญญา
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#181834] text-slate-900 dark:text-white focus:outline-none focus:border-primary-500 font-mono"
+                    />
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
+                      <span>
+                        วันสิ้นสุด: {calculatedEndDate ? (
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {calculatedEndDate.split('-').reverse().join('/')}
+                          </span>
+                        ) : (
+                          'คำนวณอัตโนมัติ'
+                        )}
+                      </span>
+                      {durationDays > 0 && (
+                        <span className="text-slate-400">(+{durationDays} วัน)</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -623,20 +640,8 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
                       </div>
                     </div>
 
-                    {/* Segmented control for Milestones */}
+                    {/* Segmented control for Milestones (Matching Zone 1: แนบไฟล์ on left, พิมพ์ on right) */}
                     <div className="flex rounded-xl bg-slate-100 dark:bg-[#202042] p-1 text-xs font-bold w-full mb-2">
-                      <button
-                        type="button"
-                        onClick={() => setMilestoneInputType('text')}
-                        className={`flex-1 py-1.5 px-2.5 rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
-                          milestoneInputType === 'text'
-                            ? 'bg-white dark:bg-[#121226] text-purple-600 dark:text-purple-400 shadow-xs'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                        }`}
-                      >
-                        <Edit2 size={13} />
-                        <span>✍️ พิมพ์ข้อความงวดงาน</span>
-                      </button>
                       <button
                         type="button"
                         onClick={() => setMilestoneInputType('file')}
@@ -649,6 +654,18 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
                         <Upload size={13} />
                         <span>แนบไฟล์ {milestoneFiles.length > 0 && `(${milestoneFiles.length})`}</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setMilestoneInputType('text')}
+                        className={`flex-1 py-1.5 px-2.5 rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                          milestoneInputType === 'text'
+                            ? 'bg-white dark:bg-[#121226] text-purple-600 dark:text-purple-400 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        }`}
+                      >
+                        <Edit2 size={13} />
+                        <span>พิมพ์ / วางข้อความ</span>
+                      </button>
                     </div>
 
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
@@ -656,70 +673,7 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
                     </p>
                   </div>
 
-                  {milestoneInputType === 'text' ? (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between flex-wrap gap-1">
-                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                          พิมพ์รายละเอียดงวดงาน:
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-slate-400">ใส่ตัวอย่าง:</span>
-                          <button
-                            type="button"
-                            onClick={() => setMilestoneText(SAMPLE_MILESTONES[4])}
-                            className="px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold cursor-pointer"
-                          >
-                            4 งวด
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMilestoneText(SAMPLE_MILESTONES[6])}
-                            className="px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold cursor-pointer"
-                          >
-                            6 งวด
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMilestoneText(SAMPLE_MILESTONES[8])}
-                            className="px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold cursor-pointer"
-                          >
-                            8 งวด
-                          </button>
-                          {milestoneText && (
-                            <button
-                              type="button"
-                              onClick={() => setMilestoneText('')}
-                              className="px-1.5 py-0.5 rounded text-red-500 hover:bg-red-50 text-[10px] font-bold cursor-pointer ml-1"
-                              title="ล้างข้อความ"
-                            >
-                              ล้าง
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <textarea
-                        value={milestoneText}
-                        onChange={(e) => setMilestoneText(e.target.value)}
-                        placeholder="พิมพ์ข้อความงวดงานของท่าน เช่น:&#10;งวดที่ 1: งานเตรียมการ รื้อถอน และเสาเข็มแล้วเสร็จ (10% หรือ 1,500,000 บาท)&#10;งวดที่ 2: งานโครงสร้างฐานราก เสาตอม่อ คานคอดิน และพื้นชั้น 1 แล้วเสร็จ (15%)&#10;งวดที่ 3: งานโครงสร้างเสา คาน พื้นชั้น 2 และโครงหลังคาแล้วเสร็จ (20%)&#10;งวดที่ 4: งานมุงหลังคา ก่ออิฐฉาบปูน งานระบบสุขาภิบาล-ไฟฟ้า (25%)&#10;งวดที่ 5: งานทาสี ปูกระเบื้อง ติดตั้งสุขภัณฑ์ ส่งมอบงานงวดสุดท้าย (30%)"
-                        rows={6}
-                        className="w-full p-2.5 text-xs rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#181834] text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 leading-relaxed font-sans"
-                      />
-
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span>
-                          {milestoneText
-                            ? `พิมพ์แล้ว ${milestoneText.split('\n').filter((l) => l.trim().length > 0).length} งวด/บรรทัด (${milestoneText.length} ตัวอักษร)`
-                            : '💡 พิมพ์เป็นข้อความ % หรือจำนวนเงิน หรือเฉพาะขอบเขตงานได้'}
-                        </span>
-                        {milestoneFiles.length > 0 && (
-                          <span className="text-purple-600 font-bold">
-                            (มีไฟล์แนบ {milestoneFiles.length} ไฟล์)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
+                  {milestoneInputType === 'file' ? (
                     <div className="space-y-2">
                       <label className="flex flex-col items-center justify-center p-5 border-2 border-dashed border-slate-200 dark:border-[#252548] hover:border-purple-500 rounded-xl cursor-pointer bg-slate-50/50 dark:bg-[#181834] transition-all">
                         <input
@@ -760,6 +714,69 @@ export function AIPlanningModal({ project, isOpen, onClose, onSavePlan }: Props)
                           ))}
                         </div>
                       )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between flex-wrap gap-1">
+                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                          พิมพ์รายละเอียดงวดงาน:
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400">ตัวอย่าง:</span>
+                          <button
+                            type="button"
+                            onClick={() => setMilestoneText(SAMPLE_MILESTONES[4])}
+                            className="px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold cursor-pointer transition-colors"
+                          >
+                            4 งวด
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMilestoneText(SAMPLE_MILESTONES[6])}
+                            className="px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold cursor-pointer transition-colors"
+                          >
+                            6 งวด
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMilestoneText(SAMPLE_MILESTONES[8])}
+                            className="px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-bold cursor-pointer transition-colors"
+                          >
+                            8 งวด
+                          </button>
+                          {milestoneText && (
+                            <button
+                              type="button"
+                              onClick={() => setMilestoneText('')}
+                              className="px-1.5 py-0.5 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-[10px] font-bold cursor-pointer ml-1"
+                              title="ล้างข้อความ"
+                            >
+                              ล้าง
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <textarea
+                        value={milestoneText}
+                        onChange={(e) => setMilestoneText(e.target.value)}
+                        placeholder="เช่น:&#10;งวดที่ 1: งานฐานรากและโครงสร้าง คสล. (25%)&#10;งวดที่ 2: งานสถาปัตย์และงานระบบ (35%)&#10;งวดที่ 3: งานเก็บรายละเอียดและส่งมอบ (40%)"
+                        rows={6}
+                        className="w-full p-2.5 text-xs rounded-xl border border-slate-200 dark:border-[#252548] bg-white dark:bg-[#181834] text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 leading-relaxed font-sans"
+                      />
+
+                      <div className="flex items-center justify-between text-[10px] text-slate-400">
+                        <span>
+                          {milestoneText
+                            ? `พิมพ์แล้ว ${milestoneText.split('\n').filter((l) => l.trim().length > 0).length} งวด/บรรทัด`
+                            : '💡 ระบุขอบเขตงานหรือสัดส่วน % แต่ละงวดได้'}
+                        </span>
+                        {milestoneFiles.length > 0 && (
+                          <span className="text-purple-600 font-bold">
+                            (มีไฟล์แนบ {milestoneFiles.length} ไฟล์)
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

@@ -702,10 +702,22 @@ export function PlanningClient({
   const printTimelineCols = dateRange.durationDays <= 180 ? 8 : dateRange.durationDays <= 365 ? 10 : 12
 
   // Print Gantt Chart
+  // Print Gantt Chart
   const handlePrintGantt = () => {
     const { start, durationDays } = dateRange
-    const ROWS_PER_PAGE = 22
-    const totalPages = Math.ceil(scheduledTasks.length / ROWS_PER_PAGE) || 1
+    
+    // Smart Dynamic Pagination:
+    // A4 landscape comfortably accommodates up to 28-30 rows on a single page with full header and legend.
+    const MAX_SINGLE_PAGE = 30
+    let rowsPerPage = 28
+    if (scheduledTasks.length <= MAX_SINGLE_PAGE) {
+      rowsPerPage = Math.max(1, scheduledTasks.length)
+    } else {
+      // For multi-page, balance rows evenly across pages to avoid leaving an awkward 1-5 rows on the final page
+      const totalP = Math.ceil(scheduledTasks.length / 28)
+      rowsPerPage = Math.ceil(scheduledTasks.length / totalP)
+    }
+    const totalPages = Math.ceil(scheduledTasks.length / rowsPerPage) || 1
     const printDate = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })
 
     // Build timeline header labels
@@ -747,7 +759,7 @@ export function PlanningClient({
     // Build pages HTML
     let pagesHtml = ''
     for (let page = 0; page < totalPages; page++) {
-      const pageTasks = scheduledTasks.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
+      const pageTasks = scheduledTasks.slice(page * rowsPerPage, (page + 1) * rowsPerPage)
       const rowsHtml = pageTasks.map(t => {
         const isMilestone = t.is_milestone
         const barColor = t.actual_progress === 100 ? '#10b981' : isMilestone ? '#a855f7' : '#6366f1'
@@ -803,7 +815,7 @@ export function PlanningClient({
           <div class="page-header">
             <div>
               <div class="proj-name">${project.name || 'โครงการ'}</div>
-              <div class="proj-sub">Gantt Chart แผนงาน</div>
+              <div class="proj-sub">Gantt Chart แผนงาน ${totalPages > 1 ? `(หน้า ${page + 1}/${totalPages})` : ''}</div>
             </div>
             <div class="page-num">Gantt Chart</div>
           </div>
@@ -844,13 +856,37 @@ export function PlanningClient({
 <head>
 <meta charset="UTF-8">
 <title>Gantt Chart - ${project.name}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4 landscape; margin: 8mm 8mm 6mm; }
-  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+  @page {
+    size: landscape;
+    margin: 8mm 10mm 6mm 10mm;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Sarabun', sans-serif; font-size: 9px; color: #1e293b; background: white; min-width: 250mm; }
-  .page { width: 265mm; padding: 0; min-height: 170mm; page-break-inside: avoid; }
-  .page-break { page-break-after: always; }
+  html, body {
+    font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 9px;
+    color: #1e293b;
+    background: white;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 100%;
+    max-width: 277mm;
+    margin: 0 auto;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .page-break {
+    page-break-after: always;
+    break-after: page;
+  }
   .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px solid #6366f1; }
   .proj-name { font-size: 13px; font-weight: 700; color: #1e293b; }
   .proj-sub { font-size: 9px; color: #64748b; margin-top: 2px; }
@@ -882,21 +918,30 @@ export function PlanningClient({
   .leg-susp { display: inline-block; width: 10px; height: 8px; border-radius: 1px; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHBhdGggZD0iTTAgOEw4IDBaTTggMTZMMTYgOFpNLTggMEwwIC04WiIgc3Ryb2tlPSJyZ2JhKDIzOSwgNjgsIDY4LCAwLjgpIiBzdHJva2Utd2lkdGg9IjIuNSI+PC9wYXRoPjwvc3ZnPg=='); background-color: rgba(239, 68, 68, 0.15); border-left: 1px solid rgba(239, 68, 68, 0.8); border-right: 1px solid rgba(239, 68, 68, 0.8); }
   .leg-today { display: inline-block; width: 0; height: 10px; border-left: 2px dashed #ef4444; }
   @media print {
-    @page { size: A4 landscape; margin: 8mm 8mm 6mm; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .page-break { page-break-after: always; }
   }
 </style>
+<script>
+  window.addEventListener('DOMContentLoaded', function() {
+    if (document.fonts) {
+      document.fonts.ready.then(function() {
+        setTimeout(function() { window.print(); }, 250);
+      });
+    } else {
+      setTimeout(function() { window.print(); }, 400);
+    }
+  });
+</script>
 </head>
 <body>${pagesHtml}</body>
 </html>`
 
     const win = window.open('', '_blank', 'width=1200,height=800')
     if (!win) { alert('กรุณาอนุญาต Popup เพื่อใช้งานฟีเจอร์พิมพ์'); return }
+    win.document.open()
     win.document.write(html)
     win.document.close()
     win.focus()
-    setTimeout(() => { win.print() }, 600)
   }
 
   // Print S-Curve
@@ -938,58 +983,90 @@ export function PlanningClient({
 <head>
 <meta charset="UTF-8">
 <title>S-Curve - ${project.name}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4 landscape; margin: 10mm; }
-  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+  @page {
+    size: landscape;
+    margin: 10mm 12mm;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Sarabun', sans-serif; background: white; min-width: 250mm; }
+  html, body {
+    font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: white;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page-container {
+    width: 100%;
+    max-width: 275mm;
+    margin: 0 auto;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #6366f1; }
   .proj-name { font-size: 14px; font-weight: 700; color: #1e293b; }
   .proj-sub { font-size: 9px; color: #64748b; margin-top: 2px; }
   .chart-wrap { width: 100%; }
-  svg { width: 100%; height: auto; overflow: visible; }
+  svg { width: 100%; height: auto; max-height: 140mm; overflow: visible; }
   .legend { display: flex; gap: 16px; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #64748b; flex-wrap: wrap; }
   .leg { display: flex; align-items: center; gap: 4px; }
   .note { margin-top: 8px; font-size: 8px; color: #94a3b8; line-height: 1.6; background: #f8fafc; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0; }
   @media print {
-    @page { size: A4 landscape; margin: 10mm; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
+<script>
+  window.addEventListener('DOMContentLoaded', function() {
+    if (document.fonts) {
+      document.fonts.ready.then(function() {
+        setTimeout(function() { window.print(); }, 250);
+      });
+    } else {
+      setTimeout(function() { window.print(); }, 400);
+    }
+  });
+</script>
 </head>
 <body>
-  <div class="header">
-    <div>
-      <div class="proj-name">${project.name || 'โครงการ'}</div>
-      <div class="proj-sub">S-Curve แสดงมูลค่าความก้าวหน้าสะสม</div>
+  <div class="page-container">
+    <div class="header">
+      <div>
+        <div class="proj-name">${project.name || 'โครงการ'}</div>
+        <div class="proj-sub">S-Curve แสดงมูลค่าความก้าวหน้าสะสม</div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:#6366f1">Earned Value Management</div>
     </div>
-    <div style="font-size:10px;font-weight:700;color:#6366f1">Earned Value Management</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+        ${yGrids}
+        ${pvPath ? `<path d="${pvPath}" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/>` : ''}
+        ${evPath ? `<path d="${evPath}" fill="none" stroke="#6366f1" stroke-width="2"/>` : ''}
+        ${acPath ? `<path d="${acPath}" fill="none" stroke="#f59e0b" stroke-width="2"/>` : ''}
+        ${xLabels}
+        <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + gH}" stroke="#cbd5e1" stroke-width="1"/>
+        <line x1="${padL}" y1="${padT + gH}" x2="${padL + gW}" y2="${padT + gH}" stroke="#cbd5e1" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="legend">
+      <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/></svg>PV แผนสะสม (Planned Value)</span>
+      <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#6366f1" stroke-width="2"/></svg>EV ผลงานสะสม (Earned Value)</span>
+      <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#f59e0b" stroke-width="2"/></svg>AC รายจ่ายจริงสะสม (Actual Cost)</span>
+    </div>
+    <div class="note">เส้น S-Curve ประกอบด้วย 3 ส่วนตามระบบ Earned Value Management: PV (แผนสะสม), EV (ผลงานที่ได้จริง), และ AC (รายจ่ายจริงสะสม) เพื่อประเมินความคุ้มค่าและความล่าช้าของโครงการ</div>
   </div>
-  <div class="chart-wrap">
-    <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-      ${yGrids}
-      ${pvPath ? `<path d="${pvPath}" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/>` : ''}
-      ${evPath ? `<path d="${evPath}" fill="none" stroke="#6366f1" stroke-width="2"/>` : ''}
-      ${acPath ? `<path d="${acPath}" fill="none" stroke="#f59e0b" stroke-width="2"/>` : ''}
-      ${xLabels}
-      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + gH}" stroke="#cbd5e1" stroke-width="1"/>
-      <line x1="${padL}" y1="${padT + gH}" x2="${padL + gW}" y2="${padT + gH}" stroke="#cbd5e1" stroke-width="1"/>
-    </svg>
-  </div>
-  <div class="legend">
-    <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/></svg>PV แผนสะสม (Planned Value)</span>
-    <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#6366f1" stroke-width="2"/></svg>EV ผลงานสะสม (Earned Value)</span>
-    <span class="leg"><svg width="18" height="10"><line x1="0" y1="5" x2="18" y2="5" stroke="#f59e0b" stroke-width="2"/></svg>AC รายจ่ายจริงสะสม (Actual Cost)</span>
-  </div>
-  <div class="note">เส้น S-Curve ประกอบด้วย 3 ส่วนตามระบบ Earned Value Management: PV (แผนสะสม), EV (ผลงานที่ได้จริง), และ AC (รายจ่ายจริงสะสม) เพื่อประเมินความคุ้มค่าและความล่าช้าของโครงการ</div>
 </body></html>`
 
     const win = window.open('', '_blank', 'width=1200,height=700')
     if (!win) { alert('กรุณาอนุญาต Popup เพื่อใช้งานฟีเจอร์พิมพ์'); return }
+    win.document.open()
     win.document.write(html)
     win.document.close()
     win.focus()
-    setTimeout(() => { win.print() }, 600)
   }
 
   // Inline CRUD handlers

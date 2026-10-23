@@ -176,7 +176,7 @@ export function PrintPageClient({
         /* Screen preview wrapper */
         .slide-page-wrapper {
           width: 297mm;
-          height: 167.0625mm;
+          height: 198mm;
           overflow: hidden;
           position: relative;
           background: ${isDark ? '#0d0f14' : '#ffffff'};
@@ -187,18 +187,19 @@ export function PrintPageClient({
           break-after: page;
         }
 
-        /* The actual slide rendered at 1280×720 (16:9), then CSS scaled to fit 297mm width */
+        /* The actual slide rendered at 1280×860, then CSS scaled to fit A4 */
         .slide-native {
           width: 1280px;
-          height: 720px;
-          transform: scale(0.87696875);
-          transform-origin: top left;
+          height: 860px;
+          transform: scale(0.82);
+          transform-origin: top center;
           background: ${isDark ? '#0d0f14' : '#ffffff'};
           overflow: hidden;
           position: absolute;
-          top: 0;
-          left: 0;
-          padding: 24px;
+          top: 15px;
+          left: 50%;
+          margin-left: -640px;
+          padding: 0;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
@@ -287,9 +288,9 @@ export function PrintPageClient({
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             overflow: hidden !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            padding: 8mm 9mm 0 9mm !important;
+            box-sizing: border-box !important;
+            display: block !important;
             background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
           }
 
@@ -300,22 +301,21 @@ export function PrintPageClient({
 
           .slide-native {
             width: 1280px !important;
-            height: 720px !important;
+            height: 860px !important;
             max-width: 1280px !important;
-            max-height: 720px !important;
-            transform: scale(0.87696875) !important;
-            transform-origin: center center !important;
+            max-height: 860px !important;
+            transform: scale(0.82) !important;
+            transform-origin: top center !important;
             position: relative !important;
             top: auto !important;
             left: auto !important;
-            margin: auto !important;
-            padding: 24px !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
             align-items: stretch !important;
-            justify-content: center !important;
             background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
           }
 

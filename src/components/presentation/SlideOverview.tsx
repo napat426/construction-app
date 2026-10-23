@@ -245,16 +245,16 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
   const bodyText = isDark ? 'text-slate-100' : 'text-slate-900 font-bold'
 
   return (
-    <div className="w-full h-full flex flex-col px-10 py-6 select-none" style={{ fontFamily: 'Inter, Noto Sans Thai, sans-serif' }}>
+    <div className="w-full h-full flex flex-col px-6 py-3.5 select-none" style={{ fontFamily: 'Inter, Noto Sans Thai, sans-serif' }}>
 
       {/* ── Premium Header ── */}
-      <div className="flex justify-between items-start mb-4 gap-6">
+      <div className="flex justify-between items-start mb-2.5 gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className={`text-4xl font-extrabold leading-tight mb-2 tracking-tight ${isDark ? 'text-[#e87ae4] drop-shadow-[0_0_12px_rgba(232,122,228,0.25)]' : 'text-purple-800'}`}>
+          <h1 className={`text-3xl font-extrabold leading-tight mb-1 tracking-tight ${isDark ? 'text-[#e87ae4] drop-shadow-[0_0_12px_rgba(232,122,228,0.25)]' : 'text-purple-800'}`}>
             {project.name}
           </h1>
-          <div className="flex flex-wrap items-center gap-3 text-sm font-extrabold">
-            <span className={`px-3 py-0.5 rounded-full font-black text-[12px] ${
+          <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
+            <span className={`px-2.5 py-0.5 rounded-full font-black text-[11px] ${
               project.status === 'กำลังดำเนินการ' ? 'bg-amber-500/20 text-amber-800 dark:text-amber-400' :
               project.status === 'ระงับ' ? 'bg-red-500/20 text-red-700 dark:text-red-450' :
               project.status === 'เสร็จสิ้น' ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-455' :
@@ -271,7 +271,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
               </span>
             )}
             {project.contract_no && (
-              <span className={`font-mono text-[12px] text-slate-950 dark:text-white/80`}>สัญญา: {project.contract_no}</span>
+              <span className={`font-mono text-[11px] text-slate-950 dark:text-white/80`}>สัญญา: {project.contract_no}</span>
             )}
           </div>
         </div>
@@ -279,24 +279,24 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
         {/* Dates, Timeline & Warning Status */}
         <div className="text-right flex-shrink-0 flex flex-col items-end">
           <p className="text-xs font-black text-slate-950 dark:text-white/80 mb-0.5 flex items-center gap-1.5">
-            <Calendar size={13} />
+            <Calendar size={12} />
             {fmtDate(project.start_date)} — {evm.isOverrun
               ? <span className="text-red-600 font-extrabold">เกินสัญญา {evm.daysRemaining} วัน</span>
               : fmtDate(project.end_date)}
           </p>
-          <p className={`text-2xl font-black ${evm.isOverrun ? 'text-red-500' : isDark ? 'text-blue-400' : 'text-blue-700'}`}>
+          <p className={`text-xl font-black ${evm.isOverrun ? 'text-red-500' : isDark ? 'text-blue-400' : 'text-blue-700'}`}>
             {evm.isOverrun ? `⚠ เกินกำหนด ${evm.daysRemaining} วัน` : `เหลือ ${evm.daysRemaining} วัน`}
           </p>
           {evm.totalPenalty > 0 && (
-            <p className="text-xs font-black text-red-600 mt-1 bg-red-500/10 px-2 py-0.5 rounded">ค่าปรับสะสม {fmt(evm.totalPenalty)}</p>
+            <p className="text-[11px] font-black text-red-600 mt-0.5 bg-red-500/10 px-2 py-0.5 rounded">ค่าปรับสะสม {fmt(evm.totalPenalty)}</p>
           )}
         </div>
       </div>
 
       {/* Suspension Banner */}
       {evm.isCurrentlySuspended && evm.currentSuspension && (
-        <div className="flex items-center gap-2 px-3.5 py-1.5 mb-3 bg-amber-500/15 border-2 border-amber-500/40 rounded-xl text-amber-800 dark:text-amber-400 text-xs font-black">
-          <AlertTriangle size={15} />
+        <div className="flex items-center gap-2 px-3 py-1 mb-2 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-800 dark:text-amber-400 text-xs font-black">
+          <AlertTriangle size={13} />
           ⏸ หยุดงานชั่วคราว: {evm.currentSuspension.reason || '—'}
           {evm.currentSuspension.suspend_date && ` (ตั้งแต่ ${fmtDate(evm.currentSuspension.suspend_date)})`}
           {evm.totalSuspendedDays > 0 && ` — สะสม ${evm.totalSuspendedDays} วัน`}
@@ -304,13 +304,13 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
       )}
 
       {/* ── Main 4-Quadrant Symmetric Grid ── */}
-      <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
+      <div className="flex-1 grid grid-cols-2 gap-3 min-h-0">
 
         {/* ── LEFT COLUMN (Box 1 & Box 2) ── */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           
           {/* Box 1: ความก้าวหน้าสะสม (Progress Bars) */}
-          <div className={`${card} rounded-3xl p-5 flex flex-col justify-between flex-1`}>
+          <div className={`${card} rounded-2xl p-3.5 flex flex-col justify-between flex-1`}>
             <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-2`}>ความก้าวหน้าสะสม</h3>
             <div className="flex-1 flex flex-col justify-around py-1 gap-2">
               {/* PV */}
@@ -361,14 +361,14 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
           </div>
 
           {/* Box 2: การวิเคราะห์และดัชนีประสิทธิภาพ (Gauges & SPI/CPI) */}
-          <div className={`${card} rounded-3xl p-5 flex flex-col justify-between flex-1`}>
-            <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-2`}>การวิเคราะห์และดัชนีประสิทธิภาพ</h3>
+          <div className={`${card} rounded-2xl p-3.5 flex flex-col justify-between flex-1`}>
+            <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-1.5`}>การวิเคราะห์และดัชนีประสิทธิภาพ</h3>
             
-            <div className="flex-1 flex flex-col justify-around py-1 gap-4">
+            <div className="flex-1 flex flex-col justify-around py-0.5 gap-2.5">
               {/* SV & SPI Row */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1">
                 <SlideGauge value={evm.svPercent} min={-40} max={40} label="เบี่ยงเบนแผนงาน (SV)" isDark={isDark} />
-                <div className="flex justify-between items-center text-xs font-black mt-1">
+                <div className="flex justify-between items-center text-xs font-black mt-0.5">
                   <span className={`${evm.svPercent < 0 ? 'text-red-600' : evm.svPercent > 0 ? 'text-emerald-600' : heading}`}>
                     {evm.svPercent < 0 ? `⚠️ ล่าช้ากว่าแผน ${Math.abs(evm.svDays)} วัน` :
                      evm.svPercent > 0 ? `✅ เร็วกว่าแผน ${evm.svDays} วัน` : '🎯 ดำเนินงานตรงแผน'}
@@ -383,12 +383,12 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                 </div>
               </div>
 
-              <div className={`border-t-2 ${isDark ? 'border-white/10' : 'border-slate-200'} w-full`} />
+              <div className={`border-t ${isDark ? 'border-white/10' : 'border-slate-200'} w-full`} />
 
               {/* CV & CPI Row */}
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1">
                 <SlideGauge value={evm.cvPercent} min={-30} max={30} label="เบี่ยงเบนต้นทุน (CV)" isDark={isDark} />
-                <div className="flex justify-between items-center text-xs font-black mt-1">
+                <div className="flex justify-between items-center text-xs font-black mt-0.5">
                   <span className={`${evm.cvPercent < 0 ? 'text-red-600' : evm.cvPercent > 0 ? 'text-emerald-600' : heading}`}>
                     {evm.cvPercent < 0 ? `🔴 เกินงบสะสม ${fmt(Math.abs(evm.cvCost))}` :
                      evm.cvPercent > 0 ? `✅ ประหยัดงบสะสม ${fmt(evm.cvCost)}` : '🎯 จ่ายตรงตามงบ'}
@@ -407,46 +407,46 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
         </div>
 
         {/* ── RIGHT COLUMN (Box 3 & Box 4) ── */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           
           {/* Box 3: สถานะหัวข้องาน (WBS segmented + active/delayed task lists) */}
-          <div className={`${card} rounded-3xl p-5 flex flex-col justify-between flex-1`}>
+          <div className={`${card} rounded-2xl p-3.5 flex flex-col justify-between flex-1`}>
             <div>
-              <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-2`}>สถานะหัวข้องาน (WBS)</h3>
+              <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-1.5`}>สถานะหัวข้องาน (WBS)</h3>
               <WBSSegmentBar done={evm.done} delayed={evm.delayed} inProgress={evm.inProgress} future={evm.future} />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <div className="flex items-center justify-between p-2 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-2xl border-2 border-emerald-500/25">
-                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><CheckCircle2 className="text-emerald-500" size={14} />เสร็จสิ้น</span>
-                <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">{evm.done}</span>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="flex items-center justify-between p-1.5 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-xl border border-emerald-500/25">
+                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><CheckCircle2 className="text-emerald-500" size={13} />เสร็จสิ้น</span>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">{evm.done}</span>
               </div>
-              <div className="flex items-center justify-between p-2 bg-red-500/10 dark:bg-red-500/10 rounded-2xl border-2 border-red-500/25">
-                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><AlertCircle className="text-red-500" size={14} />ล่าช้า</span>
-                <span className="text-lg font-black text-red-600 dark:text-red-400 font-mono">{evm.delayed}</span>
+              <div className="flex items-center justify-between p-1.5 bg-red-500/10 dark:bg-red-500/10 rounded-xl border border-red-500/25">
+                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><AlertCircle className="text-red-500" size={13} />ล่าช้า</span>
+                <span className="text-base font-black text-red-600 dark:text-red-400 font-mono">{evm.delayed}</span>
               </div>
-              <div className="flex items-center justify-between p-2 bg-blue-500/10 dark:bg-blue-500/10 rounded-2xl border-2 border-blue-500/25">
-                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><PlayCircle className="text-blue-500" size={14} />กำลังทำ</span>
-                <span className="text-lg font-black text-blue-600 dark:text-blue-400 font-mono">{evm.inProgress}</span>
+              <div className="flex items-center justify-between p-1.5 bg-blue-500/10 dark:bg-blue-500/10 rounded-xl border border-blue-500/25">
+                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><PlayCircle className="text-blue-500" size={13} />กำลังทำ</span>
+                <span className="text-base font-black text-blue-600 dark:text-blue-400 font-mono">{evm.inProgress}</span>
               </div>
-              <div className="flex items-center justify-between p-2 bg-slate-100 dark:bg-white/5 rounded-2xl border-2 border-slate-300 dark:border-white/10">
-                <span className="text-xs font-black text-slate-900 dark:text-white/85 flex items-center gap-1.5"><Clock className="text-slate-500" size={14} />ยังไม่เริ่ม</span>
-                <span className="text-lg font-black text-slate-700 dark:text-slate-300 font-mono">{evm.future}</span>
+              <div className="flex items-center justify-between p-1.5 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-300 dark:border-white/10">
+                <span className="text-xs font-black text-slate-900 dark:text-white/85 flex items-center gap-1.5"><Clock className="text-slate-500" size={13} />ยังไม่เริ่ม</span>
+                <span className="text-base font-black text-slate-700 dark:text-slate-300 font-mono">{evm.future}</span>
               </div>
             </div>
 
             {/* List of active and delayed tasks (Fills vertical whitespace) */}
-            <div className={`mt-3 pt-3 border-t-2 ${isDark ? 'border-white/10' : 'border-slate-200'} flex-1 flex flex-col justify-start`}>
-              <h4 className={`text-xs font-black uppercase tracking-wider text-slate-950 dark:text-white/70 mb-1.5`}>รายการงานกำลังทำ & ล่าช้า ({evm.sortedActiveTasks.length})</h4>
+            <div className={`mt-2 pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} flex-1 flex flex-col justify-start`}>
+              <h4 className={`text-xs font-black uppercase tracking-wider text-slate-950 dark:text-white/70 mb-1`}>รายการงานกำลังทำ & ล่าช้า ({evm.sortedActiveTasks.length})</h4>
               {evm.sortedActiveTasks.length > 0 ? (
-                <div className="space-y-1 overflow-y-auto max-h-[85px] pr-1">
+                <div className="space-y-1 overflow-y-auto max-h-[80px] pr-1">
                   {evm.sortedActiveTasks.slice(0, 3).map((task, index) => (
                     <div key={index} className="flex justify-between items-center text-[12px] font-extrabold gap-4 py-0.5">
                       <span className={`truncate flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-950'}`}>
                         {task.isDelayed ? (
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
                         ) : (
-                          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                         )}
                         {task.name}
                       </span>
@@ -463,10 +463,10 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
           </div>
 
           {/* Box 4: ข้อมูลสัญญาและงบประมาณ + งวดงานที่กำลังทำ (Financial & Next Milestone details) */}
-          <div className={`${card} rounded-3xl p-5 flex flex-col justify-between flex-1`}>
+          <div className={`${card} rounded-2xl p-3.5 flex flex-col justify-between flex-1`}>
             <div>
-              <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-2`}>การเงินและสัญญา</h3>
-              <div className="space-y-1.5 text-xs">
+              <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-1.5`}>การเงินและสัญญา</h3>
+              <div className="space-y-1 text-xs">
                 <div className="flex justify-between font-black text-sm text-slate-950 dark:text-white">
                   <span>งบประมาณมูลค่าสัญญา</span>
                   <span className="font-mono">{fmt(evm.BAC)}</span>
@@ -476,8 +476,8 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                   <span className="font-mono">{fmt(evm.AC_Cost)}</span>
                 </div>
                 
-                <div className="pt-1.5">
-                  <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-200'} h-2.5 rounded-full overflow-hidden`}>
+                <div className="pt-1">
+                  <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-200'} h-2 rounded-full overflow-hidden`}>
                     <div 
                       className="bg-purple-600 h-full rounded-full transition-all duration-700 ease-out"
                       style={{ width: `${Math.min(100, (evm.AC_Cost / evm.BAC) * 100)}%` }} 
@@ -485,7 +485,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center text-xs font-black pt-2 border-t-2 border-slate-200 dark:border-white/10 mt-2">
+                <div className="flex justify-between items-center text-xs font-black pt-1.5 border-t border-slate-200 dark:border-white/10 mt-1.5">
                   <span className="text-slate-900 dark:text-white/80">การส่งมอบงวดงาน</span>
                   <span>
                     ส่งแล้ว <span className="text-emerald-600 font-mono font-black">{evm.paidMilestones}</span> / เหลือ <span className="text-amber-600 font-mono font-black">{evm.remainingMilestones}</span> / ทั้งหมด <span className="font-mono font-black">{evm.totalMilestones}</span> งวด
@@ -495,21 +495,21 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
             </div>
 
             {/* งวดงานถัดไป/งวดงานที่กำลังดำเนินการอยู่ตอนนี้ (Fills financial card whitespace) */}
-            <div className={`border-t-2 ${isDark ? 'border-white/10' : 'border-slate-200'} mt-3 pt-3 flex-1 flex flex-col justify-start`}>
-              <h4 className={`text-xs font-black uppercase tracking-wider text-slate-950 dark:text-white/70 mb-1.5`}>งวดงานที่ต้องดำเนินงานถัดไป</h4>
+            <div className={`border-t ${isDark ? 'border-white/10' : 'border-slate-200'} mt-2 pt-2 flex-1 flex flex-col justify-start`}>
+              <h4 className={`text-xs font-black uppercase tracking-wider text-slate-950 dark:text-white/70 mb-1`}>งวดงานที่ต้องดำเนินงานถัดไป</h4>
               {evm.activeMilestone ? (
-                <div className="bg-slate-100 dark:bg-white/5 p-2.5 rounded-2xl border-2 border-slate-200 dark:border-white/10 text-xs font-extrabold space-y-1">
+                <div className="bg-slate-100 dark:bg-white/5 p-2 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-extrabold space-y-0.5">
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-slate-950 dark:text-white truncate">งวดที่ {evm.activeMilestone.milestone_no}: {evm.activeMilestone.name}</span>
                     <span className="text-amber-600 dark:text-amber-400 font-mono flex-shrink-0">{fmt(evm.activeMilestone.amount)}</span>
                   </div>
                   {evm.activeMilestone.work_scope && (
-                    <p className="text-slate-900 dark:text-white/80 font-bold text-[11px] leading-relaxed mt-0.5 line-clamp-2">
+                    <p className="text-slate-900 dark:text-white/80 font-bold text-[11px] leading-relaxed line-clamp-1">
                       📝 งาน: {evm.activeMilestone.work_scope}
                     </p>
                   )}
                   {evm.activeMilestone.expected_payment_date && (
-                    <p className="text-[10px] text-slate-950 dark:text-white/70 mt-1 flex items-center gap-1">
+                    <p className="text-[10px] text-slate-950 dark:text-white/70 flex items-center gap-1">
                       📅 กำหนดส่งงาน: {fmtDate(evm.activeMilestone.expected_payment_date)}
                     </p>
                   )}
@@ -521,7 +521,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
 
             {/* Committee members & details */}
             {(project.contractor || project.contract_no || evm.committeeList.length > 0) && (
-              <div className={`border-t-2 ${isDark ? 'border-white/10' : 'border-slate-200'} mt-3 pt-2 space-y-0.5 text-[11px] font-extrabold`}>
+              <div className={`border-t ${isDark ? 'border-white/10' : 'border-slate-200'} mt-2 pt-1.5 space-y-0.5 text-[11px] font-extrabold`}>
                 {project.contractor && (
                   <p className="text-slate-950 dark:text-white/85">ผู้รับจ้าง: <span className="font-black text-black dark:text-white">{project.contractor}</span></p>
                 )}
@@ -543,14 +543,14 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
       </div>
 
       {/* ── Overall Health Footer ── */}
-      <div className={`mt-4 flex items-center justify-center py-2.5 rounded-2xl text-xs font-extrabold tracking-wide ${
+      <div className={`mt-2.5 flex items-center justify-center py-1.5 rounded-xl text-xs font-extrabold tracking-wide ${
         evm.SPI >= 1.0 && evm.CPI >= 1.0
           ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-400'
           : evm.SPI < 0.85 || evm.CPI < 0.85
           ? 'bg-red-500/15 text-red-800'
           : 'bg-amber-500/15 text-amber-800 dark:text-amber-400'
       }`}>
-        <TrendingUp size={14} className="mr-2" />
+        <TrendingUp size={13} className="mr-1.5" />
         {evm.SPI >= 1.0 && evm.CPI >= 1.0
           ? '● สุขภาพโครงการสมบูรณ์ (Healthy Project) - ความก้าวหน้าและดัชนีสะสมเป็นไปตามเกณฑ์ปกติ'
           : evm.SPI < 0.85 || evm.CPI < 0.85

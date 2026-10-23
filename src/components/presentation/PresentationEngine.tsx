@@ -240,7 +240,7 @@ export function PresentationEngine({
             top: -30000px !important;
             left: -30000px !important;
             width: 1280px !important;
-            height: 720px !important;
+            height: 860px !important;
             opacity: 0 !important;
             pointer-events: none !important;
             z-index: -9999 !important;
@@ -277,7 +277,7 @@ export function PresentationEngine({
             z-index: auto !important;
           }
 
-          /* Each page is exactly 1 A4 sheet, with the 16:9 slide centered vertically and horizontally */
+          /* Each page is exactly 1 A4 sheet, with display: block so page breaks work reliably */
           .print-slide-page {
             width: 297mm !important;
             height: 210mm !important;
@@ -290,11 +290,9 @@ export function PresentationEngine({
             position: relative !important;
             overflow: hidden !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 8mm 9mm 0 9mm !important;
             box-sizing: border-box !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            display: block !important;
             background: ${isPrintDark ? '#0d0f14' : '#ffffff'} !important;
           }
 
@@ -304,22 +302,21 @@ export function PresentationEngine({
             break-after: avoid !important;
           }
 
-          /* Native 16:9 slide box scaled to 297mm width and centered */
+          /* Scaled slide box: 1280px wide × 860px high, scaled by 0.82 to fit A4 sheet cleanly */
           .print-slide-native {
             width: 1280px !important;
-            height: 720px !important;
+            height: 860px !important;
             max-width: 1280px !important;
-            max-height: 720px !important;
-            transform: scale(0.87696875) !important;
-            transform-origin: center center !important;
-            padding: 24px !important;
+            max-height: 860px !important;
+            transform: scale(0.82) !important;
+            transform-origin: top center !important;
+            padding: 0 !important;
+            margin: 0 auto !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
             align-items: stretch !important;
-            justify-content: center !important;
-            margin: auto !important;
             background: ${isPrintDark ? '#0d0f14' : '#ffffff'} !important;
           }
 

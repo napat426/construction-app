@@ -82,37 +82,37 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
   today.setHours(0,0,0,0)
 
   return (
-    <div className={`w-full h-full flex flex-col p-8 rounded-3xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl`}>
-      <div className="flex justify-between items-center mb-4">
+    <div className={`w-full h-full flex flex-col p-5 rounded-2xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl`}>
+      <div className="flex justify-between items-center mb-3">
         <div>
-          <h2 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>แผนการดำเนินงาน (Gantt Chart)</h2>
-          <p className={`text-base mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>โครงการ: {project?.name}</p>
+          <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>แผนการดำเนินงาน (Gantt Chart)</h2>
+          <p className={`text-sm mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>โครงการ: {project?.name}</p>
         </div>
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded ${isDark ? 'bg-white/20' : 'bg-slate-300'}`}></div>
-            <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>แผนงาน</span>
+            <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>แผนงาน</span>
           </div>
           <div className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded ${isDark ? 'bg-[#a13c9d]/85' : 'bg-purple-600/85'}`}></div>
-            <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>ความคืบหน้า</span>
+            <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>ความคืบหน้า</span>
           </div>
           {amendments && amendments.filter(a => a.amendment_type === 'suspend_with_resume' || a.amendment_type === 'suspend_open').length > 0 && (
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJ0cmFuc3BhcmVudCI+PC9yZWN0Pgo8cGF0aCBkPSJNMCA4TDggMFpNOCAxNkwxNiA4Wk0tOCAwTDAgLThaIiBzdHJva2U9InJnYmEoMjM5LCA2OCwgNjgsIDAuMikiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=')] border border-red-500/30 bg-red-50/10"></div>
-              <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>ช่วงหยุดงาน</span>
+              <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>ช่วงหยุดงาน</span>
             </div>
           )}
         </div>
         {hasHiddenTasks && (
-          <div className={`px-4 py-2 rounded-full text-sm font-bold ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700'}`}>
+          <div className={`px-3 py-1 rounded-full text-xs font-bold ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700'}`}>
             *แสดงเฉพาะงานหลัก (Level 1) {displayTasks.length} รายการ
           </div>
         )}
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col mt-2">
-        <div className={`flex font-bold text-sm py-2.5 border-b ${isDark ? 'border-white/10 text-slate-400' : 'border-black/10 text-slate-600'}`}>
+      <div className="flex-1 min-h-0 flex flex-col mt-1">
+        <div className={`flex font-bold text-xs py-2 border-b ${isDark ? 'border-white/10 text-slate-400' : 'border-black/10 text-slate-600'}`}>
           <div className="w-[120px] flex-shrink-0 px-2">WBS No.</div>
           <div className="w-[300px] flex-shrink-0 px-2">ชื่องาน</div>
           <div className="w-[80px] flex-shrink-0 text-center">% จริง</div>
@@ -135,7 +135,7 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto print:overflow-visible mt-1 relative">
+        <div className="flex-1 min-h-0 overflow-y-auto print:overflow-hidden mt-1 relative">
           {/* Vertical Grid Lines */}
           <div className="absolute inset-y-0 left-[516px] right-0 pointer-events-none flex">
             {Array.from({ length: 10 }).map((_, i) => (

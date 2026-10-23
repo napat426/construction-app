@@ -91,8 +91,9 @@ export function SupervisorPortfolioClient({
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([])
   // Reorder mode toggle
   const [isReorderMode, setIsReorderMode] = useState(false)
-  // Year Filter (Default: 2569)
+  // Year & Half-Year Evaluation Period Filter (Default: 'all')
   const [selectedYear, setSelectedYear] = useState<string>('all')
+  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'h1' | 'h2'>('all')
 
   // Drag & drop and reorder state
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
@@ -115,12 +116,32 @@ export function SupervisorPortfolioClient({
     return tasks.filter((t) => t.supervisor === supervisorName)
   }, [tasks, supervisorName])
 
+  // Helper to extract Buddhist Era year and month from a task
+  const getTaskDateInfo = (t: SupervisorTask): { yearBE: string; month: number; dateStr: string } => {
+    const dateStr = t.completed_date || t.due_date || t.start_date || (t.created_at ? t.created_at.split('T')[0] : '')
+    if (!dateStr) return { yearBE: '', month: 0, dateStr: '' }
+    try {
+      const clean = dateStr.split('T')[0]
+      const parts = clean.split('-')
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10)
+        const m = parseInt(parts[1], 10)
+        const be = y > 2400 ? y : y + 543
+        return { yearBE: String(be), month: m, dateStr: clean }
+      }
+      const dt = new Date(dateStr)
+      if (isNaN(dt.getTime())) return { yearBE: '', month: 0, dateStr }
+      const ceYear = dt.getFullYear()
+      const m = dt.getMonth() + 1
+      return { yearBE: String(ceYear + 543), month: m, dateStr: clean }
+    } catch {
+      return { yearBE: '', month: 0, dateStr: '' }
+    }
+  }
+
   // Helper to extract Buddhist Era year from a task
   const getTaskYear = (t: SupervisorTask): string => {
-    const dateStr = t.completed_date || t.due_date || t.start_date || (t.created_at ? t.created_at.split('T')[0] : '')
-    if (!dateStr) return ''
-    const ceYear = parseInt(dateStr.substring(0, 4), 10)
-    return isNaN(ceYear) ? '' : String(ceYear + 543)
+    return getTaskDateInfo(t).yearBE
   }
 
   // Helper to format date as วัน-เดือน-ปี (DD-MM-YYYY in Thai Buddhist Era)
@@ -162,11 +183,26 @@ export function SupervisorPortfolioClient({
     return Array.from(yearsSet).sort((a, b) => Number(a) - Number(b))
   }, [supervisorTasks])
 
-  // Filter tasks by selected year (if not 'all')
+  // Filter tasks by selected year and 6-month evaluation period (Calendar Year: H1 = Jan-Jun, H2 = Jul-Dec)
   const filteredSupervisorTasks = useMemo(() => {
-    if (selectedYear === 'all') return supervisorTasks
-    return supervisorTasks.filter((t) => getTaskYear(t) === selectedYear)
-  }, [supervisorTasks, selectedYear])
+    return supervisorTasks.filter((t) => {
+      const { yearBE, month } = getTaskDateInfo(t)
+
+      // If user selected a specific year
+      if (selectedYear !== 'all') {
+        if (yearBE && yearBE !== selectedYear) return false
+      }
+
+      // If user selected half-year period (H1 = 1-6, H2 = 7-12)
+      if (selectedPeriod === 'h1') {
+        if (month > 0 && (month < 1 || month > 6)) return false
+      } else if (selectedPeriod === 'h2') {
+        if (month > 0 && (month < 7 || month > 12)) return false
+      }
+
+      return true
+    })
+  }, [supervisorTasks, selectedYear, selectedPeriod])
 
   // Filter groups for this supervisor sorted by sort_order
   const supervisorGroups = useMemo(() => {
@@ -179,10 +215,39 @@ export function SupervisorPortfolioClient({
     return filteredSupervisorTasks.filter((t) => !supervisorGroups.some((g) => g.id === t.group_id))
   }, [filteredSupervisorTasks, supervisorGroups])
 
-  // Main construction projects for this supervisor
-  const mainProjects = useMemo(() => {
-    return projects.filter((p) => (p.supervisor || '').includes(supervisorName))
-  }, [projects, supervisorName])
+  // Main construction projects for this supervisor (filtered by active timeline in period if selected)
+  const filteredMainProjects = useMemo(() => {
+    const supervised = projects.filter((p) => (p.supervisor || '').includes(supervisorName))
+    if (selectedYear === 'all' && selectedPeriod === 'all') return supervised
+
+    return supervised.filter((p) => {
+      if (!p.start_date && !p.end_date) return true
+
+      const targetYearBE = selectedYear !== 'all' ? Number(selectedYear) : (new Date().getFullYear() + 543)
+      const yearCE = targetYearBE - 543
+
+      let periodStart = new Date(yearCE, 0, 1)
+      let periodEnd = new Date(yearCE, 11, 31, 23, 59, 59)
+
+      if (selectedPeriod === 'h1') {
+        periodEnd = new Date(yearCE, 5, 30, 23, 59, 59)
+      } else if (selectedPeriod === 'h2') {
+        periodStart = new Date(yearCE, 6, 1)
+      }
+
+      const pStart = p.start_date ? new Date(p.start_date) : null
+      const pEnd = p.end_date ? new Date(p.end_date) : null
+
+      if (pStart && pEnd) {
+        return pStart <= periodEnd && pEnd >= periodStart
+      } else if (pStart) {
+        return pStart <= periodEnd
+      } else if (pEnd) {
+        return pEnd >= periodStart
+      }
+      return true
+    })
+  }, [projects, supervisorName, selectedYear, selectedPeriod])
 
   // KPI Calculations
   const stats = useMemo(() => {
@@ -193,7 +258,7 @@ export function SupervisorPortfolioClient({
     const issueTasks = filteredSupervisorTasks.filter((t) => t.has_issue).length
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
-    const totalProjectBudget = mainProjects.reduce((sum, p) => sum + (p.budget || 0), 0)
+    const totalProjectBudget = filteredMainProjects.reduce((sum, p) => sum + (p.budget || 0), 0)
 
     return {
       totalTasks,
@@ -202,10 +267,10 @@ export function SupervisorPortfolioClient({
       inProgressTasks,
       issueTasks,
       completionRate,
-      projectCount: mainProjects.length,
+      projectCount: filteredMainProjects.length,
       totalProjectBudget,
     }
-  }, [filteredSupervisorTasks, mainProjects])
+  }, [filteredSupervisorTasks, filteredMainProjects])
 
   // Toggle Collapse
   const toggleGroupCollapse = (groupId: string) => {
@@ -504,7 +569,18 @@ export function SupervisorPortfolioClient({
         <div className="text-[9.5pt] text-slate-600 mt-0.5 flex items-center justify-center gap-3">
           <span className="font-bold text-slate-800">ผู้ควบคุมงาน: {supervisorName}</span>
           <span>•</span>
-          <span>ปีประเมิน: {selectedYear === 'all' ? 'ทุกปี (ภาพรวมผลงานทั้งหมด)' : `พ.ศ. ${selectedYear}`}</span>
+          <span>
+            รอบการประเมิน:{' '}
+            {selectedYear === 'all' && selectedPeriod === 'all'
+              ? 'ทุกปี (ภาพรวมผลงานทั้งหมด)'
+              : `พ.ศ. ${selectedYear === 'all' ? new Date().getFullYear() + 543 : selectedYear} ${
+                  selectedPeriod === 'h1'
+                    ? '• ครึ่งปีแรก (1 ม.ค. – 30 มิ.ย.)'
+                    : selectedPeriod === 'h2'
+                    ? '• ครึ่งปีหลัง (1 ก.ค. – 31 ธ.ค.)'
+                    : '• ตลอดทั้งปี'
+                }`}
+          </span>
           <span>•</span>
           <span>วันที่พิมพ์รายงาน: {new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
         </div>
@@ -628,44 +704,105 @@ export function SupervisorPortfolioClient({
             </div>
           </div>
 
-          {/* Quick Year Filter Pill & Dropdown */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#181834] p-1.5 rounded-xl print:hidden flex-wrap">
-            <span className="text-[10px] font-bold text-slate-400 uppercase px-1.5 flex items-center gap-1">
-              <Calendar size={13} className="text-primary-500" /> ปีประเมิน:
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedYear('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                selectedYear === 'all'
-                  ? 'bg-white dark:bg-[#252548] text-primary-600 dark:text-primary-400 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              ทั้งหมด (ทุกปี)
-            </button>
-            <div className="relative">
-              <select
-                value={selectedYear === 'all' ? '' : selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value || 'all')}
-                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-white dark:bg-[#252548] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-[#353560] focus:outline-none cursor-pointer"
-              >
-                <option value="">-- เลือกปี พ.ศ. --</option>
-                {availableYears.map((yr) => {
-                  const currentBE = String(new Date().getFullYear() + 543)
-                  return (
-                    <option key={yr} value={yr}>
-                      พ.ศ. {yr} {yr === currentBE ? '(ปีปัจจุบัน)' : ''}
-                    </option>
-                  )
-                })}
-              </select>
-            </div>
-            {selectedYear !== 'all' && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                พ.ศ. {selectedYear}
+          {/* ── Evaluation Cycle & Year Filter Widget ── */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-100/90 dark:bg-[#181834] p-1.5 rounded-2xl border border-slate-200/80 dark:border-[#252548] print:hidden">
+            {/* Year Selector */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-bold text-slate-400 uppercase px-1 flex items-center gap-1">
+                <Calendar size={13} className="text-primary-500" /> ปีประเมิน:
               </span>
-            )}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedYear('all')
+                  setSelectedPeriod('all')
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  selectedYear === 'all' && selectedPeriod === 'all'
+                    ? 'bg-white dark:bg-[#252548] text-primary-600 dark:text-primary-400 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                ทั้งหมด (ทุกปี)
+              </button>
+              <div className="relative">
+                <select
+                  value={selectedYear === 'all' ? '' : selectedYear}
+                  onChange={(e) => {
+                    const yr = e.target.value || 'all'
+                    setSelectedYear(yr)
+                    if (yr === 'all') setSelectedPeriod('all')
+                  }}
+                  className="text-xs font-bold px-2.5 py-1 rounded-lg bg-white dark:bg-[#252548] text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-[#353560] focus:outline-none cursor-pointer"
+                >
+                  <option value="">-- เลือกปี พ.ศ. --</option>
+                  {availableYears.map((yr) => {
+                    const currentBE = String(new Date().getFullYear() + 543)
+                    return (
+                      <option key={yr} value={yr}>
+                        พ.ศ. {yr} {yr === currentBE ? '(ปีปัจจุบัน)' : ''}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+            </div>
+
+            <div className="hidden sm:block w-[1px] h-6 bg-slate-200 dark:bg-[#252548]" />
+
+            {/* 6-Month Period Selector (รอบการประเมิน 6 เดือนแรก / 6 เดือนหลัง) */}
+            <div className="flex items-center gap-1 bg-white/70 dark:bg-[#121226]/80 p-0.5 rounded-xl border border-slate-200 dark:border-[#252548]">
+              <button
+                type="button"
+                onClick={() => setSelectedPeriod('all')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  selectedPeriod === 'all'
+                    ? 'bg-primary-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="แสดงผลงานตลอดทั้งปี (12 เดือน)"
+              >
+                ตลอดทั้งปี
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPeriod('h1')
+                  if (selectedYear === 'all') {
+                    setSelectedYear(String(new Date().getFullYear() + 543))
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  selectedPeriod === 'h1'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }`}
+                title="รอบที่ 1: ครึ่งปีแรก (1 มกราคม – 30 มิถุนายน)"
+              >
+                <span>🌱 ครึ่งปีแรก</span>
+                <span className="text-[10px] opacity-80 font-normal hidden md:inline">(ม.ค. - มิ.ย.)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPeriod('h2')
+                  if (selectedYear === 'all') {
+                    setSelectedYear(String(new Date().getFullYear() + 543))
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  selectedPeriod === 'h2'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400'
+                }`}
+                title="รอบที่ 2: ครึ่งปีหลัง (1 กรกฎาคม – 31 ธันวาคม)"
+              >
+                <span>🍁 ครึ่งปีหลัง</span>
+                <span className="text-[10px] opacity-80 font-normal hidden md:inline">(ก.ค. - ธ.ค.)</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -757,8 +894,13 @@ export function SupervisorPortfolioClient({
             <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
               <Building2 size={16} />
             </div>
-            <h2 className="text-base font-black text-slate-900 dark:text-white">
-              โครงการก่อสร้างหลักที่รับผิดชอบ ({mainProjects.length} โครงการ)
+            <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <span>โครงการก่อสร้างหลักที่รับผิดชอบ ({filteredMainProjects.length} โครงการ)</span>
+              {selectedPeriod !== 'all' && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  {selectedPeriod === 'h1' ? 'รอบครึ่งปีแรก' : 'รอบครึ่งปีหลัง'}
+                </span>
+              )}
             </h2>
           </div>
           <span className="text-xs font-semibold text-slate-400">
@@ -766,13 +908,13 @@ export function SupervisorPortfolioClient({
           </span>
         </div>
 
-        {mainProjects.length === 0 ? (
+        {filteredMainProjects.length === 0 ? (
           <div className="card p-6 text-center text-xs text-slate-400 italic">
-            ไม่พบโครงการก่อสร้างหลักที่มีชื่อผู้ควบคุมงานท่านนี้
+            ไม่พบโครงการก่อสร้างหลักที่มีชื่อผู้ควบคุมงานท่านนี้ในช่วงเวลาดังกล่าว
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 print-grid-2">
-            {mainProjects.map((p) => {
+            {filteredMainProjects.map((p) => {
               const progressPct = p.progress || 0
               return (
                 <div
@@ -854,7 +996,13 @@ export function SupervisorPortfolioClient({
                 ภารกิจเฉพาะกิจ & งานย่อยรายวัน ({filteredSupervisorTasks.length} งาน)
                 {selectedYear !== 'all' && (
                   <span className="ml-2 text-xs font-bold text-purple-600 dark:text-purple-400">
-                    (ปี พ.ศ. {selectedYear})
+                    (พ.ศ. {selectedYear}
+                    {selectedPeriod === 'h1'
+                      ? ' • ครึ่งปีแรก 1 ม.ค. - 30 มิ.ย.'
+                      : selectedPeriod === 'h2'
+                      ? ' • ครึ่งปีหลัง 1 ก.ค. - 31 ธ.ค.'
+                      : ''}
+                    )
                   </span>
                 )}
               </h2>

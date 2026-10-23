@@ -52,6 +52,17 @@ export function PrintPageClient({
     setReady(true)
   }, [])
 
+  // Tailwind `dark:` variants match ANY `.dark` ancestor (including <html>, set by the app theme).
+  // Force <html> to match the chosen print theme, otherwise light slides render with dark-mode text colors.
+  useEffect(() => {
+    const root = document.documentElement
+    const hadDark = root.classList.contains('dark')
+    root.classList.toggle('dark', theme === 'dark')
+    return () => {
+      root.classList.toggle('dark', hadDark)
+    }
+  }, [theme])
+
   // Auto-print after a short delay to let Recharts render
   useEffect(() => {
     if (!ready) return
@@ -155,52 +166,51 @@ export function PrintPageClient({
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700;900&family=Inter:wght@400;500;700;900&display=swap');
-
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+        /*
+         * NOTE: Do NOT add a global "* { margin:0; padding:0 }" reset here.
+         * Tailwind v4 puts utilities inside @layer, so any unlayered reset
+         * overrides every padding/margin utility and collapses the slide layout.
+         */
         html, body {
-          background: ${isDark ? '#0d0f14' : '#f1f5f9'};
-          color: ${isDark ? '#ffffff' : '#0f172a'};
-          font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+          background: ${isDark ? '#0d0f14' : '#e2e8f0'};
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
 
-        /* ─── A4 Landscape Print Setup with 16:9 Centered Slide ─── */
+        /* ─── A4 Landscape: 297mm × 210mm, one slide per sheet ─── */
         @page {
           size: A4 landscape;
           margin: 0;
         }
 
-        /* Screen preview wrapper */
+        /* One A4 landscape sheet (same box on screen preview and in print) */
         .slide-page-wrapper {
-          width: 297mm;
-          height: 198mm;
-          overflow: hidden;
           position: relative;
+          width: 297mm;
+          height: 210mm;
+          overflow: hidden;
           background: ${isDark ? '#0d0f14' : '#ffffff'};
           margin: 24px auto;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-          border-radius: 8px;
-          page-break-after: always;
-          break-after: page;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+          border-radius: 6px;
         }
 
-        /* The actual slide rendered at 1280×860, then CSS scaled to fit A4 */
+        /*
+         * Slide is laid out at a fixed native size (1280×900 ≈ A4 ratio),
+         * then absolutely centered and scaled: 1280×0.82 = 1050px (277.8mm),
+         * 900×0.82 = 738px (195.3mm) → ~9.6mm side margins, ~7.4mm top/bottom.
+         */
         .slide-native {
-          width: 1280px;
-          height: 860px;
-          transform: scale(0.82);
-          transform-origin: top center;
-          background: ${isDark ? '#0d0f14' : '#ffffff'};
-          overflow: hidden;
           position: absolute;
-          top: 15px;
           left: 50%;
-          margin-left: -640px;
-          padding: 0;
+          top: 50%;
+          width: 1280px;
+          height: 900px;
+          padding: 20px;
           box-sizing: border-box;
+          transform: translate(-50%, -50%) scale(0.82);
+          transform-origin: center center;
+          overflow: hidden;
           display: flex;
           flex-direction: column;
         }
@@ -208,6 +218,8 @@ export function PrintPageClient({
         .slide-native > * {
           width: 100%;
           height: 100%;
+          min-height: 0;
+          flex: 1 1 0%;
         }
 
         /* Screen preview toolbar */
@@ -221,23 +233,11 @@ export function PrintPageClient({
           align-items: center;
           justify-content: space-between;
           z-index: 9999;
-          font-family: 'Inter', sans-serif;
           font-size: 14px;
           border-bottom: 1px solid #1e293b;
         }
-
-        .print-toolbar-left {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .print-toolbar-right {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
+        .print-toolbar-left { display: flex; align-items: center; gap: 16px; }
+        .print-toolbar-right { display: flex; align-items: center; gap: 10px; }
         .print-toolbar button {
           padding: 8px 16px;
           border-radius: 8px;
@@ -247,7 +247,6 @@ export function PrintPageClient({
           font-size: 13px;
           transition: all 0.15s ease;
         }
-
         .btn-print { background: #7c3aed; color: white; }
         .btn-print:hover { background: #6d28d9; }
         .btn-theme { background: #334155; color: white; }
@@ -262,75 +261,44 @@ export function PrintPageClient({
 
         @media print {
           html, body {
-            background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
+            width: 297mm !important;
             margin: 0 !important;
             padding: 0 !important;
-            width: 297mm !important;
-            height: 210mm !important;
+            min-height: 0 !important;
+            background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
           }
 
           .print-toolbar { display: none !important; }
+
           .slides-container {
+            display: block !important;
             padding: 0 !important;
             margin: 0 !important;
           }
 
+          /* display:block (not flex) — Chromium ignores forced breaks on flex boxes */
           .slide-page-wrapper {
+            display: block !important;
             margin: 0 !important;
             border-radius: 0 !important;
             box-shadow: none !important;
-            width: 297mm !important;
-            height: 210mm !important;
-            max-width: 297mm !important;
-            max-height: 210mm !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            overflow: hidden !important;
-            padding: 8mm 9mm 0 9mm !important;
-            box-sizing: border-box !important;
-            display: block !important;
-            background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
+            break-after: page;
+            page-break-after: always;
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
 
           .slide-page-wrapper:last-child {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-          }
-
-          .slide-native {
-            width: 1280px !important;
-            height: 860px !important;
-            max-width: 1280px !important;
-            max-height: 860px !important;
-            transform: scale(0.82) !important;
-            transform-origin: top center !important;
-            position: relative !important;
-            top: auto !important;
-            left: auto !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-            overflow: hidden !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
-            background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
-          }
-
-          .slide-native > * {
-            width: 100% !important;
-            height: 100% !important;
-            flex: 1 1 0% !important;
+            break-after: auto;
+            page-break-after: auto;
           }
         }
       `}</style>
 
       <div className="print-toolbar">
         <div className="print-toolbar-left">
-          <span style={{ fontWeight: 700 }}>🖨️ พรีวิว PDF (16:9 Widescreen) — {slides.length} สไลด์</span>
-          <span style={{ fontSize: 12, opacity: 0.7 }}>ขนาด: 297 × 167.1 มม.</span>
+          <span style={{ fontWeight: 700 }}>🖨️ พรีวิว PDF — {slides.length} สไลด์</span>
+          <span style={{ fontSize: 12, opacity: 0.7 }}>กระดาษ A4 แนวนอน (297 × 210 มม.) · 1 สไลด์ต่อ 1 หน้า</span>
         </div>
         <div className="print-toolbar-right">
           <button
@@ -359,7 +327,7 @@ export function PrintPageClient({
   )
 }
 
-/** Wraps a slide component at 1280×720, scaled down to 297mm × 167.0625mm (16:9) */
+/** Wraps a slide component at native 1280×900, centered & scaled onto one A4 landscape sheet */
 function SlideWrapper({ children, isDark }: { children: React.ReactNode; isDark?: boolean }) {
   return (
     <div className={`slide-page-wrapper ${isDark ? 'dark' : ''}`}>

@@ -19,19 +19,18 @@ function SlideGauge({ value, min = -50, max = 50, label, suffix = "%", isDark }:
   const percent = ((value - min) / (max - min)) * 100
   const boundedPercent = Math.min(100, Math.max(0, percent))
   const isPositive = value >= 0
-  const headingColor = isDark ? 'text-white' : 'text-slate-900 font-extrabold'
 
   return (
     <div className="w-full">
       <div className="flex justify-between items-end mb-1">
-        <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 dark:text-white/60">{label}</span>
+        <span className={`text-[11px] font-black uppercase tracking-wider ${isDark ? 'text-white/60' : 'text-slate-800'}`}>{label}</span>
         <span className={`text-sm font-black font-mono ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
           {isPositive ? '+' : ''}{value.toFixed(1)}{suffix}
         </span>
       </div>
-      <div className="relative w-full h-2.5 bg-slate-200 dark:bg-white/10 rounded-full">
+      <div className={`relative w-full h-2.5 ${isDark ? 'bg-white/10' : 'bg-slate-200'} rounded-full`}>
         {/* Center tick */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-400 dark:bg-white/20 z-10" />
+        <div className={`absolute left-1/2 top-0 bottom-0 w-0.5 ${isDark ? 'bg-white/20' : 'bg-slate-400'} z-10`} />
         
         {/* Slider bar */}
         {isPositive ? (
@@ -48,7 +47,7 @@ function SlideGauge({ value, min = -50, max = 50, label, suffix = "%", isDark }:
         
         {/* Slider indicator dot */}
         <div 
-          className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-white dark:border-[#14142a] shadow transition-all z-20 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`}
+          className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border ${isDark ? 'border-[#14142a]' : 'border-white'} shadow transition-all z-20 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'}`}
           style={{ left: `calc(${boundedPercent}% - 8px)` }}
         />
       </div>
@@ -57,7 +56,7 @@ function SlideGauge({ value, min = -50, max = 50, label, suffix = "%", isDark }:
 }
 
 // 📦 Horizontal Stacked segmented WBS progress bar
-function WBSSegmentBar({ done, delayed, inProgress, future }: { done: number; delayed: number; inProgress: number; future: number }) {
+function WBSSegmentBar({ done, delayed, inProgress, future, isDark }: { done: number; delayed: number; inProgress: number; future: number; isDark?: boolean }) {
   const total = done + delayed + inProgress + future
   if (total === 0) return null
   
@@ -68,11 +67,11 @@ function WBSSegmentBar({ done, delayed, inProgress, future }: { done: number; de
 
   return (
     <div className="w-full mt-2">
-      <div className="w-full h-3.5 rounded-full flex overflow-hidden bg-slate-200 dark:bg-white/10 shadow-inner">
+      <div className={`w-full h-3.5 rounded-full flex overflow-hidden ${isDark ? 'bg-white/10' : 'bg-slate-200'} shadow-inner`}>
         {done > 0 && <div className="bg-emerald-500 h-full transition-all" style={{ width: `${pctDone}%` }} title={`เสร็จสิ้น: ${done}`} />}
         {delayed > 0 && <div className="bg-red-500 h-full transition-all" style={{ width: `${pctDelayed}%` }} title={`ล่าช้า: ${delayed}`} />}
         {inProgress > 0 && <div className="bg-blue-500 h-full transition-all" style={{ width: `${pctInProgress}%` }} title={`กำลังดำเนินการ: ${inProgress}`} />}
-        {future > 0 && <div className="bg-slate-450 h-full transition-all" style={{ width: `${pctFuture}%` }} title={`ยังไม่เริ่ม: ${future}`} />}
+        {future > 0 && <div className="bg-slate-400 h-full transition-all" style={{ width: `${pctFuture}%` }} title={`ยังไม่เริ่ม: ${future}`} />}
       </div>
     </div>
   )
@@ -255,30 +254,30 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
           </h1>
           <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
             <span className={`px-2.5 py-0.5 rounded-full font-black text-[11px] ${
-              project.status === 'กำลังดำเนินการ' ? 'bg-amber-500/20 text-amber-800 dark:text-amber-400' :
-              project.status === 'ระงับ' ? 'bg-red-500/20 text-red-700 dark:text-red-450' :
-              project.status === 'เสร็จสิ้น' ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-455' :
-              project.status === 'รอดำเนินการ' ? 'bg-blue-500/20 text-blue-800 dark:text-blue-455' :
-              project.status === 'จัดซื้อจัดจ้าง' ? 'bg-indigo-500/20 text-indigo-800 dark:text-indigo-455' :
+              project.status === 'กำลังดำเนินการ' ? (isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-500/20 text-amber-800') :
+              project.status === 'ระงับ' ? (isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-500/20 text-red-700') :
+              project.status === 'เสร็จสิ้น' ? (isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-500/20 text-emerald-800') :
+              project.status === 'รอดำเนินการ' ? (isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-500/20 text-blue-800') :
+              project.status === 'จัดซื้อจัดจ้าง' ? (isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-500/20 text-indigo-800') :
               'bg-purple-500/20 text-purple-800'
             }`}>
               {project.status}
             </span>
-            {project.location && <span className={`flex items-center gap-1 text-slate-950 dark:text-white/80`}>📍 {project.location}</span>}
+            {project.location && <span className={`flex items-center gap-1 ${isDark ? 'text-white/80' : 'text-slate-950'}`}>📍 {project.location}</span>}
             {project.contractor && (
-              <span className={`flex items-center gap-1 text-slate-950 dark:text-white/80`}>
+              <span className={`flex items-center gap-1 ${isDark ? 'text-white/80' : 'text-slate-950'}`}>
                 🏗️ {project.contractor}
               </span>
             )}
             {project.contract_no && (
-              <span className={`font-mono text-[11px] text-slate-950 dark:text-white/80`}>สัญญา: {project.contract_no}</span>
+              <span className={`font-mono text-[11px] ${isDark ? 'text-white/80' : 'text-slate-950'}`}>สัญญา: {project.contract_no}</span>
             )}
           </div>
         </div>
 
         {/* Dates, Timeline & Warning Status */}
         <div className="text-right flex-shrink-0 flex flex-col items-end">
-          <p className="text-xs font-black text-slate-950 dark:text-white/80 mb-0.5 flex items-center gap-1.5">
+          <p className={`text-xs font-black ${isDark ? 'text-white/80' : 'text-slate-950'} mb-0.5 flex items-center gap-1.5`}>
             <Calendar size={12} />
             {fmtDate(project.start_date)} — {evm.isOverrun
               ? <span className="text-red-600 font-extrabold">เกินสัญญา {evm.daysRemaining} วัน</span>
@@ -295,7 +294,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
 
       {/* Suspension Banner */}
       {evm.isCurrentlySuspended && evm.currentSuspension && (
-        <div className="flex items-center gap-2 px-3 py-1 mb-2 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-800 dark:text-amber-400 text-xs font-black">
+        <div className={`flex items-center gap-2 px-3 py-1 mb-2 ${isDark ? 'bg-amber-500/15 border-amber-500/40 text-amber-400' : 'bg-amber-50 border-amber-300 text-amber-800'} border rounded-xl text-xs font-black`}>
           <AlertTriangle size={13} />
           ⏸ หยุดงานชั่วคราว: {evm.currentSuspension.reason || '—'}
           {evm.currentSuspension.suspend_date && ` (ตั้งแต่ ${fmtDate(evm.currentSuspension.suspend_date)})`}
@@ -316,7 +315,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
               {/* PV */}
               <div>
                 <div className="flex justify-between items-end mb-1 text-sm font-bold">
-                  <span className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-extrabold">
+                  <span className={`flex items-center gap-2 ${isDark ? 'text-blue-400' : 'text-blue-600'} font-extrabold`}>
                     <span className="w-3 h-3 rounded-full bg-blue-600 flex-shrink-0" />
                     แผนงานสะสม (PV)
                   </span>
@@ -330,7 +329,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
               {/* EV */}
               <div>
                 <div className="flex justify-between items-end mb-1 text-sm font-bold">
-                  <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-extrabold">
+                  <span className={`flex items-center gap-2 ${isDark ? 'text-emerald-400' : 'text-emerald-600'} font-extrabold`}>
                     <span className="w-3 h-3 rounded-full bg-emerald-600 flex-shrink-0" />
                     ผลงานจริงสะสม (EV)
                   </span>
@@ -344,7 +343,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
               {/* AC */}
               <div>
                 <div className="flex justify-between items-end mb-1 text-sm font-bold">
-                  <span className="flex items-center gap-2 text-amber-600 dark:text-amber-500 font-extrabold">
+                  <span className={`flex items-center gap-2 ${isDark ? 'text-amber-500' : 'text-amber-600'} font-extrabold`}>
                     <span className="w-3 h-3 rounded-full bg-amber-500 flex-shrink-0" />
                     เบิกจ่ายสะสม (AC)
                   </span>
@@ -374,9 +373,9 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                      evm.svPercent > 0 ? `✅ เร็วกว่าแผน ${evm.svDays} วัน` : '🎯 ดำเนินงานตรงแผน'}
                   </span>
                   <span className={`px-2 py-0.5 rounded font-black tracking-wide ${
-                    evm.SPI >= 1.0 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' :
-                    evm.SPI >= 0.90 ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400' :
-                    'bg-red-500/15 text-red-650'
+                    evm.SPI >= 1.0 ? (isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700') :
+                    evm.SPI >= 0.90 ? (isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-700') :
+                    (isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-650')
                   }`}>
                     SPI: {evm.SPI.toFixed(2)} ({evm.SPI >= 1.0 ? 'เร็วกว่าแผน' : evm.SPI >= 0.90 ? 'ล่าช้าเล็กน้อย' : 'วิกฤต'})
                   </span>
@@ -394,8 +393,8 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                      evm.cvPercent > 0 ? `✅ ประหยัดงบสะสม ${fmt(evm.cvCost)}` : '🎯 จ่ายตรงตามงบ'}
                   </span>
                   <span className={`px-2 py-0.5 rounded font-black tracking-wide ${
-                    evm.CPI >= 1.0 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' :
-                    'bg-red-500/15 text-red-650'
+                    evm.CPI >= 1.0 ? (isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700') :
+                    (isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-650')
                   }`}>
                     CPI: {evm.CPI.toFixed(2)} ({evm.CPI >= 1.0 ? 'ประหยัดงบ' : evm.CPI >= 0.85 ? 'เกินงบเล็กน้อย' : 'วิกฤต'})
                   </span>
@@ -413,31 +412,31 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
           <div className={`${card} rounded-2xl p-3.5 flex flex-col justify-between flex-1`}>
             <div>
               <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-1.5`}>สถานะหัวข้องาน (WBS)</h3>
-              <WBSSegmentBar done={evm.done} delayed={evm.delayed} inProgress={evm.inProgress} future={evm.future} />
+              <WBSSegmentBar done={evm.done} delayed={evm.delayed} inProgress={evm.inProgress} future={evm.future} isDark={isDark} />
             </div>
 
             <div className="grid grid-cols-2 gap-2 mt-2">
-              <div className="flex items-center justify-between p-1.5 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-xl border border-emerald-500/25">
-                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><CheckCircle2 className="text-emerald-500" size={13} />เสร็จสิ้น</span>
-                <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">{evm.done}</span>
+              <div className={`flex items-center justify-between p-1.5 ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'} rounded-xl border`}>
+                <span className={`text-xs font-black ${isDark ? 'text-white/80' : 'text-slate-900'} flex items-center gap-1.5`}><CheckCircle2 className="text-emerald-500" size={13} />เสร็จสิ้น</span>
+                <span className={`text-base font-black ${isDark ? 'text-emerald-400' : 'text-emerald-600'} font-mono`}>{evm.done}</span>
               </div>
-              <div className="flex items-center justify-between p-1.5 bg-red-500/10 dark:bg-red-500/10 rounded-xl border border-red-500/25">
-                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><AlertCircle className="text-red-500" size={13} />ล่าช้า</span>
-                <span className="text-base font-black text-red-600 dark:text-red-400 font-mono">{evm.delayed}</span>
+              <div className={`flex items-center justify-between p-1.5 ${isDark ? 'bg-red-500/10 border-red-500/25' : 'bg-red-50 border-red-200'} rounded-xl border`}>
+                <span className={`text-xs font-black ${isDark ? 'text-white/80' : 'text-slate-900'} flex items-center gap-1.5`}><AlertCircle className="text-red-500" size={13} />ล่าช้า</span>
+                <span className={`text-base font-black ${isDark ? 'text-red-400' : 'text-red-600'} font-mono`}>{evm.delayed}</span>
               </div>
-              <div className="flex items-center justify-between p-1.5 bg-blue-500/10 dark:bg-blue-500/10 rounded-xl border border-blue-500/25">
-                <span className="text-xs font-black text-slate-900 dark:text-white/80 flex items-center gap-1.5"><PlayCircle className="text-blue-500" size={13} />กำลังทำ</span>
-                <span className="text-base font-black text-blue-600 dark:text-blue-400 font-mono">{evm.inProgress}</span>
+              <div className={`flex items-center justify-between p-1.5 ${isDark ? 'bg-blue-500/10 border-blue-500/25' : 'bg-blue-50 border-blue-200'} rounded-xl border`}>
+                <span className={`text-xs font-black ${isDark ? 'text-white/80' : 'text-slate-900'} flex items-center gap-1.5`}><PlayCircle className="text-blue-500" size={13} />กำลังทำ</span>
+                <span className={`text-base font-black ${isDark ? 'text-blue-400' : 'text-blue-600'} font-mono`}>{evm.inProgress}</span>
               </div>
-              <div className="flex items-center justify-between p-1.5 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-300 dark:border-white/10">
-                <span className="text-xs font-black text-slate-900 dark:text-white/85 flex items-center gap-1.5"><Clock className="text-slate-500" size={13} />ยังไม่เริ่ม</span>
-                <span className="text-base font-black text-slate-700 dark:text-slate-300 font-mono">{evm.future}</span>
+              <div className={`flex items-center justify-between p-1.5 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-300'} rounded-xl border`}>
+                <span className={`text-xs font-black ${isDark ? 'text-white/85' : 'text-slate-900'} flex items-center gap-1.5`}><Clock className="text-slate-500" size={13} />ยังไม่เริ่ม</span>
+                <span className={`text-base font-black ${isDark ? 'text-slate-300' : 'text-slate-700'} font-mono`}>{evm.future}</span>
               </div>
             </div>
 
             {/* List of active and delayed tasks (Fills vertical whitespace) */}
             <div className={`mt-2 pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} flex-1 flex flex-col justify-start`}>
-              <h4 className={`text-xs font-black uppercase tracking-wider text-slate-950 dark:text-white/70 mb-1`}>รายการงานกำลังทำ & ล่าช้า ({evm.sortedActiveTasks.length})</h4>
+              <h4 className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-white/70' : 'text-slate-950'} mb-1`}>รายการงานกำลังทำ & ล่าช้า ({evm.sortedActiveTasks.length})</h4>
               {evm.sortedActiveTasks.length > 0 ? (
                 <div className="space-y-1 overflow-y-auto max-h-[80px] pr-1">
                   {evm.sortedActiveTasks.slice(0, 3).map((task, index) => (
@@ -450,7 +449,7 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                         )}
                         {task.name}
                       </span>
-                      <span className={`font-mono flex-shrink-0 ${task.isDelayed ? 'text-red-600' : 'text-blue-600 dark:text-blue-400'}`}>
+                      <span className={`font-mono flex-shrink-0 ${task.isDelayed ? 'text-red-600' : (isDark ? 'text-blue-400' : 'text-blue-600')}`}>
                         {task.progress}% {task.isDelayed ? '(ล่าช้า)' : '(กำลังทำ)'}
                       </span>
                     </div>
@@ -467,11 +466,11 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
             <div>
               <h3 className={`text-sm font-black uppercase tracking-wider ${muted} mb-1.5`}>การเงินและสัญญา</h3>
               <div className="space-y-1 text-xs">
-                <div className="flex justify-between font-black text-sm text-slate-950 dark:text-white">
+                <div className={`flex justify-between font-black text-sm ${isDark ? 'text-white' : 'text-slate-950'}`}>
                   <span>งบประมาณมูลค่าสัญญา</span>
                   <span className="font-mono">{fmt(evm.BAC)}</span>
                 </div>
-                <div className="flex justify-between font-black text-sm text-emerald-600 dark:text-emerald-450">
+                <div className={`flex justify-between font-black text-sm ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
                   <span>เบิกจ่ายเงินสะสม (AC)</span>
                   <span className="font-mono">{fmt(evm.AC_Cost)}</span>
                 </div>
@@ -485,10 +484,10 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center text-xs font-black pt-1.5 border-t border-slate-200 dark:border-white/10 mt-1.5">
-                  <span className="text-slate-900 dark:text-white/80">การส่งมอบงวดงาน</span>
+                <div className={`flex justify-between items-center text-xs font-black pt-1.5 border-t ${isDark ? 'border-white/10 text-white/80' : 'border-slate-200 text-slate-900'} mt-1.5`}>
+                  <span>การส่งมอบงวดงาน</span>
                   <span>
-                    ส่งแล้ว <span className="text-emerald-600 font-mono font-black">{evm.paidMilestones}</span> / เหลือ <span className="text-amber-600 font-mono font-black">{evm.remainingMilestones}</span> / ทั้งหมด <span className="font-mono font-black">{evm.totalMilestones}</span> งวด
+                    ส่งแล้ว <span className={`${isDark ? 'text-emerald-400' : 'text-emerald-600'} font-mono font-black`}>{evm.paidMilestones}</span> / เหลือ <span className={`${isDark ? 'text-amber-400' : 'text-amber-600'} font-mono font-black`}>{evm.remainingMilestones}</span> / ทั้งหมด <span className="font-mono font-black">{evm.totalMilestones}</span> งวด
                   </span>
                 </div>
               </div>
@@ -496,26 +495,26 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
 
             {/* งวดงานถัดไป/งวดงานที่กำลังดำเนินการอยู่ตอนนี้ (Fills financial card whitespace) */}
             <div className={`border-t ${isDark ? 'border-white/10' : 'border-slate-200'} mt-2 pt-2 flex-1 flex flex-col justify-start`}>
-              <h4 className={`text-xs font-black uppercase tracking-wider text-slate-950 dark:text-white/70 mb-1`}>งวดงานที่ต้องดำเนินงานถัดไป</h4>
+              <h4 className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-white/70' : 'text-slate-950'} mb-1`}>งวดงานที่ต้องดำเนินงานถัดไป</h4>
               {evm.activeMilestone ? (
-                <div className="bg-slate-100 dark:bg-white/5 p-2 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-extrabold space-y-0.5">
+                <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'} p-2 rounded-xl border text-xs font-extrabold space-y-0.5`}>
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-slate-950 dark:text-white truncate">งวดที่ {evm.activeMilestone.milestone_no}: {evm.activeMilestone.name}</span>
-                    <span className="text-amber-600 dark:text-amber-400 font-mono flex-shrink-0">{fmt(evm.activeMilestone.amount)}</span>
+                    <span className={`${isDark ? 'text-white' : 'text-slate-950'} truncate`}>งวดที่ {evm.activeMilestone.milestone_no}: {evm.activeMilestone.name}</span>
+                    <span className={`${isDark ? 'text-amber-400' : 'text-amber-600'} font-mono flex-shrink-0`}>{fmt(evm.activeMilestone.amount)}</span>
                   </div>
                   {evm.activeMilestone.work_scope && (
-                    <p className="text-slate-900 dark:text-white/80 font-bold text-[11px] leading-relaxed line-clamp-1">
+                    <p className={`${isDark ? 'text-white/80' : 'text-slate-900'} font-bold text-[11px] leading-relaxed line-clamp-1`}>
                       📝 งาน: {evm.activeMilestone.work_scope}
                     </p>
                   )}
                   {evm.activeMilestone.expected_payment_date && (
-                    <p className="text-[10px] text-slate-950 dark:text-white/70 flex items-center gap-1">
+                    <p className={`text-[10px] ${isDark ? 'text-white/70' : 'text-slate-950'} flex items-center gap-1`}>
                       📅 กำหนดส่งงาน: {fmtDate(evm.activeMilestone.expected_payment_date)}
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-xs font-black italic text-slate-950 dark:text-white/50">ส่งมอบงานและชำระเงินครบทุกงวดงานแล้ว</p>
+                <p className={`text-xs font-black italic ${isDark ? 'text-white/50' : 'text-slate-950'}`}>ส่งมอบงานและชำระเงินครบทุกงวดงานแล้ว</p>
               )}
             </div>
 
@@ -523,12 +522,12 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
             {(project.contractor || project.contract_no || evm.committeeList.length > 0) && (
               <div className={`border-t ${isDark ? 'border-white/10' : 'border-slate-200'} mt-2 pt-1.5 space-y-0.5 text-[11px] font-extrabold`}>
                 {project.contractor && (
-                  <p className="text-slate-950 dark:text-white/85">ผู้รับจ้าง: <span className="font-black text-black dark:text-white">{project.contractor}</span></p>
+                  <p className={isDark ? 'text-white/85' : 'text-slate-950'}>ผู้รับจ้าง: <span className={`font-black ${isDark ? 'text-white' : 'text-black'}`}>{project.contractor}</span></p>
                 )}
                 {evm.committeeList.length > 0 && (
                   <div className="truncate">
-                    <span className="text-slate-950 dark:text-white/85 mr-1">กรรมการตรวจรับ:</span>
-                    <span className="font-black text-black dark:text-white">
+                    <span className={`${isDark ? 'text-white/85' : 'text-slate-950'} mr-1`}>กรรมการตรวจรับ:</span>
+                    <span className={`font-black ${isDark ? 'text-white' : 'text-black'}`}>
                       {evm.committeeList.slice(0, 3).join(' · ')}
                       {evm.committeeList.length > 3 && ` +${evm.committeeList.length - 3} คน`}
                     </span>
@@ -545,10 +544,10 @@ export function SlideOverview({ project, tasks, milestones, amendments = [], ins
       {/* ── Overall Health Footer ── */}
       <div className={`mt-2.5 flex items-center justify-center py-1.5 rounded-xl text-xs font-extrabold tracking-wide ${
         evm.SPI >= 1.0 && evm.CPI >= 1.0
-          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-400'
+          ? (isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-100 text-emerald-800')
           : evm.SPI < 0.85 || evm.CPI < 0.85
-          ? 'bg-red-500/15 text-red-800'
-          : 'bg-amber-500/15 text-amber-800 dark:text-amber-400'
+          ? (isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-100 text-red-800')
+          : (isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-800')
       }`}>
         <TrendingUp size={13} className="mr-1.5" />
         {evm.SPI >= 1.0 && evm.CPI >= 1.0

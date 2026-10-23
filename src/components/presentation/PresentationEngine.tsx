@@ -94,6 +94,27 @@ export function PresentationEngine({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
+  // Tailwind `dark:` variants match ANY `.dark` ancestor (including <html> from the app theme).
+  // While printing, force <html> to match the chosen PDF theme so light slides don't get dark-mode text.
+  useEffect(() => {
+    const root = document.documentElement
+    let hadDark: boolean | null = null
+    const before = () => {
+      hadDark = root.classList.contains('dark')
+      root.classList.toggle('dark', printTheme === 'dark')
+    }
+    const after = () => {
+      if (hadDark !== null) root.classList.toggle('dark', hadDark)
+      hadDark = null
+    }
+    window.addEventListener('beforeprint', before)
+    window.addEventListener('afterprint', after)
+    return () => {
+      window.removeEventListener('beforeprint', before)
+      window.removeEventListener('afterprint', after)
+    }
+  }, [printTheme])
+
   // Keyboard Navigation
   const goToNext = useCallback(() => {
     setCurrentIndex((prev) => Math.min(prev + 1, slides.length - 1))
@@ -223,113 +244,113 @@ export function PresentationEngine({
   return (
     <div
       className={`fixed inset-0 z-50 ${
-        isDark ? 'dark bg-[#0d0f14] text-white' : 'bg-[#f0f2f5] text-slate-900'
-      } flex flex-col font-['Sarabun'] select-none print:relative print:inset-auto print:z-auto print:overflow-visible print:bg-transparent print:text-black`}
+        isDark ? 'bg-[#0d0f14] text-white' : 'bg-[#f0f2f5] text-slate-900'
+      } flex flex-col font-['Sarabun'] select-none print:static print:block print:inset-auto print:z-auto print:overflow-visible print:bg-transparent print:text-black`}
     >
-      {/* ── Exact 16:9 Slide centered on A4 Landscape (297mm × 210mm) ── */}
+      {/* ── One slide per A4 landscape sheet (297mm × 210mm) ── */}
       <style>{`
         @page {
           size: A4 landscape;
           margin: 0;
         }
 
-        /* ── Keep print deck measured and rendered offscreen before print ── */
+        /*
+         * Sheet + slide geometry is applied in ALL media (not only print) so the
+         * offscreen deck already has its final size when Recharts measures it.
+         * Slide native size 1280×900 (≈ A4 ratio), centered and scaled by 0.82:
+         * 1050×738px = 277.8mm × 195.3mm → ~9.6mm side / ~7.4mm top-bottom margins.
+         */
+        .print-slide-page {
+          position: relative;
+          display: block;
+          width: 297mm;
+          height: 210mm;
+          overflow: hidden;
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          background: ${isPrintDark ? '#0d0f14' : '#ffffff'};
+        }
+
+        .print-slide-native {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 1280px;
+          height: 900px;
+          padding: 20px;
+          box-sizing: border-box;
+          transform: translate(-50%, -50%) scale(0.82);
+          transform-origin: center center;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .print-slide-native > * {
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          flex: 1 1 0%;
+        }
+
+        /* ── Keep print deck rendered offscreen (measurable) while on screen ── */
         @media screen {
           .presentation-print-deck {
             position: fixed !important;
-            top: -30000px !important;
+            top: 0 !important;
             left: -30000px !important;
-            width: 1280px !important;
-            height: 860px !important;
             opacity: 0 !important;
             pointer-events: none !important;
             z-index: -9999 !important;
-            overflow: hidden !important;
           }
         }
 
         @media print {
           html, body {
             width: 297mm !important;
-            height: 210mm !important;
+            min-height: 0 !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
+            overflow: visible !important;
             background: ${isPrintDark ? '#0d0f14' : '#ffffff'} !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
 
-          /* Hide everything on screen except print container */
+          /* Hide everything except the print deck */
           header, nav, .presentation-screen-mode {
             display: none !important;
           }
 
           .presentation-print-deck {
             position: static !important;
-            top: auto !important;
-            left: auto !important;
+            display: block !important;
             width: 297mm !important;
             margin: 0 !important;
             padding: 0 !important;
             opacity: 1 !important;
-            display: block !important;
-            pointer-events: auto !important;
-            z-index: auto !important;
           }
 
-          /* Each page is exactly 1 A4 sheet, with display: block so page breaks work reliably */
+          /* display:block (not flex) — Chromium ignores forced breaks on flex boxes */
           .print-slide-page {
-            width: 297mm !important;
-            height: 210mm !important;
-            max-width: 297mm !important;
-            max-height: 210mm !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            position: relative !important;
-            overflow: hidden !important;
-            margin: 0 !important;
-            padding: 8mm 9mm 0 9mm !important;
-            box-sizing: border-box !important;
-            display: block !important;
-            background: ${isPrintDark ? '#0d0f14' : '#ffffff'} !important;
+            break-after: page;
+            page-break-after: always;
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
 
-          /* Never generate an extra empty page after the last slide */
+          /* No trailing blank page */
           .print-slide-page:last-child {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-          }
-
-          /* Scaled slide box: 1280px wide × 860px high, scaled by 0.82 to fit A4 sheet cleanly */
-          .print-slide-native {
-            width: 1280px !important;
-            height: 860px !important;
-            max-width: 1280px !important;
-            max-height: 860px !important;
-            transform: scale(0.82) !important;
-            transform-origin: top center !important;
-            padding: 0 !important;
-            margin: 0 auto !important;
-            box-sizing: border-box !important;
-            overflow: hidden !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
-            background: ${isPrintDark ? '#0d0f14' : '#ffffff'} !important;
-          }
-
-          .print-slide-native > * {
-            width: 100% !important;
-            height: 100% !important;
-            flex: 1 1 0% !important;
+            break-after: auto;
+            page-break-after: auto;
           }
         }
       `}</style>
 
       {/* ──────── SCREEN MODE CONTAINER (Hidden when printing) ──────── */}
-      <div className="presentation-screen-mode flex-1 w-full h-full flex flex-col overflow-hidden print:hidden">
+      <div className={`presentation-screen-mode ${isDark ? 'dark' : ''} flex-1 w-full h-full flex flex-col overflow-hidden print:hidden`}>
         {/* 16:9 Container scaled to fit viewport */}
         <div className="flex-1 w-full h-full flex items-center justify-center relative">
           <div

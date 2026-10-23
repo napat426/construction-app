@@ -1,10 +1,5 @@
-// Dedicated minimal layout for print page — no header, sidebar, or nav
+// Dedicated minimal layout for print page — no header, sidebar, or nav.
+// NOTE: must NOT render <html>/<body> here; the root layout already does (nested html breaks styles).
 export default function PrintLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="th">
-      <body style={{ margin: 0, padding: 0, background: '#ffffff' }}>
-        {children}
-      </body>
-    </html>
-  )
+  return <>{children}</>
 }

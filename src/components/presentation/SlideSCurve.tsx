@@ -274,7 +274,7 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
           </div>
         </div>
 
-        <div className={`w-2/3 rounded-2xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl p-4 flex flex-col relative`}>
+        <div className={`w-2/3 rounded-2xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl p-4 flex flex-col relative min-h-0 overflow-hidden`}>
           <div className="absolute top-4 right-6 flex gap-4 text-xs font-bold bg-white/5 backdrop-blur px-3 py-1.5 rounded-full border border-white/10 z-10">
             <div className="flex items-center gap-1.5">
               <div className="w-3.5 h-1 border-t-2 border-dashed border-[#94a3b8]"></div>
@@ -290,8 +290,8 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
             </div>
           </div>
           
-          <div className="flex-1 w-full h-full min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={600} minHeight={350}>
+          <div className="flex-1 w-full min-h-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={250}>
               <LineChart data={chartData} margin={{ top: 40, right: 20, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis 

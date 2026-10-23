@@ -131,7 +131,7 @@ export function PresentationEngine({
     setPrintModalOpen(false)
     setTimeout(() => {
       window.print()
-    }, 250)
+    }, 400)
   }
 
   // Open separate print preview tab
@@ -192,14 +192,26 @@ export function PresentationEngine({
             theme={activeTheme}
           />
         )
-      case 'photos':
+      case 'photos': {
+        let photoUrls = slide.slideData?.selectedPhotoUrls || []
+        if (photoUrls.length < 4 && slide.slideData?.availablePhotoUrls) {
+          const more = slide.slideData.availablePhotoUrls.filter((u) => !photoUrls.includes(u))
+          photoUrls = [...photoUrls, ...more].slice(0, 4)
+        }
+        if (photoUrls.length < 4) {
+          const pInspections = inspections.filter((i) => i.project_id === slide.project!.id)
+          const insp = pInspections.flatMap((i) => i.photo_urls || []).map((r) => r.split('|||')[0])
+          const more = insp.filter((u) => !photoUrls.includes(u))
+          photoUrls = [...photoUrls, ...more].slice(0, 4)
+        }
         return (
           <SlidePhotos
             project={slide.project}
-            selectedPhotoUrls={slide.slideData?.selectedPhotoUrls || []}
+            selectedPhotoUrls={photoUrls}
             theme={activeTheme}
           />
         )
+      }
       default:
         return null
     }
@@ -214,17 +226,32 @@ export function PresentationEngine({
         isDark ? 'dark bg-[#0d0f14] text-white' : 'bg-[#f0f2f5] text-slate-900'
       } flex flex-col font-['Sarabun'] select-none print:relative print:inset-auto print:z-auto print:overflow-visible print:bg-transparent print:text-black`}
     >
-      {/* ── Exact 16:9 Widescreen Print CSS Rules ── */}
+      {/* ── Exact 16:9 Slide centered on A4 Landscape (297mm × 210mm) ── */}
       <style>{`
         @page {
-          size: 297mm 167.0625mm;
+          size: A4 landscape;
           margin: 0;
+        }
+
+        /* ── Keep print deck measured and rendered offscreen before print ── */
+        @media screen {
+          .presentation-print-deck {
+            position: fixed !important;
+            top: -30000px !important;
+            left: -30000px !important;
+            width: 1280px !important;
+            height: 720px !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            z-index: -9999 !important;
+            overflow: hidden !important;
+          }
         }
 
         @media print {
           html, body {
             width: 297mm !important;
-            height: 167.0625mm !important;
+            height: 210mm !important;
             margin: 0 !important;
             padding: 0 !important;
             background: ${isPrintDark ? '#0d0f14' : '#ffffff'} !important;
@@ -238,17 +265,24 @@ export function PresentationEngine({
           }
 
           .presentation-print-deck {
-            display: block !important;
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
             width: 297mm !important;
             margin: 0 !important;
             padding: 0 !important;
+            opacity: 1 !important;
+            display: block !important;
+            pointer-events: auto !important;
+            z-index: auto !important;
           }
 
+          /* Each page is exactly 1 A4 sheet, with the 16:9 slide centered vertically and horizontally */
           .print-slide-page {
             width: 297mm !important;
-            height: 167.0625mm !important;
+            height: 210mm !important;
             max-width: 297mm !important;
-            max-height: 167.0625mm !important;
+            max-height: 210mm !important;
             page-break-after: always !important;
             break-after: page !important;
             page-break-inside: avoid !important;
@@ -258,23 +292,41 @@ export function PresentationEngine({
             margin: 0 !important;
             padding: 0 !important;
             box-sizing: border-box !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
             background: ${isPrintDark ? '#0d0f14' : '#ffffff'} !important;
           }
 
+          /* Never generate an extra empty page after the last slide */
+          .print-slide-page:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+
+          /* Native 16:9 slide box scaled to 297mm width and centered */
           .print-slide-native {
             width: 1280px !important;
             height: 720px !important;
+            max-width: 1280px !important;
+            max-height: 720px !important;
             transform: scale(0.87696875) !important;
-            transform-origin: top left !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            padding: 32px !important;
+            transform-origin: center center !important;
+            padding: 24px !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
             display: flex !important;
             flex-direction: column !important;
+            align-items: stretch !important;
+            justify-content: center !important;
+            margin: auto !important;
             background: ${isPrintDark ? '#0d0f14' : '#ffffff'} !important;
+          }
+
+          .print-slide-native > * {
+            width: 100% !important;
+            height: 100% !important;
+            flex: 1 1 0% !important;
           }
         }
       `}</style>
@@ -534,8 +586,8 @@ export function PresentationEngine({
         )}
       </div>
 
-      {/* ──────── PRINT DECK CONTAINER (Active ONLY during @media print) ──────── */}
-      <div className="presentation-print-deck hidden print:block">
+      {/* ──────── PRINT DECK CONTAINER (Kept live offscreen for SVG chart measurement, active on print) ──────── */}
+      <div className="presentation-print-deck">
         {(printScope === 'all' ? slides : [slides[currentIndex]]).filter(Boolean).map((slide, sIdx) => (
           <div
             key={sIdx}

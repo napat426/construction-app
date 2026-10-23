@@ -13,29 +13,30 @@ export function SlidePhotos({ project, selectedPhotoUrls, theme = 'dark' }: Prop
   const displayPhotos = selectedPhotoUrls.slice(0, 4)
 
   return (
-    <div className="w-full h-full flex flex-col pt-8">
-      <div className="mb-10">
-        <h2 className={`text-4xl font-bold ${isDark ? 'text-[#a13c9d]' : 'text-purple-700'}`}>ภาพความก้าวหน้าหน้างาน</h2>
-        <p className={`text-2xl mt-2 ${isDark ? 'text-white/60' : 'text-slate-500'}`}>โครงการ: {project.name}</p>
+    <div className="w-full h-full flex flex-col pt-4 select-none">
+      <div className="mb-5 flex-shrink-0">
+        <h2 className={`text-3xl font-bold ${isDark ? 'text-[#a13c9d]' : 'text-purple-700'}`}>ภาพความก้าวหน้าหน้างาน</h2>
+        <p className={`text-base mt-1 ${isDark ? 'text-white/60' : 'text-slate-500'}`}>โครงการ: {project.name}</p>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {displayPhotos.length === 0 ? (
           <div className={`w-full h-full border-2 border-dashed ${isDark ? 'border-white/10 text-white/30' : 'border-black/10 text-slate-400'} rounded-3xl flex items-center justify-center`}>
-             <p className="text-3xl">ยังไม่มีรูปภาพความก้าวหน้า</p>
+             <p className="text-2xl font-bold">ยังไม่มีรูปภาพความก้าวหน้า</p>
           </div>
         ) : (
-          <div className={`w-full h-full grid gap-6 ${
+          <div className={`w-full h-full grid gap-4 ${
             displayPhotos.length === 1 ? 'grid-cols-1 grid-rows-1' :
             displayPhotos.length === 2 ? 'grid-cols-2 grid-rows-1' :
+            displayPhotos.length === 3 ? 'grid-cols-3 grid-rows-1' :
             'grid-cols-2 grid-rows-2'
           }`}>
             {displayPhotos.map((url, idx) => (
-              <div key={idx} className={`relative rounded-3xl overflow-hidden ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'} border group shadow-xl`}>
+              <div key={idx} className={`relative rounded-2xl overflow-hidden ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'} border group shadow-md`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={url} 
-                  alt="Progress" 
+                  alt={`ภาพความก้าวหน้า ${idx + 1}`} 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </div>

@@ -28,11 +28,14 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
       return 0
     })
 
-    if (sorted.length > 15) {
-      // Filter level 1 WBS (no dot)
-      sorted = sorted.filter(t => !t.wbs_no.includes('.'))
-      // If still too many, just slice it
-      if (sorted.length > 15) sorted = sorted.slice(0, 15)
+    if (sorted.length > 12) {
+      // Prefer Level 1 WBS (no dot) if available
+      const level1 = sorted.filter((t) => !t.wbs_no.includes('.'))
+      if (level1.length > 0) {
+        sorted = level1
+      }
+      // Cap at 12 tasks to fit perfectly on 16:9 slide without overflow
+      if (sorted.length > 12) sorted = sorted.slice(0, 12)
     }
 
     // compute dates
@@ -79,11 +82,11 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
   today.setHours(0,0,0,0)
 
   return (
-    <div className={`h-full flex flex-col p-8 rounded-3xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl`}>
-      <div className="flex justify-between items-center mb-6">
+    <div className={`w-full h-full flex flex-col p-8 rounded-3xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl`}>
+      <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>แผนการดำเนินงาน (Gantt Chart)</h2>
-          <p className={`text-lg mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>โครงการ: {project?.name}</p>
+          <p className={`text-base mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>โครงการ: {project?.name}</p>
         </div>
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
@@ -108,8 +111,8 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
         )}
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col mt-4">
-        <div className={`flex font-bold text-sm py-3 border-b ${isDark ? 'border-white/10 text-slate-400' : 'border-black/10 text-slate-600'}`}>
+      <div className="flex-1 min-h-0 flex flex-col mt-2">
+        <div className={`flex font-bold text-sm py-2.5 border-b ${isDark ? 'border-white/10 text-slate-400' : 'border-black/10 text-slate-600'}`}>
           <div className="w-[120px] flex-shrink-0 px-2">WBS No.</div>
           <div className="w-[300px] flex-shrink-0 px-2">ชื่องาน</div>
           <div className="w-[80px] flex-shrink-0 text-center">% จริง</div>
@@ -132,7 +135,7 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto mt-2 relative">
+        <div className="flex-1 min-h-0 overflow-y-auto print:overflow-visible mt-1 relative">
           {/* Vertical Grid Lines */}
           <div className="absolute inset-y-0 left-[516px] right-0 pointer-events-none flex">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -190,14 +193,14 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
             const isMilestone = task.duration === 0
 
             return (
-              <div key={task.id} className={`flex items-center py-4 ${idx !== displayTasks.length - 1 ? (isDark ? 'border-b border-white/5' : 'border-b border-black/5') : ''}`}>
+              <div key={task.id} className={`flex items-center py-2.5 ${idx !== displayTasks.length - 1 ? (isDark ? 'border-b border-white/5' : 'border-b border-black/5') : ''}`}>
                 <div className={`w-[120px] flex-shrink-0 px-2 font-mono text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{task.wbs_no}</div>
                 <div className={`w-[300px] flex-shrink-0 px-2 text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-800'}`} title={task.name}>{task.name}</div>
                 <div className={`w-[80px] flex-shrink-0 text-center font-bold text-sm ${isDark ? 'text-[#a13c9d]' : 'text-purple-600'}`}>
                   {task.actual_progress || 0}%
                 </div>
                 
-                <div className="flex-1 relative h-8 ml-4">
+                <div className="flex-1 relative h-7 ml-4">
                   {isMilestone ? (
                     <div 
                       className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-[#a13c9d] rotate-45 z-10"
@@ -209,7 +212,10 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
                       {(() => {
                         const workedDaysTotal = ((task.actual_progress || 0) / 100) * (task.duration || 1)
                         let remainingWorkedDays = workedDaysTotal
-                        const segments = (task as any).segments || []
+                        const rawSegments = (task as any).segments || []
+                        const segments = rawSegments.length > 0 
+                          ? rawSegments 
+                          : [{ start: task.computedStartDate, end: task.computedEndDate, durationDays: task.duration || 1 }]
 
                         return segments.map((seg: any, sIdx: number) => {
                           const segStart = new Date(seg.start)
@@ -233,7 +239,7 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
                             <div key={sIdx}>
                               {/* Plan Bar */}
                               <div 
-                                className={`absolute top-2 h-4 ${isDark ? 'bg-white/20' : 'bg-slate-300'} transition-all ${sIdx === 0 ? 'rounded-l-sm' : ''} ${sIdx === segments.length - 1 ? 'rounded-r-sm' : ''}`}
+                                className={`absolute top-1.5 h-4 ${isDark ? 'bg-white/20' : 'bg-slate-300'} transition-all ${sIdx === 0 ? 'rounded-l-sm' : ''} ${sIdx === segments.length - 1 ? 'rounded-r-sm' : ''}`}
                                 style={{
                                   left: `${segLeftRatio * 100}%`,
                                   width: `${segWidthRatio * 100}%`
@@ -242,7 +248,7 @@ export function SlideGantt({ project, tasks, amendments = [], theme }: Props) {
                               {/* Actual Progress Bar */}
                               {fillPct > 0 && (
                                 <div 
-                                  className={`absolute top-3 h-2 bg-[#a13c9d]/85 z-10 ${sIdx === 0 ? 'rounded-l-sm' : ''} ${fillPct === 1 && sIdx === segments.length - 1 ? 'rounded-r-sm' : ''}`}
+                                  className={`absolute top-2.5 h-2 bg-[#a13c9d]/85 z-10 ${sIdx === 0 ? 'rounded-l-sm' : ''} ${fillPct === 1 && sIdx === segments.length - 1 ? 'rounded-r-sm' : ''}`}
                                   style={{
                                     left: `${segLeftRatio * 100}%`,
                                     width: `${segWidthRatio * fillPct * 100}%`

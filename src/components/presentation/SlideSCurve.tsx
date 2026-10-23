@@ -289,7 +289,7 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
           </div>
           
           <div className="flex-1 w-full h-full min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={600} minHeight={350}>
               <LineChart data={chartData} margin={{ top: 40, right: 20, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis 

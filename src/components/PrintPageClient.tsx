@@ -100,10 +100,14 @@ export function PrintPageClient({
       .filter((c) => c.project_id === proj.id)
       .flatMap((c) => (c.photos || []).map((p: any) => (typeof p === 'string' ? p : p.url || '')))
 
-    const selectedPhotoUrls =
-      slideSelection.selectedPhotoUrls?.length > 0
-        ? slideSelection.selectedPhotoUrls
-        : [...new Set([...inspectionPhotos, ...dailyPhotos, ...concretePhotos])].filter(Boolean).slice(0, 4)
+    const allProjPhotos = [...new Set([...inspectionPhotos, ...dailyPhotos, ...concretePhotos])].filter(Boolean)
+    let selectedPhotoUrls = slideSelection.selectedPhotoUrls?.length > 0
+      ? slideSelection.selectedPhotoUrls
+      : allProjPhotos.slice(0, 4)
+    if (selectedPhotoUrls.length < 4) {
+      const more = allProjPhotos.filter((u) => !selectedPhotoUrls.includes(u))
+      selectedPhotoUrls = [...selectedPhotoUrls, ...more].slice(0, 4)
+    }
 
     if (slideSelection.showOverview) {
       slides.push(
@@ -163,9 +167,9 @@ export function PrintPageClient({
           print-color-adjust: exact !important;
         }
 
-        /* ─── Exact 16:9 Widescreen Print Setup (297mm × 167.0625mm) ─── */
+        /* ─── A4 Landscape Print Setup with 16:9 Centered Slide ─── */
         @page {
-          size: 297mm 167.0625mm;
+          size: A4 landscape;
           margin: 0;
         }
 
@@ -183,7 +187,7 @@ export function PrintPageClient({
           break-after: page;
         }
 
-        /* The actual slide rendered at 1280×720 (16:9), then CSS scaled to fit 297mm x 167.0625mm */
+        /* The actual slide rendered at 1280×720 (16:9), then CSS scaled to fit 297mm width */
         .slide-native {
           width: 1280px;
           height: 720px;
@@ -194,8 +198,15 @@ export function PrintPageClient({
           position: absolute;
           top: 0;
           left: 0;
-          padding: 32px;
+          padding: 24px;
           box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .slide-native > * {
+          width: 100%;
+          height: 100%;
         }
 
         /* Screen preview toolbar */
@@ -253,6 +264,8 @@ export function PrintPageClient({
             background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
             margin: 0 !important;
             padding: 0 !important;
+            width: 297mm !important;
+            height: 210mm !important;
           }
 
           .print-toolbar { display: none !important; }
@@ -266,24 +279,50 @@ export function PrintPageClient({
             border-radius: 0 !important;
             box-shadow: none !important;
             width: 297mm !important;
-            height: 167.0625mm !important;
+            height: 210mm !important;
             max-width: 297mm !important;
-            max-height: 167.0625mm !important;
+            max-height: 210mm !important;
             page-break-after: always !important;
             break-after: page !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
+          }
+
+          .slide-page-wrapper:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
 
           .slide-native {
             width: 1280px !important;
             height: 720px !important;
+            max-width: 1280px !important;
+            max-height: 720px !important;
             transform: scale(0.87696875) !important;
-            transform-origin: top left !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
+            transform-origin: center center !important;
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            margin: auto !important;
+            padding: 24px !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            justify-content: center !important;
+            background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
+          }
+
+          .slide-native > * {
+            width: 100% !important;
+            height: 100% !important;
+            flex: 1 1 0% !important;
           }
         }
       `}</style>

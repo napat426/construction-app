@@ -281,8 +281,8 @@ export function PresentationClient({
     const pConcrete = initialConcretePours.filter((c) => c.project_id === projectId)
     const concretePhotos = pConcrete.flatMap((c) => c.photos || []).map((p) => (typeof p === 'string' ? p : p.url || ''))
 
-    const defaultSelected = inspectionPhotos.slice(0, 4)
     const allPhotos = Array.from(new Set([...inspectionPhotos, ...dailyPhotos, ...concretePhotos])).filter(Boolean)
+    const defaultSelected = allPhotos.slice(0, 4)
 
     return { defaultSelected, allPhotos }
   }

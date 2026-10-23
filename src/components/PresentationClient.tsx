@@ -14,6 +14,7 @@ import {
   Save,
   Trash2,
   SlidersHorizontal,
+  Printer,
 } from 'lucide-react'
 import { computeTaskDates } from '@/lib/scheduler'
 import { PresentationEngine } from './presentation/PresentationEngine'
@@ -371,6 +372,12 @@ export function PresentationClient({
 
     setSelectedSlides(newArr)
     setDraggedIdx(null)
+  }
+
+  const handleOpenPrintPreview = () => {
+    localStorage.setItem('print_selected_slides', JSON.stringify(selectedSlides))
+    localStorage.setItem('presentation_theme', theme)
+    window.open('/presentation/print', '_blank')
   }
 
   if (isFullScreen) {
@@ -741,12 +748,21 @@ export function PresentationClient({
             ลำดับสไลด์ที่จะนำเสนอ ({selectedSlides.length})
           </h2>
           {selectedSlides.length > 0 && (
-            <button
-              onClick={() => setIsFullScreen(true)}
-              className="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-md"
-            >
-              ▶ เริ่มนำเสนอ
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenPrintPreview}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer bg-slate-100 hover:bg-slate-200 dark:bg-[#1c1c34] dark:hover:bg-[#252548] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#2b2b4d] transition-colors"
+                title="เปิดหน้าต่างพิมพ์หรือบันทึกเป็น PDF ขนาด 16:9"
+              >
+                <Printer size={13} /> พิมพ์ PDF (16:9)
+              </button>
+              <button
+                onClick={() => setIsFullScreen(true)}
+                className="btn-primary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-md"
+              >
+                ▶ เริ่มนำเสนอ
+              </button>
+            </div>
           )}
         </div>
 

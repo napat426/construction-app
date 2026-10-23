@@ -36,13 +36,18 @@ export function PrintPageClient({
   allConcretePours,
 }: Props) {
   const [selectedSlides, setSelectedSlides] = useState<SelectedProjectSlide[]>([])
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [ready, setReady] = useState(false)
 
-  // Load selected slides from localStorage (set by PresentationClient before opening print page)
+  // Load selected slides and theme from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem('print_selected_slides')
       if (stored) setSelectedSlides(JSON.parse(stored))
+      const storedTheme = localStorage.getItem('presentation_theme')
+      if (storedTheme === 'dark' || storedTheme === 'light') {
+        setTheme(storedTheme)
+      }
     } catch {}
     setReady(true)
   }, [])
@@ -52,24 +57,25 @@ export function PrintPageClient({
     if (!ready) return
     const timer = setTimeout(() => {
       window.print()
-    }, 2500)
+    }, 1500)
     return () => clearTimeout(timer)
   }, [ready])
 
+  const isDark = theme === 'dark'
 
   // Build the list of slides to render
   const slides: React.ReactNode[] = []
 
   // Slide 1: Summary (always first)
   slides.push(
-    <SlideWrapper key="summary">
+    <SlideWrapper key="summary" isDark={isDark}>
       <SlideSummary
         projects={allProjects}
         tasks={allTasks}
         milestones={allMilestones}
         amendments={allAmendments}
         selectedSlides={selectedSlides}
-        theme="light"
+        theme={theme}
       />
     </SlideWrapper>
   )
@@ -101,42 +107,42 @@ export function PrintPageClient({
 
     if (slideSelection.showOverview) {
       slides.push(
-        <SlideWrapper key={`${proj.id}-overview`}>
+        <SlideWrapper key={`${proj.id}-overview`} isDark={isDark}>
           <SlideOverview
             project={proj}
             tasks={pTasks}
             milestones={pMilestones}
             amendments={pAmendments}
             inspections={pInspections}
-            theme="light"
+            theme={theme}
           />
         </SlideWrapper>
       )
     }
     if (slideSelection.showGantt) {
       slides.push(
-        <SlideWrapper key={`${proj.id}-gantt`}>
-          <SlideGantt project={proj} tasks={pTasks} amendments={pAmendments} theme="light" />
+        <SlideWrapper key={`${proj.id}-gantt`} isDark={isDark}>
+          <SlideGantt project={proj} tasks={pTasks} amendments={pAmendments} theme={theme} />
         </SlideWrapper>
       )
     }
     if (slideSelection.showSCurve) {
       slides.push(
-        <SlideWrapper key={`${proj.id}-scurve`}>
+        <SlideWrapper key={`${proj.id}-scurve`} isDark={isDark}>
           <SlideSCurve
             project={proj}
             tasks={pTasks}
             milestones={pMilestones}
             amendments={pAmendments}
-            theme="light"
+            theme={theme}
           />
         </SlideWrapper>
       )
     }
     if (slideSelection.showPhotos) {
       slides.push(
-        <SlideWrapper key={`${proj.id}-photos`}>
-          <SlidePhotos project={proj} selectedPhotoUrls={selectedPhotoUrls} theme="light" />
+        <SlideWrapper key={`${proj.id}-photos`} isDark={isDark}>
+          <SlidePhotos project={proj} selectedPhotoUrls={selectedPhotoUrls} theme={theme} />
         </SlideWrapper>
       )
     }
@@ -150,87 +156,161 @@ export function PrintPageClient({
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         html, body {
-          background: #ffffff;
+          background: ${isDark ? '#0d0f14' : '#f1f5f9'};
+          color: ${isDark ? '#ffffff' : '#0f172a'};
           font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
 
-        /* ─── Print page setup ─── */
+        /* ─── Exact 16:9 Widescreen Print Setup (297mm × 167.0625mm) ─── */
         @page {
-          size: A4 landscape;
+          size: 297mm 167.0625mm;
           margin: 0;
         }
 
-        /* Screen: show all slides stacked */
+        /* Screen preview wrapper */
         .slide-page-wrapper {
           width: 297mm;
-          height: 210mm;
+          height: 167.0625mm;
           overflow: hidden;
           position: relative;
-          background: #ffffff;
+          background: ${isDark ? '#0d0f14' : '#ffffff'};
+          margin: 24px auto;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+          border-radius: 8px;
           page-break-after: always;
           break-after: page;
         }
 
-        /* The actual slide rendered at 1280×720, then scaled */
+        /* The actual slide rendered at 1280×720 (16:9), then CSS scaled to fit 297mm x 167.0625mm */
         .slide-native {
           width: 1280px;
           height: 720px;
-          transform: scale(0.877);
+          transform: scale(0.87696875);
           transform-origin: top left;
-          background: #ffffff;
+          background: ${isDark ? '#0d0f14' : '#ffffff'};
           overflow: hidden;
           position: absolute;
           top: 0;
           left: 0;
+          padding: 32px;
+          box-sizing: border-box;
         }
 
-        /* Screen preview bar */
+        /* Screen preview toolbar */
         .print-toolbar {
           position: fixed;
           top: 0; left: 0; right: 0;
-          background: #1e293b;
+          background: #0f172a;
           color: white;
-          padding: 12px 24px;
+          padding: 10px 24px;
           display: flex;
           align-items: center;
-          gap: 16px;
+          justify-content: space-between;
           z-index: 9999;
           font-family: 'Inter', sans-serif;
           font-size: 14px;
+          border-bottom: 1px solid #1e293b;
+        }
+
+        .print-toolbar-left {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .print-toolbar-right {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
 
         .print-toolbar button {
-          padding: 8px 20px;
+          padding: 8px 16px;
           border-radius: 8px;
           border: none;
           cursor: pointer;
           font-weight: bold;
-          font-size: 14px;
+          font-size: 13px;
+          transition: all 0.15s ease;
         }
 
         .btn-print { background: #7c3aed; color: white; }
-        .btn-close { background: #475569; color: white; }
+        .btn-print:hover { background: #6d28d9; }
+        .btn-theme { background: #334155; color: white; }
+        .btn-theme:hover { background: #475569; }
+        .btn-close { background: #1e293b; color: #94a3b8; border: 1px solid #334155 !important; }
+        .btn-close:hover { background: #334155; color: white; }
 
         .slides-container {
-          padding-top: 52px;
+          padding-top: 60px;
+          padding-bottom: 40px;
         }
 
         @media print {
+          html, body {
+            background: ${isDark ? '#0d0f14' : '#ffffff'} !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
           .print-toolbar { display: none !important; }
-          .slides-container { padding-top: 0; }
+          .slides-container {
+            padding: 0 !important;
+            margin: 0 !important;
+          }
 
           .slide-page-wrapper {
-            page-break-after: always;
-            break-after: page;
-            page-break-inside: avoid;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            width: 297mm !important;
+            height: 167.0625mm !important;
+            max-width: 297mm !important;
+            max-height: 167.0625mm !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            overflow: hidden !important;
+          }
+
+          .slide-native {
+            width: 1280px !important;
+            height: 720px !important;
+            transform: scale(0.87696875) !important;
+            transform-origin: top left !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
           }
         }
       `}</style>
 
       <div className="print-toolbar">
-        <span>🖨️ พรีวิว PDF — {slides.length} สไลด์</span>
-        <button className="btn-print" onClick={() => window.print()}>พิมพ์ / บันทึก PDF</button>
-        <button className="btn-close" onClick={() => window.close()}>ปิด</button>
+        <div className="print-toolbar-left">
+          <span style={{ fontWeight: 700 }}>🖨️ พรีวิว PDF (16:9 Widescreen) — {slides.length} สไลด์</span>
+          <span style={{ fontSize: 12, opacity: 0.7 }}>ขนาด: 297 × 167.1 มม.</span>
+        </div>
+        <div className="print-toolbar-right">
+          <button
+            className="btn-theme"
+            onClick={() => {
+              const next = theme === 'dark' ? 'light' : 'dark'
+              setTheme(next)
+              localStorage.setItem('presentation_theme', next)
+            }}
+          >
+            {theme === 'dark' ? '☀️ โหมดสว่าง' : '🌙 โหมดมืด'}
+          </button>
+          <button className="btn-print" onClick={() => window.print()}>
+            พิมพ์ / บันทึก PDF
+          </button>
+          <button className="btn-close" onClick={() => window.close()}>
+            ปิดหน้าต่าง
+          </button>
+        </div>
       </div>
 
       <div className="slides-container">
@@ -240,11 +320,11 @@ export function PrintPageClient({
   )
 }
 
-/** Wraps a slide component at 1280×720, scaled down to A4 landscape */
-function SlideWrapper({ children }: { children: React.ReactNode }) {
+/** Wraps a slide component at 1280×720, scaled down to 297mm × 167.0625mm (16:9) */
+function SlideWrapper({ children, isDark }: { children: React.ReactNode; isDark?: boolean }) {
   return (
-    <div className="slide-page-wrapper">
-      <div className="slide-native">
+    <div className={`slide-page-wrapper ${isDark ? 'dark' : ''}`}>
+      <div className={`slide-native ${isDark ? 'dark bg-[#0d0f14] text-white' : 'bg-white text-slate-900'}`}>
         {children}
       </div>
     </div>

@@ -329,6 +329,7 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
                   strokeDasharray="8 8"
                   dot={{ r: 6, fill: '#94a3b8' }}
                   activeDot={{ r: 8 }}
+                  isAnimationActive={false}
                 />
                 <Line 
                   name="ความก้าวหน้าจริง (EV)"
@@ -338,6 +339,7 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
                   strokeWidth={4} 
                   dot={{ r: 6, fill: '#a13c9d' }}
                   activeDot={{ r: 8 }}
+                  isAnimationActive={false}
                 />
                 <Line 
                   name="ค่าใช้จ่ายจริง (AC)"
@@ -347,6 +349,7 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
                   strokeWidth={4} 
                   dot={{ r: 6, fill: '#e08a2b' }}
                   activeDot={{ r: 8 }}
+                  isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -116,32 +116,42 @@ export function SupervisorPortfolioClient({
     return tasks.filter((t) => t.supervisor === supervisorName)
   }, [tasks, supervisorName])
 
-  // Helper to extract Buddhist Era year and month from a task
-  const getTaskDateInfo = (t: SupervisorTask): { yearBE: string; month: number; dateStr: string } => {
-    const dateStr = t.completed_date || t.due_date || t.start_date || (t.created_at ? t.created_at.split('T')[0] : '')
-    if (!dateStr) return { yearBE: '', month: 0, dateStr: '' }
-    try {
-      const clean = dateStr.split('T')[0]
+  // Helper to extract parsed start and end Dates for a task
+  const getTaskDateRange = (t: SupervisorTask): { start: Date | null; end: Date | null; fallbackYearBE: string } => {
+    // 1. Start Date (start_date, or created_at)
+    const startStr = t.start_date || (t.created_at ? t.created_at.split('T')[0] : '')
+    // 2. End Date (completed_date takes precedence, then due_date, then start_date)
+    const endStr = t.completed_date || t.due_date || t.start_date || startStr
+
+    const parseD = (s?: string | null): Date | null => {
+      if (!s) return null
+      const clean = s.split('T')[0]
       const parts = clean.split('-')
       if (parts.length === 3) {
-        const y = parseInt(parts[0], 10)
-        const m = parseInt(parts[1], 10)
-        const be = y > 2400 ? y : y + 543
-        return { yearBE: String(be), month: m, dateStr: clean }
+        let y = parseInt(parts[0], 10)
+        const m = parseInt(parts[1], 10) - 1
+        const d = parseInt(parts[2], 10)
+        if (y > 2400) y -= 543 // Convert BE to CE
+        return new Date(y, m, d)
       }
-      const dt = new Date(dateStr)
-      if (isNaN(dt.getTime())) return { yearBE: '', month: 0, dateStr }
-      const ceYear = dt.getFullYear()
-      const m = dt.getMonth() + 1
-      return { yearBE: String(ceYear + 543), month: m, dateStr: clean }
-    } catch {
-      return { yearBE: '', month: 0, dateStr: '' }
+      const dt = new Date(s)
+      return isNaN(dt.getTime()) ? null : dt
     }
+
+    const start = parseD(startStr)
+    const end = parseD(endStr) || start
+    const effectiveStart = start || end
+
+    // Fallback Year in BE
+    const fallbackDate = end || start || (t.created_at ? new Date(t.created_at) : null)
+    const fallbackYearBE = fallbackDate ? String(fallbackDate.getFullYear() + 543) : ''
+
+    return { start: effectiveStart, end, fallbackYearBE }
   }
 
   // Helper to extract Buddhist Era year from a task
   const getTaskYear = (t: SupervisorTask): string => {
-    return getTaskDateInfo(t).yearBE
+    return getTaskDateRange(t).fallbackYearBE
   }
 
   // Helper to format date as วัน-เดือน-ปี (DD-MM-YYYY in Thai Buddhist Era)
@@ -171,35 +181,57 @@ export function SupervisorPortfolioClient({
   const availableYears = useMemo(() => {
     const currentBE = new Date().getFullYear() + 543
     const yearsSet = new Set<string>()
-    // Generate a range around current year (e.g. currentBE - 2 .. currentBE + 3)
     for (let offset = -2; offset <= 3; offset++) {
       yearsSet.add(String(currentBE + offset))
     }
-    // Also include any years existing in the supervisor's tasks
     supervisorTasks.forEach((t) => {
-      const y = getTaskYear(t)
-      if (y) yearsSet.add(y)
+      const { start, end, fallbackYearBE } = getTaskDateRange(t)
+      if (fallbackYearBE) yearsSet.add(fallbackYearBE)
+      if (start) yearsSet.add(String(start.getFullYear() + 543))
+      if (end) yearsSet.add(String(end.getFullYear() + 543))
     })
     return Array.from(yearsSet).sort((a, b) => Number(a) - Number(b))
   }, [supervisorTasks])
 
-  // Filter tasks by selected year and 6-month evaluation period (Calendar Year: H1 = Jan-Jun, H2 = Jul-Dec)
+  // Filter tasks by selected year and 6-month evaluation period (Overlap Range Logic: taskStart <= periodEnd && taskEnd >= periodStart)
   const filteredSupervisorTasks = useMemo(() => {
+    if (selectedYear === 'all' && selectedPeriod === 'all') return supervisorTasks
+
+    const targetYearBE = selectedYear !== 'all' ? Number(selectedYear) : (new Date().getFullYear() + 543)
+    const yearCE = targetYearBE - 543
+
+    let periodStart = new Date(yearCE, 0, 1, 0, 0, 0)
+    let periodEnd = new Date(yearCE, 11, 31, 23, 59, 59)
+
+    if (selectedPeriod === 'h1') {
+      periodEnd = new Date(yearCE, 5, 30, 23, 59, 59)
+    } else if (selectedPeriod === 'h2') {
+      periodStart = new Date(yearCE, 6, 1, 0, 0, 0)
+    }
+
     return supervisorTasks.filter((t) => {
-      const { yearBE, month } = getTaskDateInfo(t)
+      const { start, end, fallbackYearBE } = getTaskDateRange(t)
 
-      // If user selected a specific year
+      // If user selected full year ('all' period)
+      if (selectedYear !== 'all' && selectedPeriod === 'all') {
+        if (start && end) {
+          return start <= periodEnd && end >= periodStart
+        }
+        return fallbackYearBE === selectedYear
+      }
+
+      // Interval overlap check (e.g. May to July spans both H1 and H2)
+      if (start && end) {
+        return start <= periodEnd && end >= periodStart
+      } else if (start) {
+        return start <= periodEnd && start >= periodStart
+      } else if (end) {
+        return end <= periodEnd && end >= periodStart
+      }
+
       if (selectedYear !== 'all') {
-        if (yearBE && yearBE !== selectedYear) return false
+        return fallbackYearBE === selectedYear
       }
-
-      // If user selected half-year period (H1 = 1-6, H2 = 7-12)
-      if (selectedPeriod === 'h1') {
-        if (month > 0 && (month < 1 || month > 6)) return false
-      } else if (selectedPeriod === 'h2') {
-        if (month > 0 && (month < 7 || month > 12)) return false
-      }
-
       return true
     })
   }, [supervisorTasks, selectedYear, selectedPeriod])

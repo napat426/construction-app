@@ -41,12 +41,12 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
+  const [theme, setTheme] = useState<Theme>('light')
 
-  // On mount: read from localStorage and sync DOM
+  // On mount: read from localStorage and sync DOM (Default: light)
   useEffect(() => {
     const saved = localStorage.getItem('theme') as Theme | null
-    const initial: Theme = saved === 'light' ? 'light' : 'dark'
+    const initial: Theme = saved === 'dark' ? 'dark' : 'light'
     setTheme(initial)
     applyTheme(initial)
   }, [])

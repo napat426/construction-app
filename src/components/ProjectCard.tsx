@@ -200,9 +200,9 @@ export function ProjectCard({
   }
 
   return (
-    <div className="card rounded-xl overflow-hidden animate-fade-in flex flex-col">
-      {/* Top accent bar — gradient width shows progress */}
-      <div className="relative h-[3px] w-full bg-slate-100 dark:bg-[#1e1e38]">
+    <div className="card gallery-podium rounded-2xl overflow-hidden animate-fade-in flex flex-col group hover:shadow-[0_12px_36px_rgba(28,25,23,0.06)] transition-all duration-300">
+      {/* Top accent bar — architectural hairline indicator */}
+      <div className="relative h-[2.5px] w-full bg-stone-200/70 dark:bg-stone-800">
         <div
           className="absolute inset-y-0 left-0 progress-fill"
           style={{ width: `${progressClamped}%` }}
@@ -211,12 +211,12 @@ export function ProjectCard({
 
       {/* Reorder control strip (Admin reorder mode) */}
       {isReorderMode && (
-        <div className="flex items-center justify-between px-3.5 py-1.5 bg-primary-50 dark:bg-primary-950/40 border-b border-primary-100 dark:border-primary-900/40 text-xs font-bold text-primary-700 dark:text-primary-300">
+        <div className="flex items-center justify-between px-3.5 py-1.5 bg-stone-100/90 dark:bg-stone-900/60 border-b border-stone-200/80 dark:border-stone-800 text-xs font-bold text-stone-800 dark:text-stone-200">
           <span className="flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-primary-600 text-white flex items-center justify-center text-[10px] font-black">
+            <span className="w-5 h-5 rounded-full bg-stone-900 dark:bg-stone-100 text-stone-50 dark:text-stone-950 flex items-center justify-center text-[10px] font-mono font-black">
               {((index ?? 0) + 1)}
             </span>
-            <span>ลำดับที่ {((index ?? 0) + 1)}{totalInGroup ? ` / ${totalInGroup}` : ''}</span>
+            <span className="font-mono text-[11px]">ลำดับที่ {((index ?? 0) + 1)}{totalInGroup ? ` / ${totalInGroup}` : ''}</span>
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -227,7 +227,7 @@ export function ProjectCard({
                 onMoveLeft?.()
               }}
               disabled={!canMoveLeft}
-              className="px-2 py-0.5 rounded bg-white dark:bg-[#1a1a38] border border-primary-200 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/60 disabled:opacity-25 disabled:cursor-not-allowed flex items-center gap-0.5 text-[11px] cursor-pointer shadow-2xs"
+              className="px-2 py-0.5 rounded bg-white dark:bg-[#1a1a24] border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-25 disabled:cursor-not-allowed flex items-center gap-0.5 text-[11px] cursor-pointer shadow-2xs"
               title="เลื่อนก่อนหน้า"
             >
               ◀ ก่อน
@@ -240,7 +240,7 @@ export function ProjectCard({
                 onMoveRight?.()
               }}
               disabled={!canMoveRight}
-              className="px-2 py-0.5 rounded bg-white dark:bg-[#1a1a38] border border-primary-200 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/60 disabled:opacity-25 disabled:cursor-not-allowed flex items-center gap-0.5 text-[11px] cursor-pointer shadow-2xs"
+              className="px-2 py-0.5 rounded bg-white dark:bg-[#1a1a24] border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-25 disabled:cursor-not-allowed flex items-center gap-0.5 text-[11px] cursor-pointer shadow-2xs"
               title="เลื่อนถัดไป"
             >
               หลัง ▶
@@ -254,9 +254,9 @@ export function ProjectCard({
         <div className="flex items-start justify-between gap-3 mb-3">
           <Link
             href={`/projects/${project.id}`}
-            className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex-1"
+            className="flex-1"
           >
-            <h3 className="text-[15px] font-bold text-slate-900 dark:text-white leading-snug line-clamp-2">
+            <h3 className="text-[15px] font-bold text-stone-950 dark:text-stone-50 leading-snug line-clamp-2 tracking-tight group-hover:text-stone-600 dark:group-hover:text-stone-300 transition-colors">
               {project.name}
             </h3>
           </Link>
@@ -274,9 +274,9 @@ export function ProjectCard({
         {/* Detail rows */}
         <div className="space-y-1.5 mb-4 flex-1">
           {project.wbs_no && (
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-              <span className="w-4 flex-shrink-0 text-[10px] font-bold text-slate-400">WBS</span>
-              <span className="truncate text-indigo-600 dark:text-indigo-400 font-mono font-bold">{project.wbs_no}</span>
+            <div className="flex items-center gap-2 text-xs font-semibold text-stone-500 dark:text-stone-400">
+              <span className="w-4 flex-shrink-0 text-[10px] font-bold text-stone-400 font-mono">WBS</span>
+              <span className="truncate text-stone-800 dark:text-stone-200 font-mono font-bold">{project.wbs_no}</span>
             </div>
           )}
           <DetailRow icon={<User size={13} />} value={project.supervisor} />
@@ -296,7 +296,7 @@ export function ProjectCard({
 
         {/* Description */}
         {project.description && (
-          <p className="text-[12px] text-slate-400 dark:text-slate-500 line-clamp-2 mb-4 leading-relaxed">
+          <p className="text-[12px] text-stone-500 dark:text-stone-400 line-clamp-2 mb-4 leading-relaxed font-sans">
             {project.description}
           </p>
         )}
@@ -305,16 +305,16 @@ export function ProjectCard({
         {svData && (
           <div className={`mb-4 p-2.5 rounded-xl border flex items-center justify-between text-[11px] font-bold ${
             svData.sv > 0.005
-              ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+              ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400'
               : svData.sv < -0.005
-              ? 'border-red-500/20 bg-red-500/5 text-red-500 dark:text-red-400'
-              : 'border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a]/30 text-slate-500 dark:text-slate-400'
+              ? 'border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400'
+              : 'border-stone-200/80 dark:border-stone-800 bg-stone-100/50 dark:bg-[#14141c]/50 text-stone-600 dark:text-stone-400'
           }`}>
             <span>สถานะแผนงาน:</span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 font-mono">
               <span>{svData.sv > 0.005 ? `+${svData.sv.toFixed(1)}%` : svData.sv < -0.005 ? `${svData.sv.toFixed(1)}%` : '0.0%'}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
-              <span>
+              <span className="font-sans">
                 {svData.sv > 0.005
                   ? `เร็วกว่าแผน ${Math.abs(svData.svDays)} วัน`
                   : svData.sv < -0.005
@@ -328,14 +328,14 @@ export function ProjectCard({
         {/* Progress bar */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider font-mono">
               ความคืบหน้า
             </span>
-            <span className="text-[11px] font-bold text-primary-600 dark:text-primary-400">
+            <span className="text-[11px] font-bold text-stone-900 dark:text-stone-100 font-mono">
               {progressClamped}%
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-[#1e1e38] overflow-hidden">
+          <div className="h-1.5 w-full rounded-full bg-stone-200/70 dark:bg-stone-800 overflow-hidden">
             <div
               className="h-full rounded-full progress-fill"
               style={{ width: `${progressClamped}%` }}
@@ -347,9 +347,9 @@ export function ProjectCard({
         <div className="mb-4">
           <Link
             href={`/projects/${project.id}/reports`}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-500/10 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 transition-all border border-primary-100 dark:border-primary-500/20"
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-stone-800 dark:text-stone-200 bg-stone-100/80 dark:bg-stone-900/60 hover:bg-stone-200/70 dark:hover:bg-stone-800/80 transition-all border border-stone-200/80 dark:border-stone-800"
           >
-            <ClipboardCheck size={14} />
+            <ClipboardCheck size={14} className="text-stone-600 dark:text-stone-400" />
             จัดการการตรวจสอบคุณภาพ
           </Link>
         </div>
@@ -361,7 +361,7 @@ export function ProjectCard({
               id={`delete-${project.id}`}
               onClick={() => setShowConfirm(true)}
               disabled={isPending}
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-600 border border-transparent hover:border-red-500/25 hover:text-red-500 hover:bg-red-500/5 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium text-stone-400 dark:text-stone-500 border border-transparent hover:border-red-500/25 hover:text-red-500 hover:bg-red-500/5 transition-all duration-200 disabled:opacity-50 cursor-pointer"
             >
               <Trash2 size={13} />
               ลบโครงการ
@@ -405,9 +405,9 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-center gap-2 text-[13px]">
-      <span className="flex-shrink-0 text-primary-600 dark:text-primary-500">{icon}</span>
+      <span className="flex-shrink-0 text-stone-500 dark:text-stone-400">{icon}</span>
       <span
-        className={`truncate ${bold ? 'font-semibold text-slate-700 dark:text-slate-200' : 'text-slate-600 dark:text-slate-400'}`}
+        className={`truncate ${bold ? 'font-semibold text-stone-900 dark:text-stone-100' : 'text-stone-600 dark:text-stone-300'}`}
       >
         {value}
       </span>

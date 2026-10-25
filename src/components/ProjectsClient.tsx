@@ -291,9 +291,9 @@ export function ProjectsClient({
           {supervisorOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setSupervisorOpen(false)} />
-              <div className="absolute left-0 mt-1.5 w-64 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
-                <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
-                  <span className="text-[10px] font-black uppercase text-slate-400">เลือกผู้ควบคุม</span>
+              <div className="absolute left-0 mt-1.5 w-64 bg-[#FAF8F5] dark:bg-[#121218] border border-stone-200/90 dark:border-stone-800 rounded-xl shadow-[0_12px_36px_rgba(28,25,23,0.08)] z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
+                <div className="flex justify-between items-center pb-2 mb-2 border-b border-stone-200/80 dark:border-stone-800">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 font-mono">เลือกผู้ควบคุม</span>
                   {selectedSupervisors.length === supervisors.length ? (
                     <button
                       type="button"
@@ -306,7 +306,7 @@ export function ProjectsClient({
                     <button
                       type="button"
                       onClick={() => setSelectedSupervisors([...supervisors])}
-                      className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                      className="text-[10px] font-bold text-stone-900 dark:text-stone-100 hover:underline cursor-pointer"
                     >
                       เลือกทั้งหมด
                     </button>
@@ -316,7 +316,7 @@ export function ProjectsClient({
                   {supervisors.map((s) => {
                     const checked = selectedSupervisors.includes(s)
                     return (
-                      <label key={s} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                      <label key={s} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-stone-800 dark:text-stone-200 hover:text-stone-950 dark:hover:text-stone-50">
                         <input
                           type="checkbox"
                           checked={checked}
@@ -327,7 +327,7 @@ export function ProjectsClient({
                               setSelectedSupervisors(selectedSupervisors.filter(x => x !== s))
                             }
                           }}
-                          className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                          className="w-4 h-4 rounded text-stone-900 dark:text-stone-100 border-stone-300 dark:border-stone-700 focus:ring-stone-500 cursor-pointer"
                         />
                         <span className="truncate">{s}</span>
                       </label>
@@ -368,9 +368,9 @@ export function ProjectsClient({
           {statusOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setStatusOpen(false)} />
-              <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
-                <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
-                  <span className="text-[10px] font-black uppercase text-slate-400">เลือกสถานะ</span>
+              <div className="absolute left-0 mt-1.5 w-56 bg-[#FAF8F5] dark:bg-[#121218] border border-stone-200/90 dark:border-stone-800 rounded-xl shadow-[0_12px_36px_rgba(28,25,23,0.08)] z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
+                <div className="flex justify-between items-center pb-2 mb-2 border-b border-stone-200/80 dark:border-stone-800">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 font-mono">เลือกสถานะ</span>
                   {selectedStatuses.length === ALL_STATUSES.length ? (
                     <button
                       type="button"
@@ -383,7 +383,7 @@ export function ProjectsClient({
                     <button
                       type="button"
                       onClick={() => setSelectedStatuses([...ALL_STATUSES])}
-                      className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                      className="text-[10px] font-bold text-stone-900 dark:text-stone-100 hover:underline cursor-pointer"
                     >
                       เลือกทั้งหมด
                     </button>
@@ -393,7 +393,7 @@ export function ProjectsClient({
                   {ALL_STATUSES.map((st) => {
                     const checked = selectedStatuses.includes(st)
                     return (
-                      <label key={st} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                      <label key={st} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-stone-800 dark:text-stone-200 hover:text-stone-950 dark:hover:text-stone-50">
                         <input
                           type="checkbox"
                           checked={checked}
@@ -404,7 +404,7 @@ export function ProjectsClient({
                               setSelectedStatuses(selectedStatuses.filter(x => x !== st))
                             }
                           }}
-                          className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                          className="w-4 h-4 rounded text-stone-900 dark:text-stone-100 border-stone-300 dark:border-stone-700 focus:ring-stone-500 cursor-pointer"
                         />
                         <span>{st}</span>
                       </label>
@@ -445,9 +445,9 @@ export function ProjectsClient({
           {workGroupOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setWorkGroupOpen(false)} />
-              <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-xl z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
-                <div className="flex justify-between items-center pb-2 mb-2 border-b border-slate-100 dark:border-[#1e1e38]">
-                  <span className="text-[10px] font-black uppercase text-slate-400">เลือกกลุ่มงาน</span>
+              <div className="absolute right-0 mt-1.5 w-56 bg-[#FAF8F5] dark:bg-[#121218] border border-stone-200/90 dark:border-stone-800 rounded-xl shadow-[0_12px_36px_rgba(28,25,23,0.08)] z-20 p-3 max-h-60 overflow-y-auto animate-scale-in">
+                <div className="flex justify-between items-center pb-2 mb-2 border-b border-stone-200/80 dark:border-stone-800">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 font-mono">เลือกกลุ่มงาน</span>
                   {selectedWorkGroups.length === allWorkGroupKeys.length ? (
                     <button
                       type="button"
@@ -460,7 +460,7 @@ export function ProjectsClient({
                     <button
                       type="button"
                       onClick={() => setSelectedWorkGroups([...allWorkGroupKeys])}
-                      className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                      className="text-[10px] font-bold text-stone-900 dark:text-stone-100 hover:underline cursor-pointer"
                     >
                       เลือกทั้งหมด
                     </button>
@@ -468,7 +468,7 @@ export function ProjectsClient({
                 </div>
                 <div className="space-y-2">
                   {/* Unassigned Work Group */}
-                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-stone-800 dark:text-stone-200 hover:text-stone-950 dark:hover:text-stone-50">
                     <input
                       type="checkbox"
                       checked={selectedWorkGroups.includes('')}
@@ -479,7 +479,7 @@ export function ProjectsClient({
                           setSelectedWorkGroups(selectedWorkGroups.filter(x => x !== ''))
                         }
                       }}
-                      className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                      className="w-4 h-4 rounded text-stone-900 dark:text-stone-100 border-stone-300 dark:border-stone-700 focus:ring-stone-500 cursor-pointer"
                     />
                     <span className="italic">ไม่ระบุกลุ่มงาน</span>
                   </label>
@@ -487,7 +487,7 @@ export function ProjectsClient({
                   {workGroups.map((wg) => {
                     const checked = selectedWorkGroups.includes(wg)
                     return (
-                      <label key={wg} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300">
+                      <label key={wg} className="flex items-center gap-2 text-xs font-semibold cursor-pointer select-none text-stone-800 dark:text-stone-200 hover:text-stone-950 dark:hover:text-stone-50">
                         <input
                           type="checkbox"
                           checked={checked}
@@ -498,7 +498,7 @@ export function ProjectsClient({
                               setSelectedWorkGroups(selectedWorkGroups.filter(x => x !== wg))
                             }
                           }}
-                          className="w-4 h-4 rounded text-primary-600 border-slate-300 dark:border-slate-700 focus:ring-primary-500 cursor-pointer"
+                          className="w-4 h-4 rounded text-stone-900 dark:text-stone-100 border-stone-300 dark:border-stone-700 focus:ring-stone-500 cursor-pointer"
                         />
                         <span>{wg}</span>
                       </label>
@@ -513,14 +513,14 @@ export function ProjectsClient({
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* View Mode Toggle */}
-          <div className="flex items-center p-1 bg-white dark:bg-[#13132a] border border-slate-200 dark:border-[#252548] rounded-xl shadow-2xs">
+          <div className="flex items-center p-1 bg-stone-100/80 dark:bg-[#14141c] border border-stone-200/90 dark:border-stone-800 rounded-xl shadow-2xs">
             <button
               type="button"
               onClick={() => setViewMode('grouped')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'grouped'
-                  ? 'bg-primary-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900 shadow-xs'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-stone-100'
               }`}
               title="แสดงตามหมวดงาน"
             >
@@ -532,8 +532,8 @@ export function ProjectsClient({
               onClick={() => setViewMode('flat')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'flat'
-                  ? 'bg-primary-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900 shadow-xs'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-stone-100'
               }`}
               title="แสดงโครงการทั้งหมด"
             >
@@ -549,8 +549,8 @@ export function ProjectsClient({
               onClick={() => setIsReorderMode(!isReorderMode)}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                 isReorderMode
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-400/30'
-                  : 'bg-white dark:bg-[#1a1a36] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#202042]'
+                  ? 'bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900 border-stone-900 shadow-sm ring-2 ring-stone-400/30'
+                  : 'bg-white/80 dark:bg-[#181822] text-stone-700 dark:text-stone-200 border-stone-200/90 dark:border-stone-800 hover:bg-stone-100/70 dark:hover:bg-[#20202c]'
               }`}
               title="เปิด/ปิดโหมดปรับลำดับโครงการและหมวดงาน"
             >
@@ -561,7 +561,7 @@ export function ProjectsClient({
 
           <Link
             href="/disbursements"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#252548] transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-200 bg-white/80 dark:bg-[#181822] border border-stone-200/90 dark:border-stone-800 hover:bg-stone-100/70 dark:hover:bg-[#20202c] transition-colors cursor-pointer"
           >
             <DollarSign size={14} className="text-amber-500" />
             การเบิกจ่าย
@@ -569,9 +569,9 @@ export function ProjectsClient({
 
           <Link
             href="/portfolio"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#1a1a36] border border-slate-200 dark:border-[#252548] hover:bg-slate-50 dark:hover:bg-[#252548] transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-200 bg-white/80 dark:bg-[#181822] border border-stone-200/90 dark:border-stone-800 hover:bg-stone-100/70 dark:hover:bg-[#20202c] transition-colors cursor-pointer"
           >
-            <TrendingUp size={14} className="text-primary-600 dark:text-primary-400" />
+            <TrendingUp size={14} className="text-stone-700 dark:text-stone-300" />
             ภาพรวมทุกโครงการ
           </Link>
 
@@ -632,28 +632,28 @@ export function ProjectsClient({
               const isCollapsed = !!collapsedGroups[section.groupName]
               return (
                 <section key={section.groupName} className="scroll-mt-6">
-                  {/* Section Header Card */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 sm:px-5 sm:py-3.5 rounded-2xl bg-white dark:bg-[#141428] border border-slate-200/90 dark:border-[#252548] shadow-xs mb-4">
+                  {/* Section Header Card — Gallery Podium */}
+                  <div className="gallery-podium flex flex-wrap items-center justify-between gap-3 p-3.5 sm:px-5 sm:py-3.5 rounded-2xl bg-[#FAF8F5]/90 dark:bg-[#14141c]/90 border border-stone-200/90 dark:border-stone-800/80 shadow-xs mb-4">
                     {/* Left: Index badge, Title, and Stats */}
                     <div className="flex items-center gap-3 flex-wrap">
-                      <div className="w-8 h-8 rounded-xl bg-primary-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                      <div className="w-8 h-8 rounded-xl bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-950 font-bold text-xs flex items-center justify-center shadow-xs font-mono">
                         {section.isSpecial ? '★' : sIdx + 1}
                       </div>
                       <div>
                         <div className="flex items-center gap-2.5 flex-wrap">
-                          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                          <h2 className="text-base sm:text-lg font-bold text-stone-950 dark:text-stone-50 tracking-tight font-sans">
                             {section.groupName}
                           </h2>
-                          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 border border-primary-200/60 dark:border-primary-800/40">
+                          <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-stone-200/70 dark:bg-stone-800/80 text-stone-800 dark:text-stone-200 border border-stone-300/60 dark:border-stone-700/60">
                             {section.projects.length} โครงการ
                           </span>
                           {section.totalBudget > 0 && (
-                            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40 hidden sm:inline-block">
+                            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-amber-500/10 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20 hidden sm:inline-block">
                               งบรวม {(section.totalBudget / 1e6).toFixed(2)} ล้านบาท
                             </span>
                           )}
                           {section.projects.length > 0 && (
-                            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 hidden md:inline-block">
+                            <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-300/50 dark:border-stone-700/50 hidden md:inline-block font-mono">
                               {section.projects.length === 1 ? 'ความก้าวหน้า' : 'ความก้าวหน้าเฉลี่ย'} {section.avgProgress}%
                             </span>
                           )}

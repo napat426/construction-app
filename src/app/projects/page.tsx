@@ -60,7 +60,7 @@ export default async function ProjectsPage() {
   } catch {}
 
   return (
-    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c] print:bg-white print:h-auto print:min-h-0 print:overflow-visible">
+    <div className="flex min-h-screen bg-[#FAF8F5] dark:bg-[#0E0E14] text-stone-900 dark:text-stone-100 print:bg-white print:h-auto print:min-h-0 print:overflow-visible transition-colors duration-400">
       <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden print:overflow-visible print:h-auto print:min-h-0">
         <Header
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการ']}
@@ -74,23 +74,23 @@ export default async function ProjectsPage() {
             <div className="flex items-center gap-2">
               <Link
                 href="/supervisors"
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/50 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded-xl shadow-xs transition-all text-xs font-bold"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-stone-100/90 dark:bg-stone-900/80 border border-stone-200/90 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200/80 dark:hover:bg-stone-800/80 rounded-xl shadow-2xs transition-all text-xs font-bold"
                 title="แฟ้มสะสมผลงานผู้คุมงาน & ภารกิจย่อย"
               >
-                <Award size={16} className="text-purple-600 dark:text-purple-400" />
+                <Award size={15} className="text-stone-600 dark:text-stone-400" />
                 <span>แฟ้มผลงาน</span>
               </Link>
               <Link
                 href="/quick-links"
-                className="flex items-center gap-1.5 px-3 py-2 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-amber-700 dark:text-amber-400 hover:bg-amber-100/70 dark:hover:bg-amber-900/40 rounded-xl shadow-xs transition-all text-xs font-bold cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-stone-100/90 dark:bg-stone-900/80 border border-stone-200/90 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200/80 dark:hover:bg-stone-800/80 rounded-xl shadow-2xs transition-all text-xs font-bold cursor-pointer"
                 title="คลังลิงก์ & โน้ตสำคัญ"
               >
-                <Bookmark size={15} className="fill-amber-500/30 text-amber-600 dark:text-amber-400" />
+                <Bookmark size={15} className="text-amber-600/80 dark:text-amber-400/80" />
                 <span>บันทึก</span>
               </Link>
               <Link
                 href="/presentation"
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-md transition-colors text-xs"
+                className="flex items-center gap-2 px-4 py-2 bg-[#7E2A7B] hover:bg-[#9C3898] text-white font-bold rounded-xl shadow-xs hover:shadow-md transition-all text-xs tracking-wide"
               >
                 📽 Presentation
               </Link>

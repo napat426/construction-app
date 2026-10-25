@@ -79,7 +79,7 @@ export default async function ProjectDashboardPage({ params }: ProjectPageProps)
   } catch {}
 
   return (
-    <div className="flex min-h-screen bg-[#f2f2f8] dark:bg-[#0d0d1c]">
+    <div className="flex min-h-screen bg-[#FAF8F5] dark:bg-[#0E0E14] text-stone-900 dark:text-stone-100 transition-colors duration-400">
       <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-hidden">
         <Header
           breadcrumb={['ระบบควบคุมงานก่อสร้าง', 'โครงการทั้งหมด', project.name]}

@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   description: 'ระบบบริหารจัดการโครงการก่อสร้างแบบครบวงจร | Construction Management System',
 }
 
+import { AmbientBackdrop } from '@/components/architect/AmbientBackdrop'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,15 +25,20 @@ export default function RootLayout({
   return (
     <html lang="th" suppressHydrationWarning className={sarabun.variable}>
       <head>
-        {/* Prevent dark/light flash on first load */}
+        {/* Prevent dark/light flash on first load - Default to Executive Light Mode */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme')||'dark';document.documentElement.classList.toggle('dark',t==='dark')}catch(e){document.documentElement.classList.add('dark')}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('theme')||'light';document.documentElement.classList.toggle('dark',t==='dark')}catch(e){document.documentElement.classList.remove('dark')}})()`,
           }}
         />
       </head>
-      <body className="min-h-screen antialiased" suppressHydrationWarning>
-        <ThemeProvider>{children}</ThemeProvider>
+      <body className="min-h-screen antialiased relative" suppressHydrationWarning>
+        <ThemeProvider>
+          <AmbientBackdrop />
+          <div className="relative z-10 flex flex-col min-h-screen">
+            {children}
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   )

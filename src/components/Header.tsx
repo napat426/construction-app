@@ -47,7 +47,7 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
   const projectId = segments[1] === 'projects' && segments[2] ? segments[2] : null
 
   return (
-    <header className="sticky top-0 z-40 px-6 py-4 border-b border-slate-200 dark:border-[#1c1c34] bg-white/80 dark:bg-[#0d0d1c]/80 backdrop-blur-md print:hidden">
+    <header className="sticky top-0 z-40 px-6 py-3.5 border-b border-stone-200/80 dark:border-stone-800/80 bg-[#FAF8F5]/90 dark:bg-[#0E0E14]/90 backdrop-blur-md print:hidden transition-colors duration-300">
       <div className="flex items-center justify-between gap-4">
         {/* Left: breadcrumb + title */}
         <div className="flex-1 min-w-0 pr-2">
@@ -143,11 +143,11 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
               </div>
             )
           })()}
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight truncate">
+          <h2 className="text-xl font-bold tracking-tight text-stone-900 dark:text-stone-100 leading-tight truncate">
             {title === 'แผนงานและความก้าวหน้าโครงการ' || title === 'แผนงานและความคืบหน้าโครงการ' ? 'แผนงาน & WBS' : title}
           </h2>
           {subtitle && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 page-subtitle truncate">{subtitle}</p>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 page-subtitle truncate font-normal">{subtitle}</p>
           )}
         </div>
 
@@ -159,9 +159,9 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
             <Link
               href="/activities"
               title="ศูนย์รวมประวัติกิจกรรมทั้งหมด (Global Activity Center)"
-              className="px-2.5 h-9 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center gap-1.5 justify-center text-slate-600 dark:text-slate-300 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 cursor-pointer"
+              className="px-2.5 h-9 rounded-xl border border-stone-200 dark:border-stone-800 bg-white/70 dark:bg-stone-900/60 flex items-center gap-1.5 justify-center text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-600 transition-all duration-200 cursor-pointer shadow-2xs"
             >
-              <History size={15} className="text-primary-500 flex-shrink-0" />
+              <History size={14} className="text-primary-600 dark:text-primary-400 flex-shrink-0" />
               <span className="text-xs font-bold hidden 2xl:inline">ประวัติกิจกรรม</span>
             </Link>
           )}
@@ -173,11 +173,11 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
             onClick={() => {
               toggleTheme();
             }}
-            title={theme === 'dark' ? 'เปลี่ยนเป็น Light Mode' : 'เปลี่ยนเป็น Dark Mode'}
-            className="px-2.5 h-9 rounded-lg border border-slate-200 dark:border-[#252548] bg-slate-50 dark:bg-[#14142a] flex items-center gap-1.5 justify-center text-slate-500 dark:text-slate-400 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200 cursor-pointer"
+            title={theme === 'dark' ? 'เปลี่ยนเป็น Light Mode (Executive Standard)' : 'เปลี่ยนเป็น Dark Mode'}
+            className="px-3 h-9 rounded-xl border border-stone-200 dark:border-stone-800 bg-white/70 dark:bg-stone-900/60 flex items-center gap-1.5 justify-center text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-600 transition-all duration-200 cursor-pointer shadow-2xs"
           >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            <span className="text-xs font-bold theme-label hidden 2xl:inline">{theme === 'dark' ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
+            {theme === 'dark' ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} className="text-stone-600" />}
+            <span className="text-xs font-semibold theme-label hidden 2xl:inline">{theme === 'dark' ? 'โหมดมืด' : 'โหมดสว่าง'}</span>
           </button>
 
           {/* User profiles controls */}

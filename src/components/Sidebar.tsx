@@ -28,21 +28,21 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-white dark:bg-[#0a0a14] border-r border-slate-200 dark:border-[#1c1c34] print:hidden">
+    <aside className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#FAF8F5]/95 dark:bg-[#0c0c14]/95 backdrop-blur-md border-r border-stone-200/90 dark:border-stone-800 print:hidden">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-200 dark:border-[#1c1c34]">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-primary-900 flex items-center justify-center purple-glow flex-shrink-0">
-          <HardHat size={18} className="text-white" />
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-stone-200/80 dark:border-stone-800">
+        <div className="w-9 h-9 rounded-xl bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-950 flex items-center justify-center shadow-xs flex-shrink-0">
+          <HardHat size={18} />
         </div>
         <div className="leading-tight">
-          <h1 className="text-sm font-bold text-slate-900 dark:text-white">ระบบควบคุม</h1>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">งานก่อสร้าง</p>
+          <h1 className="text-sm font-bold text-stone-950 dark:text-stone-50 tracking-tight font-sans">ระบบควบคุม</h1>
+          <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">งานก่อสร้าง</p>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest px-3 mb-3">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <p className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest px-3 mb-3 font-mono">
           เมนูหลัก
         </p>
 
@@ -53,20 +53,20 @@ export function Sidebar() {
               key={href}
               href={href}
               className={[
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200',
                 isActive
-                  ? 'sidebar-active text-primary-700 dark:text-primary-400'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#14142a] hover:text-slate-900 dark:hover:text-white',
+                  ? 'bg-stone-200/70 dark:bg-stone-800 text-stone-950 dark:text-stone-50 shadow-2xs font-bold'
+                  : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100/80 dark:hover:bg-stone-800/50 hover:text-stone-950 dark:hover:text-stone-100',
                 'cursor-pointer',
               ].join(' ')}
             >
               <Icon
-                size={17}
-                className={`flex-shrink-0 ${isActive ? 'text-primary-600 dark:text-primary-400' : ''}`}
+                size={16}
+                className={`flex-shrink-0 ${isActive ? 'text-stone-950 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
               />
               <span className="flex-1 truncate">{label}</span>
               {isActive && (
-                <ChevronRight size={14} className="text-primary-600 dark:text-primary-400" />
+                <ChevronRight size={14} className="text-stone-900 dark:text-stone-100" />
               )}
             </Link>
           )
@@ -74,15 +74,15 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom status */}
-      <div className="px-5 py-4 border-t border-slate-200 dark:border-[#1c1c34]">
+      <div className="px-5 py-4 border-t border-stone-200/80 dark:border-stone-800 font-mono">
         <div className="flex items-center gap-2 mb-1">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">ระบบออนไลน์</span>
+          <span className="text-xs text-stone-600 dark:text-stone-400 font-medium">ระบบออนไลน์</span>
         </div>
-        <p className="text-[10px] text-slate-400 dark:text-slate-600">v1.0.0 · Supabase Connected</p>
+        <p className="text-[10px] text-stone-400 dark:text-stone-500">ATELIER CORE · SUPABASE</p>
       </div>
     </aside>
   )

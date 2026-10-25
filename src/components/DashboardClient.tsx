@@ -312,7 +312,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
     return groups
   }, [tasks])
 
-  const labelCls = 'text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider'
+  const labelCls = 'text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest font-mono'
 
   return (
     <>
@@ -321,7 +321,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
           <button
             type="button"
             onClick={() => setIsLineBannerOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 shadow-xs transition-all cursor-pointer flex-shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 shadow-xs transition-all cursor-pointer flex-shrink-0"
             title="เปิดหน้าต่างสร้างภาพสรุปสถานะโครงการ 16:9 สำหรับแชร์ลงกลุ่ม LINE"
           >
             <Share2 size={15} />
@@ -332,7 +332,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             <button
               id="open-baseline-btn"
               onClick={() => setShowEditModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white btn-primary flex-shrink-0 cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white btn-primary flex-shrink-0 cursor-pointer shadow-xs"
             >
               <Settings size={15} />
               แก้ไข Baseline / ค่าเริ่มต้น
@@ -340,35 +340,36 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
           )}
         </div>
 
-        <div className="card rounded-2xl p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
-          <div className="space-y-2">
+        {/* ── Project Title Podium ── */}
+        <div className="card gallery-podium rounded-2xl p-6 sm:p-7 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center bg-[#FAF8F5]/90 dark:bg-[#14141c]/90 border border-stone-200/90 dark:border-stone-800">
+          <div className="space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider bg-primary-600/10 dark:bg-primary-600/20 text-primary-700 dark:text-primary-400 px-2.5 py-1 rounded-md">
+              <span className="text-[11px] font-bold uppercase tracking-wider bg-stone-200/70 dark:bg-stone-800 text-stone-800 dark:text-stone-200 px-2.5 py-0.5 rounded-full border border-stone-300/60 dark:border-stone-700/60">
                 {project.status}
               </span>
               {project.wbs_no && (
-                <span className="text-xs font-bold uppercase tracking-wider bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-700 dark:text-indigo-400 px-2.5 py-1 rounded-md">
+                <span className="text-[11px] font-bold uppercase tracking-wider font-mono bg-stone-200/70 dark:bg-stone-800 text-stone-800 dark:text-stone-200 px-2.5 py-0.5 rounded-full border border-stone-300/60 dark:border-stone-700/60">
                   WBS: {project.wbs_no}
                 </span>
               )}
               {project.location && (
-                <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <span className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400 font-medium">
                   <MapPin size={12} /> {project.location}
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-950 dark:text-stone-50 leading-tight tracking-tight font-sans">
               {project.name}
             </h1>
             {project.description && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+              <p className="text-sm text-stone-500 dark:text-stone-400 max-w-2xl leading-relaxed font-sans">
                 {project.description}
               </p>
             )}
             
             {metrics.ext.isCurrentlySuspended && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-lg text-sm font-semibold">
-                <AlertTriangle size={16} />
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg text-xs font-semibold">
+                <AlertTriangle size={15} />
                 ⏸ หยุดงาน — {metrics.ext.currentSuspension?.reason}
                 {' '}
                 ({' '}ตั้งแต่ {formatDate(metrics.ext.currentSuspension?.suspend_date || '')}
@@ -385,15 +386,15 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             )}
           </div>
 
-          <div className="flex items-center gap-4 bg-slate-50 dark:bg-[#1a1a32] border border-slate-100 dark:border-[#252548] p-4 rounded-xl w-full md:w-auto">
-            <div className="w-10 h-10 rounded-lg bg-primary-600/10 dark:bg-primary-600/20 flex items-center justify-center text-primary-600 dark:text-primary-400">
-              <User size={20} />
+          <div className="flex items-center gap-4 bg-stone-100/80 dark:bg-[#181822] border border-stone-200/80 dark:border-stone-800 p-4 rounded-xl w-full md:w-auto">
+            <div className="w-10 h-10 rounded-lg bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-950 flex items-center justify-center font-bold">
+              <User size={18} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest font-mono">
                 ผู้ควบคุมโครงการ
               </p>
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
                 {project.supervisor}
               </p>
             </div>
@@ -404,43 +405,43 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${metrics.isOverrun ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4`}>
 
           {/* วันเริ่มต้น */}
-          <div className="card rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary-600/10 dark:bg-primary-600/20 flex items-center justify-center text-primary-600 dark:text-primary-400 flex-shrink-0">
+          <div className="card gallery-podium rounded-2xl p-5 flex items-center gap-4 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
+            <div className="w-10 h-10 rounded-xl bg-stone-200/70 dark:bg-stone-800 flex items-center justify-center text-stone-700 dark:text-stone-300 flex-shrink-0">
               <Calendar size={18} />
             </div>
             <div>
               <p className={labelCls}>วันเริ่มสัญญา</p>
-              <p className="text-base font-bold text-slate-800 dark:text-slate-200 mt-0.5">{formatDate(project.start_date)}</p>
+              <p className="text-base font-bold text-stone-900 dark:text-stone-100 mt-0.5">{formatDate(project.start_date)}</p>
             </div>
           </div>
 
           {/* วันสิ้นสุด */}
-          <div className="card rounded-2xl p-5 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${metrics.isOverrun ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
+          <div className="card gallery-podium rounded-2xl p-5 flex items-center gap-4 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${metrics.isOverrun ? 'bg-red-500/10 text-red-500' : 'bg-stone-200/70 dark:bg-stone-800 text-stone-700 dark:text-stone-300'}`}>
               <Clock size={18} />
             </div>
             <div>
               <p className={labelCls}>วันสิ้นสุดสัญญา</p>
-              <p className={`text-base font-bold mt-0.5 ${metrics.isOverrun ? 'text-red-500' : 'text-slate-800 dark:text-slate-200'}`}>
+              <p className={`text-base font-bold mt-0.5 ${metrics.isOverrun ? 'text-red-500' : 'text-stone-900 dark:text-stone-100'}`}>
                 {metrics.ext.newEndDate ? formatDate(metrics.ext.newEndDate.toISOString()) : formatDate(project.end_date)}
               </p>
             </div>
           </div>
 
           {/* วันคงเหลือ */}
-          <div className="card rounded-2xl p-5 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${metrics.isOverrun ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+          <div className="card gallery-podium rounded-2xl p-5 flex items-center gap-4 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${metrics.isOverrun ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'}`}>
               <Briefcase size={18} />
             </div>
             <div>
               <p className={labelCls}>{metrics.isOverrun ? 'เกินกำหนด' : 'วันคงเหลือ'}</p>
-              <p className={`text-base font-bold mt-0.5 ${metrics.isOverrun ? 'text-red-500' : 'text-slate-800 dark:text-slate-200'}`}>
+              <p className={`text-base font-bold mt-0.5 ${metrics.isOverrun ? 'text-red-500' : 'text-stone-900 dark:text-stone-100'}`}>
                 {metrics.daysRemaining} วัน
                 {metrics.isOverrun && <span className="ml-1.5 text-xs font-semibold">(เกินสัญญา)</span>}
               </p>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 dark:bg-[#1e1e38] overflow-hidden">
+              <div className="mt-2 h-1.5 w-full rounded-full bg-stone-200/70 dark:bg-stone-800 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${metrics.isOverrun ? 'bg-red-500' : 'bg-primary-500'}`}
+                  className={`h-full rounded-full transition-all ${metrics.isOverrun ? 'bg-red-500' : 'progress-fill'}`}
                   style={{ width: `${Math.min(100, metrics.totalDays > 0 ? (metrics.daysUsed / metrics.totalDays) * 100 : 0)}%` }}
                 />
               </div>
@@ -448,13 +449,13 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
           </div>
 
           {/* วันทำงานทั้งหมด (สัญญารวม) */}
-          <div className="card rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+          <div className="card gallery-podium rounded-2xl p-5 flex items-center gap-4 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
+            <div className="w-10 h-10 rounded-xl bg-stone-200/70 dark:bg-stone-800 text-stone-700 dark:text-stone-300 flex items-center justify-center flex-shrink-0">
               <FileText size={18} />
             </div>
             <div>
               <p className={labelCls}>วันทำงานทั้งหมด</p>
-              <p className="text-base font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+              <p className="text-base font-bold text-stone-900 dark:text-stone-100 mt-0.5">
                 {metrics.totalDays} วัน
               </p>
             </div>
@@ -462,16 +463,16 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
 
           {/* ค่าปรับ */}
           {metrics.isOverrun && (
-            <div className="card rounded-2xl p-5 flex flex-col justify-center border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-500/5">
+            <div className="card gallery-podium rounded-2xl p-5 flex flex-col justify-center border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-500/5">
               <div className="flex items-center gap-2 mb-1 text-red-600 dark:text-red-400">
                 <AlertOctagon size={16} />
-                <p className="text-xs font-bold uppercase tracking-wider">ค่าปรับ (LD)</p>
+                <p className="text-xs font-bold uppercase tracking-wider font-mono">ค่าปรับ (LD)</p>
               </div>
-              <p className="text-lg font-black text-red-600 dark:text-red-400 mt-1">
+              <p className="text-lg font-black text-red-600 dark:text-red-400 mt-1 font-mono">
                 {formatCurrency(metrics.totalPenalty)}
               </p>
               {metrics.ext.totalSuspendedDays > 0 && (
-                <p className="text-[10px] text-red-500/80 dark:text-red-400/80 mt-1 font-semibold leading-tight">
+                <p className="text-[10px] text-red-500/80 dark:text-red-400/80 mt-1 font-semibold leading-tight font-mono">
                   *หัก {metrics.ext.totalSuspendedDays} วันจากช่วงหยุดงาน/แก้ไขสัญญา
                 </p>
               )}
@@ -483,16 +484,16 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* ความก้าวหน้างาน — 2 col */}
-          <div className="card rounded-2xl p-5 lg:col-span-2">
+          <div className="card gallery-podium rounded-2xl p-6 lg:col-span-2 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <TrendingUp size={16} className="text-primary-600 dark:text-primary-400" />
+              <h3 className="text-sm font-bold text-stone-950 dark:text-stone-50 flex items-center gap-2 font-sans tracking-tight">
+                <TrendingUp size={16} className="text-stone-700 dark:text-stone-300" />
                 ความก้าวหน้าโครงการ
               </h3>
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                metrics.progressStatus === 'ahead' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
-                metrics.progressStatus === 'behind' ? 'bg-red-500/10 text-red-500' :
-                'bg-slate-100 dark:bg-[#1e1e38] text-slate-500'
+                metrics.progressStatus === 'ahead' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
+                metrics.progressStatus === 'behind' ? 'bg-red-500/10 text-red-600 dark:text-red-400' :
+                'bg-stone-200/70 dark:bg-stone-800 text-stone-700 dark:text-stone-300'
               }`}>
                 {metrics.progressStatus === 'ahead' ? '▲ เร็วกว่าแผน' : metrics.progressStatus === 'behind' ? '▼ ล่าช้า' : '● ตามแผน'}
               </span>
@@ -501,77 +502,77 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">แผนงานสะสม (PV)</span>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{metrics.plannedProgress.toFixed(1)}%</span>
+                  <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold font-mono">แผนงานสะสม (PV)</span>
+                  <span className="text-sm font-bold text-stone-800 dark:text-stone-200 font-mono">{metrics.plannedProgress.toFixed(1)}%</span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#1e1e38] overflow-hidden">
-                  <div className="h-full rounded-full bg-slate-400 dark:bg-slate-600" style={{ width: `${metrics.plannedProgress}%` }} />
+                <div className="h-2 w-full rounded-full bg-stone-200/70 dark:bg-stone-800 overflow-hidden">
+                  <div className="h-full rounded-full bg-stone-400 dark:bg-stone-600" style={{ width: `${metrics.plannedProgress}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">ผลงานจริง (EV)</span>
-                  <span className="text-sm font-bold text-primary-600 dark:text-primary-400">{metrics.actualProgress.toFixed(1)}%</span>
+                  <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold font-mono">ผลงานจริง (EV)</span>
+                  <span className="text-sm font-bold text-stone-950 dark:text-stone-50 font-mono">{metrics.actualProgress.toFixed(1)}%</span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#1e1e38] overflow-hidden">
+                <div className="h-2 w-full rounded-full bg-stone-200/70 dark:bg-stone-800 overflow-hidden">
                   <div className="h-full rounded-full progress-fill" style={{ width: `${metrics.actualProgress}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">เบิกจ่ายสะสม (AC)</span>
-                  <span className="text-sm font-bold text-amber-500 dark:text-amber-400">{metrics.acCumulative.toFixed(1)}%</span>
+                  <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold font-mono">เบิกจ่ายสะสม (AC)</span>
+                  <span className="text-sm font-bold text-amber-600 dark:text-amber-400 font-mono">{metrics.acCumulative.toFixed(1)}%</span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-[#1e1e38] overflow-hidden">
-                  <div className="h-full rounded-full bg-amber-400 dark:bg-amber-500" style={{ width: `${Math.min(100, metrics.acCumulative)}%` }} />
+                <div className="h-2 w-full rounded-full bg-stone-200/70 dark:bg-stone-800 overflow-hidden">
+                  <div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.min(100, metrics.acCumulative)}%` }} />
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className={`p-3 rounded-xl border-l-4 flex items-center justify-between gap-2 ${
-                metrics.sv > 0.005 ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/5' :
-                metrics.sv < -0.005 ? 'border-red-500 bg-red-50/50 dark:bg-red-500/5' :
-                'border-slate-300 bg-slate-50/50 dark:bg-[#1a1a32]/50'
+                metrics.sv > 0.005 ? 'border-emerald-600 bg-emerald-500/5 dark:bg-emerald-500/10' :
+                metrics.sv < -0.005 ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10' :
+                'border-stone-400 bg-stone-100/60 dark:bg-[#1a1a24]/60'
               }`}>
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">SV (EV−PV)</p>
+                  <p className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest font-mono">SV (EV−PV)</p>
                   <p className={`text-lg font-black font-mono mt-0.5 ${
-                    metrics.sv > 0.005 ? 'text-emerald-600 dark:text-emerald-400' :
-                    metrics.sv < -0.005 ? 'text-red-500' :
-                    'text-slate-500 dark:text-slate-400'
+                    metrics.sv > 0.005 ? 'text-emerald-700 dark:text-emerald-400' :
+                    metrics.sv < -0.005 ? 'text-red-600 dark:text-red-400' :
+                    'text-stone-600 dark:text-stone-400'
                   }`}>
                     {metrics.sv > 0.005 ? '+' : ''}{metrics.sv.toFixed(1)}%
                   </p>
                 </div>
                 <div className="text-right flex flex-col items-end justify-center min-w-0">
                   <p className={`text-[11px] font-bold ${
-                    metrics.sv > 0.005 ? 'text-emerald-600 dark:text-emerald-400' :
-                    metrics.sv < -0.005 ? 'text-red-500' :
-                    'text-slate-500 dark:text-slate-400'
+                    metrics.sv > 0.005 ? 'text-emerald-700 dark:text-emerald-400' :
+                    metrics.sv < -0.005 ? 'text-red-600 dark:text-red-400' :
+                    'text-stone-600 dark:text-stone-400'
                   }`}>
                     {metrics.sv > 0.005 ? '✅ เร็วกว่าแผน' :
                      metrics.sv < -0.005 ? '⚠️ ล่าช้ากว่าแผน' :
                      '🎯 ตรงตามแผน'}
                   </p>
                   {(metrics.sv > 0.005 || metrics.sv < -0.005) && (
-                    <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap">
+                    <p className="text-[9px] text-stone-400 dark:text-stone-500 font-semibold mt-0.5 whitespace-nowrap font-mono">
                       {metrics.sv > 0.005 ? `+${Math.abs(metrics.svDays)} วัน เร็ว` : `−${Math.abs(metrics.svDays)} วัน ล่าช้า`}
                     </p>
                   )}
                 </div>
               </div>
               <div className={`p-3 rounded-xl border-l-4 flex items-center justify-between gap-2 ${
-                metrics.cv > 0.005 ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/5' :
-                metrics.cv < -0.005 ? 'border-red-500 bg-red-50/50 dark:bg-red-500/5' :
-                'border-slate-300 bg-slate-50/50 dark:bg-[#1a1a32]/50'
+                metrics.cv > 0.005 ? 'border-emerald-600 bg-emerald-500/5 dark:bg-emerald-500/10' :
+                metrics.cv < -0.005 ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10' :
+                'border-stone-400 bg-stone-100/60 dark:bg-[#1a1a24]/60'
               }`}>
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CV (EV−AC)</p>
+                  <p className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest font-mono">CV (EV−AC)</p>
                   <p className={`text-lg font-black font-mono mt-0.5 ${
-                    metrics.cv > 0.005 ? 'text-emerald-600 dark:text-emerald-400' :
-                    metrics.cv < -0.005 ? 'text-red-500' :
-                    'text-slate-500 dark:text-slate-400'
+                    metrics.cv > 0.005 ? 'text-emerald-700 dark:text-emerald-400' :
+                    metrics.cv < -0.005 ? 'text-red-600 dark:text-red-400' :
+                    'text-stone-600 dark:text-stone-400'
                   }`}>
                     {metrics.cv > 0.005 ? '+' : ''}{metrics.cv.toFixed(1)}%
                   </p>
@@ -579,16 +580,16 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
                 <div className="text-right flex flex-col items-end justify-center min-w-0">
                   {metrics.cv > 0.005 ? (
                     <>
-                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">✅ ต่ำกว่าวงเงินจ้าง</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap">ประหยัดได้ {formatCurrency((metrics.cv / 100) * (project.opening_pr || 0))}</span>
+                      <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">✅ ต่ำกว่าวงเงินจ้าง</span>
+                      <span className="text-[9px] text-stone-500 dark:text-stone-400 font-semibold mt-0.5 whitespace-nowrap font-mono">ประหยัดได้ {formatCurrency((metrics.cv / 100) * (project.opening_pr || 0))}</span>
                     </>
                   ) : metrics.cv < -0.005 ? (
                     <>
-                      <span className="text-[11px] font-bold text-red-500">🔴 เกินวงเงินจ้าง</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 whitespace-nowrap font-mono">เกินงบ {formatCurrency(Math.abs((metrics.cv / 100) * (project.opening_pr || 0)))}</span>
+                      <span className="text-[11px] font-bold text-red-600 dark:text-red-400">🔴 เกินวงเงินจ้าง</span>
+                      <span className="text-[9px] text-stone-500 dark:text-stone-400 font-semibold mt-0.5 whitespace-nowrap font-mono">เกินงบ {formatCurrency(Math.abs((metrics.cv / 100) * (project.opening_pr || 0)))}</span>
                     </>
                   ) : (
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">🎯 ตรงวงเงินจ้าง</span>
+                    <span className="text-[11px] font-bold text-stone-600 dark:text-stone-400">🎯 ตรงวงเงินจ้าง</span>
                   )}
                 </div>
               </div>
@@ -596,20 +597,20 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
           </div>
 
           {/* EVM Key Numbers — 1 col */}
-          <div className="card rounded-2xl p-5 lg:col-span-1 flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <TrendingUp size={16} className="text-primary-600 dark:text-primary-400" />
+          <div className="card gallery-podium rounded-2xl p-6 lg:col-span-1 flex flex-col gap-3 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
+            <h3 className="text-sm font-bold text-stone-950 dark:text-stone-50 flex items-center gap-2 font-sans tracking-tight">
+              <TrendingUp size={16} className="text-stone-700 dark:text-stone-300" />
               วิเคราะห์ EVM
             </h3>
             
             <div className="flex-1 space-y-3.5">
               {/* SPI Index */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1a1a32] border border-slate-100 dark:border-[#252548] flex flex-col gap-1 shadow-sm">
+              <div className="p-3.5 rounded-xl bg-stone-100/70 dark:bg-[#1a1a24] border border-stone-200/80 dark:border-stone-800 flex flex-col gap-1 shadow-2xs">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SPI (ดัชนีแผนงาน)</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                    metrics.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
-                    metrics.SPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+                  <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider font-mono">SPI (ดัชนีแผนงาน)</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider font-mono ${
+                    metrics.SPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
+                    metrics.SPI >= 0.9 ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' :
                     'bg-red-500/10 text-red-600 dark:text-red-400'
                   }`}>
                     {metrics.SPI >= 1.0 ? 'เร็วกว่าแผน' : metrics.SPI >= 0.9 ? 'ล่าช้าเล็กน้อย' : 'ล่าช้าวิกฤต'}
@@ -617,25 +618,25 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
                 </div>
                 <div className="flex items-baseline gap-1.5">
                   <span className={`text-2xl font-black font-mono leading-none ${
-                    metrics.SPI >= 1.0 ? 'text-emerald-600 dark:text-emerald-400' :
-                    metrics.SPI >= 0.9 ? 'text-amber-500' :
-                    'text-red-500'
+                    metrics.SPI >= 1.0 ? 'text-emerald-700 dark:text-emerald-400' :
+                    metrics.SPI >= 0.9 ? 'text-amber-600 dark:text-amber-400' :
+                    'text-red-600 dark:text-red-400'
                   }`}>
                     {metrics.SPI.toFixed(2)}
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">
+                  <span className="text-[10px] text-stone-500 dark:text-stone-400 font-semibold font-mono">
                     (PV {metrics.pvCumulative.toFixed(0)}% vs EV {metrics.evCumulative.toFixed(0)}%)
                   </span>
                 </div>
               </div>
 
               {/* CPI Index */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#1a1a32] border border-slate-100 dark:border-[#252548] flex flex-col gap-1 shadow-sm">
+              <div className="p-3.5 rounded-xl bg-stone-100/70 dark:bg-[#1a1a24] border border-stone-200/80 dark:border-stone-800 flex flex-col gap-1 shadow-2xs">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CPI (ดัชนีต้นทุน)</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                    metrics.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
-                    metrics.CPI >= 0.9 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+                  <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider font-mono">CPI (ดัชนีต้นทุน)</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider font-mono ${
+                    metrics.CPI >= 1.0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
+                    metrics.CPI >= 0.9 ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' :
                     'bg-red-500/10 text-red-600 dark:text-red-400'
                   }`}>
                     {metrics.CPI >= 1.0 ? 'ประหยัดงบ' : metrics.CPI >= 0.9 ? 'เกินงบเล็กน้อย' : 'เกินงบวิกฤต'}
@@ -643,13 +644,13 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
                 </div>
                 <div className="flex items-baseline gap-1.5">
                   <span className={`text-2xl font-black font-mono leading-none ${
-                    metrics.CPI >= 1.0 ? 'text-emerald-600 dark:text-emerald-400' :
-                    metrics.CPI >= 0.9 ? 'text-amber-500' :
-                    'text-red-500'
+                    metrics.CPI >= 1.0 ? 'text-emerald-700 dark:text-emerald-400' :
+                    metrics.CPI >= 0.9 ? 'text-amber-600 dark:text-amber-400' :
+                    'text-red-600 dark:text-red-400'
                   }`}>
                     {metrics.CPI.toFixed(2)}
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">
+                  <span className="text-[10px] text-stone-500 dark:text-stone-400 font-semibold font-mono">
                     (EV {metrics.evCumulative.toFixed(0)}% vs AC {metrics.acCumulative.toFixed(0)}%)
                   </span>
                 </div>
@@ -659,10 +660,10 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             {/* Overall Status Pill */}
             <div className={`text-center py-2.5 rounded-xl text-xs font-bold ${
               metrics.SPI >= 1.0 && metrics.CPI >= 1.0
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                 : metrics.SPI < 0.9 || metrics.CPI < 0.9
-                ? 'bg-red-500/10 text-red-500 border border-red-500/20'
-                : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
             }`}>
               {metrics.SPI >= 1.0 && metrics.CPI >= 1.0 
                 ? '● สุขภาพโครงการดี (Healthy)' 
@@ -677,54 +678,54 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* วงเงินจ้าง & การเบิกจ่าย — 1 col */}
-          <div className="card rounded-2xl p-5">
+          <div className="card gallery-podium rounded-2xl p-6 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <DollarSign size={16} className="text-primary-600 dark:text-primary-400" />
+              <h3 className="text-sm font-bold text-stone-950 dark:text-stone-50 flex items-center gap-2 font-sans tracking-tight">
+                <DollarSign size={16} className="text-stone-700 dark:text-stone-300" />
                 วงเงินจ้าง & เบิกจ่าย
               </h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-baseline">
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">จ่ายแล้ว</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">{metrics.paidPercent.toFixed(1)}%</span>
+                <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">จ่ายแล้ว</span>
+                <span className="text-sm font-bold text-stone-950 dark:text-stone-50 font-mono">{metrics.paidPercent.toFixed(1)}%</span>
               </div>
-              <div className="w-full rounded-full h-2 bg-slate-100 dark:bg-[#1e1e38] overflow-hidden">
+              <div className="w-full rounded-full h-2 bg-stone-200/70 dark:bg-stone-800 overflow-hidden">
                 <div className="h-full rounded-full progress-fill" style={{ width: `${Math.min(100, metrics.paidPercent)}%` }} />
               </div>
               <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
-                <div className="bg-slate-50 dark:bg-[#14142a]/50 p-2.5 rounded-lg border border-slate-100 dark:border-[#1e1e38]">
-                  <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">วงเงินจ้างก่อสร้าง (Contract Value)</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 truncate">{formatCurrency(project.opening_pr || 0)}</p>
+                <div className="bg-stone-100/70 dark:bg-[#181822] p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800">
+                  <p className="text-[9px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-0.5 font-mono">วงเงินจ้างก่อสร้าง</p>
+                  <p className="text-sm font-bold text-stone-950 dark:text-stone-50 mt-0.5 truncate font-mono">{formatCurrency(project.opening_pr || 0)}</p>
                 </div>
-                <div className="bg-slate-50 dark:bg-[#14142a]/50 p-2.5 rounded-lg border border-slate-100 dark:border-[#1e1e38]">
+                <div className="bg-stone-100/70 dark:bg-[#181822] p-2.5 rounded-lg border border-stone-200/80 dark:border-stone-800">
                   <p className={labelCls}>คงเหลือ</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 truncate">{formatCurrency(metrics.remainingBudget)}</p>
+                  <p className="text-sm font-bold text-stone-950 dark:text-stone-50 mt-0.5 truncate font-mono">{formatCurrency(metrics.remainingBudget)}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* การส่งมอบงวดงาน — 1 col */}
-          <div className="card rounded-2xl p-5">
+          <div className="card gallery-podium rounded-2xl p-6 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <CheckCircle size={16} className="text-primary-600 dark:text-primary-400" />
+              <h3 className="text-sm font-bold text-stone-950 dark:text-stone-50 flex items-center gap-2 font-sans tracking-tight">
+                <CheckCircle size={16} className="text-stone-700 dark:text-stone-300" />
                 การส่งมอบงวดงาน
               </h3>
             </div>
             <div className="flex items-baseline gap-1.5 mb-1">
-              <span className="text-4xl font-black text-slate-900 dark:text-white font-mono">{milestones.filter(m => m.is_paid).length}</span>
-              <span className="text-sm text-slate-400 dark:text-slate-500 font-medium">/ {milestones.length} งวด</span>
+              <span className="text-4xl font-black text-stone-950 dark:text-stone-50 font-mono">{milestones.filter(m => m.is_paid).length}</span>
+              <span className="text-sm text-stone-500 dark:text-stone-400 font-medium">/ {milestones.length} งวด</span>
             </div>
-            <p className="text-xs text-slate-400 font-medium mb-4">ส่งมอบและตรวจรับแล้ว</p>
+            <p className="text-xs text-stone-500 font-medium mb-4">ส่งมอบและตรวจรับแล้ว</p>
             {milestones.length > 0 && (
               <div className="flex gap-1.5">
                 {milestones.map((m, idx) => (
                   <div
                     key={idx}
                     title={m.name}
-                    className={`h-3 flex-1 rounded-full transition-all ${m.is_paid ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-200 dark:bg-[#1e1e38]'}`}
+                    className={`h-3 flex-1 rounded-full transition-all ${m.is_paid ? 'bg-emerald-600 shadow-2xs' : 'bg-stone-200 dark:bg-stone-800'}`}
                   />
                 ))}
               </div>
@@ -732,26 +733,26 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             
             {/* Payment Forecast (คาดการณ์เบิกจ่าย) */}
             {milestones.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#1e1e38]">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <div className="mt-6 pt-4 border-t border-stone-200/80 dark:border-stone-800">
+                <h4 className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3 flex items-center gap-1.5 font-mono">
                   <Calendar size={12} />
                   คาดการณ์เบิกจ่าย (ยังไม่ส่งมอบ)
                 </h4>
                 <div className="space-y-2">
                   {milestones.filter(m => !m.is_paid).map((m, idx) => (
                     <div key={idx} className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-700 dark:text-slate-300">{m.name}</span>
+                      <span className="font-bold text-stone-800 dark:text-stone-200">{m.name}</span>
                       {m.expected_payment_date ? (
-                        <span className="text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">
+                        <span className="text-stone-800 dark:text-stone-200 font-medium bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded font-mono">
                           {new Date(m.expected_payment_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
                         </span>
                       ) : (
-                        <span className="text-amber-500 font-medium bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded">ยังไม่ระบุกำหนดการ</span>
+                        <span className="text-amber-700 dark:text-amber-400 font-medium bg-amber-500/10 px-2 py-0.5 rounded">ยังไม่ระบุกำหนดการ</span>
                       )}
                     </div>
                   ))}
                   {milestones.filter(m => !m.is_paid).length === 0 && (
-                    <div className="text-xs text-slate-400 italic text-center py-2 bg-slate-50 dark:bg-[#1e1e38] rounded-lg">ไม่มีงวดที่รอเบิกจ่าย</div>
+                    <div className="text-xs text-stone-400 italic text-center py-2 bg-stone-100/60 dark:bg-stone-800/60 rounded-lg">ไม่มีงวดที่รอเบิกจ่าย</div>
                   )}
                 </div>
               </div>
@@ -759,50 +760,50 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
           </div>
 
           {/* สรุปสถานะงานย่อย — 1 col */}
-          <div className="card rounded-2xl p-5">
+          <div className="card gallery-podium rounded-2xl p-6 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Briefcase size={16} className="text-primary-600 dark:text-primary-400" />
+              <h3 className="text-sm font-bold text-stone-950 dark:text-stone-50 flex items-center gap-2 font-sans tracking-tight">
+                <Briefcase size={16} className="text-stone-700 dark:text-stone-300" />
                 สรุปสถานะงานย่อย
               </h3>
-              <span className="text-[10px] font-bold bg-slate-100 dark:bg-[#1e1e38] text-slate-500 px-2 py-0.5 rounded">WBS</span>
+              <span className="text-[10px] font-bold bg-stone-200/70 dark:bg-stone-800 text-stone-700 dark:text-stone-300 px-2 py-0.5 rounded font-mono">WBS</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-slate-50 dark:bg-[#14142a]/50 p-3 rounded-xl border border-slate-100 dark:border-[#1e1e38] text-center">
-                <p className="text-2xl font-black text-slate-900 dark:text-white font-mono">{metrics.taskStats.total}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">งานทั้งหมด</p>
+              <div className="bg-stone-100/70 dark:bg-[#181822] p-3 rounded-xl border border-stone-200/80 dark:border-stone-800 text-center">
+                <p className="text-2xl font-black text-stone-950 dark:text-stone-50 font-mono">{metrics.taskStats.total}</p>
+                <p className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mt-0.5 font-mono">งานทั้งหมด</p>
               </div>
-              <div className="bg-emerald-50 dark:bg-emerald-500/5 p-3 rounded-xl border border-emerald-200 dark:border-emerald-500/20 text-center">
-                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">{metrics.taskStats.completed}</p>
-                <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mt-0.5">เสร็จแล้ว</p>
+              <div className="bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20 text-center">
+                <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 font-mono">{metrics.taskStats.completed}</p>
+                <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mt-0.5 font-mono">เสร็จแล้ว</p>
               </div>
-              <div className="bg-red-50 dark:bg-red-500/5 p-3 rounded-xl border border-red-200 dark:border-red-500/20 text-center">
-                <p className="text-2xl font-black text-red-500 font-mono">{metrics.taskStats.delayed}</p>
-                <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mt-0.5">ล่าช้า</p>
+              <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20 text-center">
+                <p className="text-2xl font-black text-red-600 dark:text-red-400 font-mono">{metrics.taskStats.delayed}</p>
+                <p className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mt-0.5 font-mono">ล่าช้า</p>
               </div>
-              <div className="bg-slate-100 dark:bg-[#14142a]/50 p-3 rounded-xl border border-slate-200 dark:border-[#1e1e38] text-center">
-                <p className="text-2xl font-black text-slate-500 dark:text-slate-400 font-mono">{metrics.taskStats.future}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">ในอนาคต</p>
+              <div className="bg-stone-200/60 dark:bg-[#181822] p-3 rounded-xl border border-stone-300/60 dark:border-stone-800 text-center">
+                <p className="text-2xl font-black text-stone-600 dark:text-stone-400 font-mono">{metrics.taskStats.future}</p>
+                <p className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mt-0.5 font-mono">ในอนาคต</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* ══ ROW 3.5: สรุปสถานะความก้าวหน้าตามหมวดงาน (Work Status Summary) ══ */}
-        <div className="card rounded-2xl p-6 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#1e1e38]">
+        <div className="card gallery-podium rounded-2xl p-6 sm:p-7 space-y-4 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-stone-200/80 dark:border-stone-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-400 flex items-center justify-center font-bold">
                 <Briefcase size={20} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="text-base font-bold text-stone-950 dark:text-stone-50 flex items-center gap-2 font-sans tracking-tight">
                   สรุปสถานะความก้าวหน้าตามหมวดงาน
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#1e1e38] text-slate-600 dark:text-slate-300">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-200/70 dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-mono">
                     {tasks.length} รายการ
                   </span>
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-stone-500 dark:text-stone-400">
                   สรุปภาพรวมความคืบหน้ารายหมวดงานโยธา/โครงสร้าง/ไฟฟ้า และสร้างรูปภาพ 16:9 สรุปส่งกลุ่ม LINE ได้ทันที
                 </p>
               </div>
@@ -811,7 +812,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             <div className="flex items-center gap-2">
               <Link
                 href={`/projects/${project.id}/planning`}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#252548] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
               >
                 <span>Gantt Chart ↗</span>
               </Link>
@@ -819,19 +820,19 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
           </div>
 
           {/* Key Highlights Strip (สถานะเทียบแผน, การส่งมอบงวดงาน, การเบิกจ่าย) */}
-          <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-slate-50/80 dark:bg-[#14142a]/80 border border-slate-200 dark:border-[#1e1e38]">
+          <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-stone-100/80 dark:bg-[#181822]/80 border border-stone-200/80 dark:border-stone-800">
             {/* 1. Schedule Variance */}
             <div
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold ${
                 metrics.progressStatus === 'delayed'
-                  ? 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/40'
+                  ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
                   : metrics.progressStatus === 'ahead'
-                  ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40'
-                  : 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                  : 'bg-stone-200/70 text-stone-800 dark:bg-stone-800 dark:text-stone-200 border border-stone-300 dark:border-stone-700'
               }`}
             >
               <span>{metrics.progressStatus === 'delayed' ? '⚠️' : metrics.progressStatus === 'ahead' ? '🚀' : '🟢'}</span>
-              <span>
+              <span className="font-mono">
                 {metrics.progressStatus === 'delayed'
                   ? `ล่าช้ากว่าแผน ${Math.abs(metrics.svDays)} วัน (${metrics.sv.toFixed(1)}%)`
                   : metrics.progressStatus === 'ahead'
@@ -841,7 +842,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             </div>
 
             {/* 2. Milestones Delivery */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#252548]">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-[#1e1e2c] text-stone-800 dark:text-stone-200 border border-stone-200/90 dark:border-stone-800">
               <span>📦</span>
               <span>
                 ส่งมอบแล้ว {milestones.filter(m => m.is_paid || m.status === 'Paid' || m.status === 'Approved').length}/{milestones.length} งวด
@@ -849,7 +850,7 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             </div>
 
             {/* 3. Disbursement */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-[#1e1e38] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#252548]">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-[#1e1e2c] text-stone-800 dark:text-stone-200 border border-stone-200/90 dark:border-stone-800 font-mono">
               <span>💰</span>
               <span>
                 เบิกจ่ายแล้ว {metrics.paidPercent.toFixed(1)}% ({((metrics.paid || 0) / 1_000_000).toFixed(2)} ลบ. / {((metrics.budget || 0) / 1_000_000).toFixed(2)} ลบ.)
@@ -862,23 +863,23 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
             {categorizedTasks.map((group, gIdx) => (
               <div
                 key={gIdx}
-                className="bg-slate-50 dark:bg-[#14142a]/60 border border-slate-200 dark:border-[#1e1e38] rounded-xl p-4 flex flex-col justify-between space-y-3"
+                className="bg-white/80 dark:bg-[#181822] border border-stone-200/80 dark:border-stone-800 rounded-xl p-4 flex flex-col justify-between space-y-3 shadow-2xs"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
                       <span>{group.icon}</span>
                       <span>{group.title}</span>
                     </span>
-                    <span className="text-xs font-mono font-bold text-teal-600 dark:text-teal-400">
+                    <span className="text-xs font-mono font-bold text-teal-700 dark:text-teal-400">
                       {group.avgProgress.toFixed(1)}%
                     </span>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full bg-slate-200 dark:bg-[#1e1e38] rounded-full h-1.5 overflow-hidden mb-3">
+                  <div className="w-full bg-stone-200/80 dark:bg-stone-800 rounded-full h-1.5 overflow-hidden mb-3">
                     <div
-                      className="bg-teal-500 h-1.5 rounded-full transition-all"
+                      className="bg-teal-600 dark:bg-teal-500 h-1.5 rounded-full transition-all"
                       style={{ width: `${Math.min(100, Math.max(0, group.avgProgress))}%` }}
                     />
                   </div>
@@ -889,16 +890,16 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
                       const prog = t.actual_progress ?? 0
                       return (
                         <div key={tIdx} className="flex items-start justify-between text-xs gap-2 py-0.5">
-                          <span className="text-slate-600 dark:text-slate-400 line-clamp-1 flex-1" title={t.name}>
+                          <span className="text-stone-700 dark:text-stone-300 line-clamp-1 flex-1" title={t.name}>
                             • {t.name}
                           </span>
                           <span
                             className={`font-mono text-[11px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${
                               prog === 100
-                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                                 : prog > 0
-                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400'
-                                : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                                ? 'bg-stone-200/80 text-stone-800 dark:bg-stone-800 dark:text-stone-200'
+                                : 'bg-stone-100 text-stone-400 dark:bg-stone-850 dark:text-stone-500'
                             }`}
                           >
                             {prog === 100 ? 'เสร็จ 100%' : prog > 0 ? `${prog}%` : '0%'}
@@ -908,16 +909,16 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
                     })}
 
                     {group.tasks.length > 6 && (
-                      <div className="text-[11px] text-slate-400 dark:text-slate-500 pt-1 text-center font-medium">
+                      <div className="text-[11px] text-stone-400 dark:text-stone-500 pt-1 text-center font-medium font-mono">
                         + อีก {group.tasks.length - 6} รายการ
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200/60 dark:border-[#1e1e38]/60 flex items-center justify-between text-[11px] text-slate-400">
+                <div className="pt-2 border-t border-stone-200/80 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-500 font-mono">
                   <span>ทั้งหมด {group.tasks.length} รายการ</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold">
                     เสร็จ {group.tasks.filter(t => (t.actual_progress ?? 0) === 100).length} รายการ
                   </span>
                 </div>
@@ -927,23 +928,23 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
         </div>
 
         {/* ══ ROW 4: ข้อมูลสัญญา & กรรมการ (full width) ══ */}
-        <div className="card rounded-2xl p-5">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-            <User size={16} className="text-primary-600 dark:text-primary-400" />
+        <div className="card gallery-podium rounded-2xl p-6 sm:p-7 bg-[#FAF8F5]/85 dark:bg-[#14141c]/85 border border-stone-200/80 dark:border-stone-800">
+          <h3 className="text-sm font-bold text-stone-950 dark:text-stone-50 flex items-center gap-2 mb-4 font-sans tracking-tight">
+            <User size={16} className="text-stone-700 dark:text-stone-300" />
             ข้อมูลสัญญา & คณะกรรมการตรวจรับ
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <p className={labelCls}>หมายเลขงาน (WBS)</p>
-              <p className="text-sm font-bold text-slate-900 dark:text-white mt-1 font-mono">{project.wbs_no || '—'}</p>
+              <p className="text-sm font-bold text-stone-950 dark:text-stone-50 mt-1 font-mono">{project.wbs_no || '—'}</p>
             </div>
             <div>
               <p className={labelCls}>เลขที่สัญญา</p>
-              <p className="text-sm font-bold text-slate-900 dark:text-white mt-1 font-mono">{project.contract_no || '—'}</p>
+              <p className="text-sm font-bold text-stone-950 dark:text-stone-50 mt-1 font-mono">{project.contract_no || '—'}</p>
             </div>
             <div>
               <p className={labelCls}>ผู้รับจ้าง / คู่สัญญา</p>
-              <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">{project.contractor || '—'}</p>
+              <p className="text-sm font-bold text-stone-950 dark:text-stone-50 mt-1">{project.contractor || '—'}</p>
             </div>
             <div>
               <p className={labelCls}>คณะกรรมการตรวจรับพัสดุ</p>
@@ -956,10 +957,10 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
                     else committeeList = project.inspection_committee.split(',').map(s => s.trim()).filter(Boolean)
                   }
                 } catch { if (project.inspection_committee) committeeList = project.inspection_committee.split('\n').map(s => s.trim()).filter(Boolean) }
-                if (committeeList.length === 0) return <p className="text-sm text-slate-400 mt-1">—</p>
+                if (committeeList.length === 0) return <p className="text-sm text-stone-400 mt-1">—</p>
                 return <ul className="mt-1 space-y-1">{committeeList.map((m, i) => (
-                  <li key={i} className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
+                  <li key={i} className="text-sm font-semibold text-stone-800 dark:text-stone-200 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-stone-900 dark:bg-stone-100 flex-shrink-0" />
                     {m}
                   </li>
                 ))}</ul>

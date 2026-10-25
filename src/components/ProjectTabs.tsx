@@ -63,7 +63,7 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
   ]
 
   return (
-    <div id="project-tabs-nav" className="flex items-center border-b border-slate-200 dark:border-[#1c1c34] mb-6 gap-2 print:hidden no-print overflow-x-auto pb-1">
+    <div id="project-tabs-nav" className="flex items-center border-b border-stone-200/90 dark:border-stone-800/80 mb-6 gap-1 print:hidden no-print overflow-x-auto pb-0.5">
       {tabs.map((tab) => {
         const Icon = tab.icon
         return (
@@ -71,13 +71,13 @@ export function ProjectTabs({ projectId }: ProjectTabsProps) {
             key={tab.href}
             href={tab.href}
             className={[
-              'flex items-center gap-2 px-5 py-3 text-sm font-bold transition-all border-b-2 -mb-[2px] whitespace-nowrap',
+              'flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition-all border-b-2 -mb-[2px] whitespace-nowrap rounded-t-lg tracking-wide',
               tab.active
-                ? 'border-primary-600 text-primary-700 dark:text-primary-400 font-extrabold'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200',
+                ? 'border-stone-900 dark:border-stone-100 text-stone-950 dark:text-stone-50 font-extrabold bg-stone-100/60 dark:bg-stone-900/40'
+                : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:border-stone-300 dark:hover:border-stone-700',
             ].join(' ')}
           >
-            <Icon size={16} />
+            <Icon size={14} className={tab.active ? 'text-primary-600 dark:text-primary-400' : 'text-stone-400'} />
             {tab.label}
           </Link>
         )

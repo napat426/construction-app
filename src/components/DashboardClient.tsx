@@ -996,7 +996,20 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
           inspections={inspections}
           actualProgress={metrics.evCumulative}
           plannedProgress={metrics.pvCumulative}
-          initialPhotos={inspections.flatMap(i => (i.photo_urls || []).map(p => ({ url: p.split('|||')[0] }))).slice(0, 3)}
+          initialPhotos={(() => {
+            const list: { url: string; caption?: string }[] = []
+            if (inspections && inspections.length > 0) {
+              inspections.forEach(i => {
+                (i.photo_urls || []).forEach(p => {
+                  const u = p.split('|||')[0]?.trim()
+                  if (u && !list.some(item => item.url === u)) {
+                    list.push({ url: u, caption: i.title || i.inspection_no || 'ภาพความก้าวหน้า' })
+                  }
+                })
+              })
+            }
+            return list.slice(0, 3)
+          })()}
         />
       )}
     </>

@@ -42,18 +42,18 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
   }, [tasks, project.start_date, amendments])
 
   const chartData = useMemo(() => {
-    if (scheduledTasks.length === 0 || !project.start_date) return []
+    if (!project.start_date) return []
 
     const start = new Date(project.start_date)
     start.setHours(0, 0, 0, 0)
     
-    let minDate = project.start_date ? new Date(project.start_date) : new Date(scheduledTasks[0].computedStartDate)
+    let minDate = project.start_date ? new Date(project.start_date) : (scheduledTasks[0] ? new Date(scheduledTasks[0].computedStartDate) : start)
     for (const t of scheduledTasks) {
       const sd = new Date(t.computedStartDate)
       if (sd < minDate) minDate = sd
     }
     
-    let maxDate = new Date(scheduledTasks[0].computedEndDate)
+    let maxDate = scheduledTasks[0] ? new Date(scheduledTasks[0].computedEndDate) : new Date(start.getTime() + 180 * 86400000)
     for (const t of scheduledTasks) {
       const ed = new Date(t.computedEndDate)
       if (ed > maxDate) maxDate = ed
@@ -61,8 +61,7 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
     
     if (project.end_date) {
       const ext = computeProjectExtension(project, amendments)
-      const e = new Date(project.start_date)
-      e.setDate(e.getDate() + ext.totalDays - 1)
+      const e = ext.newEndDate || new Date(project.end_date)
       if (e > maxDate) maxDate = e
     }
     
@@ -207,16 +206,34 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
         }
       }
 
+      let pvPct = 0
+      let evPct: number | null = null
+
+      if (scheduledTasks.length > 0) {
+        pvPct = Math.min(100, Math.round((plannedSum / totalWeightDenominator) * 100))
+        evPct = showActual ? Math.min(100, Math.round((actualSum / totalWeightDenominator) * 100)) : null
+      } else {
+        const timeFraction = Math.max(0, Math.min(1, (currTime - minDate.getTime()) / Math.max(1, durationDays * 86400000)))
+        const sVal = 1 / (1 + Math.exp(-6 * (timeFraction - 0.5)))
+        pvPct = Math.min(100, Math.round(sVal * 100))
+        
+        if (showActual) {
+          const todayTime = Math.min(todayDateOnly.getTime(), maxDate.getTime())
+          const elapsedFraction = Math.max(0, Math.min(1, (currTime - minDate.getTime()) / Math.max(1, todayTime - minDate.getTime())))
+          evPct = Math.min(100, Math.round((project.progress || 0) * Math.pow(elapsedFraction, 1.2)))
+        }
+      }
+
       data.push({
         date: currDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
-        PV: Math.min(100, Math.round((plannedSum / totalWeightDenominator) * 100)),
-        EV: showActual ? Math.min(100, Math.round((actualSum / totalWeightDenominator) * 100)) : null,
+        PV: pvPct,
+        EV: evPct,
         AC: showActual ? Math.round(acVal || 0) : null
       })
     })
 
     return data
-  }, [scheduledTasks, project.start_date, project.end_date, milestones, project.budget])
+  }, [scheduledTasks, project.start_date, project.end_date, project.progress, milestones, project.budget, amendments])
 
   const topWbs = useMemo(() => {
     const level1 = scheduledTasks.filter((t) => !t.wbs_no.includes('.'))
@@ -240,32 +257,61 @@ export function SlideSCurve({ project, tasks, milestones = [], amendments = [], 
 
       <div className="flex-1 flex gap-5 min-h-0">
         <div className={`w-1/3 flex flex-col rounded-2xl ${isDark ? 'bg-[#14142a] border-[#1c1c34]' : 'bg-white border-slate-200'} border shadow-xl p-4 overflow-hidden`}>
-          <h3 className={`text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-800'}`}>งานหลัก (WBS)</h3>
+          <h3 className={`text-xl font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            {topWbs.length > 0 ? 'งานหลัก (WBS)' : 'งวดงานโครงการ'}
+          </h3>
           <div className="flex-1 overflow-y-auto print:overflow-hidden pr-1 space-y-2">
-            {topWbs.map((wbs, idx) => (
-              <div key={idx} className={`p-2.5 rounded-xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} border flex flex-col gap-1`}>
-                <div className="flex justify-between items-start">
-                  <span className={`font-bold text-sm leading-tight truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                    <span className="text-primary-500 mr-1.5">{wbs.wbs_no}</span>
-                    {wbs.name}
-                  </span>
-                  <span className={`text-xs whitespace-nowrap ml-2 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
-                    {wbs.duration} วัน
-                  </span>
+            {topWbs.length > 0 ? (
+              topWbs.map((wbs, idx) => (
+                <div key={idx} className={`p-2.5 rounded-xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} border flex flex-col gap-1`}>
+                  <div className="flex justify-between items-start">
+                    <span className={`font-bold text-sm leading-tight truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                      <span className="text-primary-500 mr-1.5">{wbs.wbs_no}</span>
+                      {wbs.name}
+                    </span>
+                    <span className={`text-xs whitespace-nowrap ml-2 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
+                      {wbs.duration} วัน
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className={isDark ? 'text-emerald-400' : 'text-emerald-600 font-bold'}>ทำได้: {wbs.actual_progress || 0}%</span>
+                    <span className={isDark ? 'text-white/60' : 'text-slate-500'}>
+                      {new Date(wbs.computedStartDate).toLocaleDateString('th-TH', {day: 'numeric', month:'short', year:'2-digit'})} 
+                      {' - '}
+                      {new Date(wbs.computedEndDate).toLocaleDateString('th-TH', {day: 'numeric', month:'short', year:'2-digit'})}
+                    </span>
+                  </div>
+                  <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-200'} h-1.5 rounded-full mt-0.5 overflow-hidden`}>
+                    <div className="bg-[#a13c9d] h-full" style={{width: `${wbs.actual_progress || 0}%`}} />
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className={isDark ? 'text-emerald-400' : 'text-emerald-600 font-bold'}>ทำได้: {wbs.actual_progress || 0}%</span>
-                  <span className={isDark ? 'text-white/60' : 'text-slate-500'}>
-                    {new Date(wbs.computedStartDate).toLocaleDateString('th-TH', {day: 'numeric', month:'short', year:'2-digit'})} 
-                    {' - '}
-                    {new Date(wbs.computedEndDate).toLocaleDateString('th-TH', {day: 'numeric', month:'short', year:'2-digit'})}
-                  </span>
+              ))
+            ) : (milestones && milestones.length > 0) ? (
+              milestones.slice(0, 6).map((m, idx) => (
+                <div key={idx} className={`p-2.5 rounded-xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} border flex flex-col gap-1`}>
+                  <div className="flex justify-between items-start">
+                    <span className={`font-bold text-sm leading-tight truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                      <span className="text-primary-500 mr-1.5">งวด {m.milestone_no}</span>
+                      {m.name || 'ส่งมอบงวดงาน'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs mt-1">
+                    <span className={m.is_paid ? (isDark ? 'text-emerald-400 font-bold' : 'text-emerald-600 font-bold') : (isDark ? 'text-amber-400' : 'text-amber-600')}>
+                      {m.is_paid ? '✓ เบิกจ่ายแล้ว' : '⏳ รอส่งมอบ'}
+                    </span>
+                    <span className={`font-mono text-xs ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
+                      {new Intl.NumberFormat('th-TH').format(m.amount || 0)} ฿
+                    </span>
+                  </div>
                 </div>
-                <div className={`w-full ${isDark ? 'bg-white/10' : 'bg-slate-200'} h-1.5 rounded-full mt-0.5 overflow-hidden`}>
-                  <div className="bg-[#a13c9d] h-full" style={{width: `${wbs.actual_progress || 0}%`}} />
-                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                <p className={`text-sm ${isDark ? 'text-white/60' : 'text-slate-600'} font-bold`}>ความก้าวหน้าโครงการ</p>
+                <p className={`text-2xl font-black mt-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{project.progress || 0}%</p>
+                <p className={`text-xs mt-2 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>สถานะ: {project.status || 'กำลังดำเนินการ'}</p>
               </div>
-            ))}
+            )}
             {tasks.length > topWbs.length && (
               <div className={`text-center text-xs py-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
                 + อีก {tasks.length - topWbs.length} งานย่อย

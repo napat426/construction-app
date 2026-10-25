@@ -13,7 +13,7 @@ interface StorageData {
   userLinks?: Record<string, string> // userId -> supervisorName
 }
 
-// Default realistic sample data for demo preview
+// Default realistic sample data
 const DEFAULT_SAMPLE_DATA: StorageData = {
   groups: [
     {

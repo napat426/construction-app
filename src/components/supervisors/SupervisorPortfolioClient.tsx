@@ -108,7 +108,7 @@ export function SupervisorPortfolioClient({
     if (currentUser.role === 'admin') return true
     if (currentUser.display_name === supervisorName) return true
     if (currentUser.username === supervisorName) return true
-    return true // In demo mode, permit edit to let user try it
+    return false
   }, [currentUser, supervisorName])
 
   // Filter tasks for this supervisor
@@ -701,7 +701,7 @@ export function SupervisorPortfolioClient({
         <div className="px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 text-xs text-blue-800 dark:text-blue-300 flex items-center gap-2 print:hidden">
           <Info size={16} className="shrink-0 text-blue-600 dark:text-blue-400" />
           <span>
-            คุณกำลังเปิดดูใน <strong>โหมดผู้เข้าชม (Guest Mode)</strong>: สามารถคลิกตรวจดูผลงานและรูปถ่ายได้ แต่ไม่สามารถแก้ไขข้อมูลได้ (ในโหมด Demo นี้เปิดสิทธิ์ให้ทดลองกดบันทึกได้)
+            คุณกำลังเปิดดูใน <strong>โหมดผู้เข้าชม (Guest Mode)</strong>: สามารถคลิกตรวจดูผลงานและรูปถ่ายได้ เข้าสู่ระบบเพื่อจัดการข้อมูลหรือบันทึกงาน
           </span>
         </div>
       )}

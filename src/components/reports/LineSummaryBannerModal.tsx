@@ -237,6 +237,40 @@ export function LineSummaryBannerModal({
 
     // If only civil or mostly one discipline
     if (civilTasks.length > 0) {
+      if (generalTasks.length > 0) {
+        return [
+          {
+            id: 'cat-civil',
+            icon: '🛠️',
+            title: 'งานโยธาและโครงสร้าง',
+            bullets: civilTasks.slice(0, 7).map(toBullet),
+          },
+          {
+            id: 'cat-arch',
+            icon: '🏢',
+            title: 'งานสถาปัตยกรรมและทั่วไป',
+            bullets: generalTasks.slice(0, 7).map(toBullet),
+          },
+        ]
+      }
+      // If only civil tasks, split evenly if more than 3 tasks
+      if (civilTasks.length > 3) {
+        const mid = Math.ceil(civilTasks.length / 2)
+        return [
+          {
+            id: 'cat-civil-1',
+            icon: '🛠️',
+            title: 'งานโครงสร้างหลัก',
+            bullets: civilTasks.slice(0, mid).map(toBullet),
+          },
+          {
+            id: 'cat-civil-2',
+            icon: '🏢',
+            title: 'งานสถาปัตยกรรมและประกอบ',
+            bullets: civilTasks.slice(mid, mid + 7).map(toBullet),
+          },
+        ]
+      }
       return [
         {
           id: 'cat-civil',
@@ -244,19 +278,28 @@ export function LineSummaryBannerModal({
           title: 'งานโยธาและโครงสร้าง',
           bullets: civilTasks.slice(0, 7).map(toBullet),
         },
-        {
-          id: 'cat-arch',
-          icon: '🏢',
-          title: 'งานสถาปัตยกรรมและภูมิทัศน์',
-          bullets: generalTasks.length > 0
-            ? generalTasks.slice(0, 7).map(toBullet)
-            : ['งานเก็บรายละเอียดความเรียบร้อย แล้วเสร็จ 100%'],
-        },
       ]
     }
 
-    // General fallback: Single or two general summaries
+    // General tasks when no civil/elec keywords
     if (tasks.length > 0) {
+      if (tasks.length > 3) {
+        const mid = Math.ceil(tasks.length / 2)
+        return [
+          {
+            id: 'cat-main-1',
+            icon: '🏗️',
+            title: 'หมวดงานหลัก',
+            bullets: tasks.slice(0, mid).map(toBullet),
+          },
+          {
+            id: 'cat-main-2',
+            icon: '📋',
+            title: 'หมวดงานประกอบและระบบ',
+            bullets: tasks.slice(mid, mid + 7).map(toBullet),
+          },
+        ]
+      }
       return [
         {
           id: 'cat-main',
@@ -267,35 +310,62 @@ export function LineSummaryBannerModal({
       ]
     }
 
-    // Default template matching reference
+    // Real project data fallback when project has no WBS tasks entered yet
+    if (milestones.length > 0) {
+      const paidCount = milestones.filter(m => m.is_paid || m.status === 'Paid').length
+      const mBullets = milestones.slice(0, 7).map(m => {
+        const isDone = m.is_paid || m.status === 'Paid'
+        return `งวดที่ ${m.milestone_no || ''}: ${m.name || 'ส่งมอบงวดงาน'} ${isDone ? 'แล้วเสร็จ 100%' : '(อยู่ระหว่างดำเนินการ)'}`
+      })
+
+      return [
+        {
+          id: 'cat-milestones',
+          icon: '📦',
+          title: `การส่งมอบงวดงาน (${paidCount}/${milestones.length} งวด)`,
+          bullets: mBullets,
+        },
+        {
+          id: 'cat-status',
+          icon: '📋',
+          title: 'ข้อมูลสัญญาและสถานะ',
+          bullets: [
+            `สถานะโครงการ: ${project.status || 'กำลังดำเนินการ'}`,
+            `ผู้ควบคุมงาน: ${project.supervisor || 'กลุ่มงานโยธา'}`,
+            `งบประมาณสัญญา: ${new Intl.NumberFormat('th-TH').format(project.opening_pr || project.budget || 0)} บาท`,
+            `วันเริ่มสัญญา: ${formatThaiDateShort(project.start_date)}`,
+            `กำหนดสิ้นสุด: ${formatThaiDateShort(currentEndDate)}`,
+          ],
+        },
+      ]
+    }
+
+    // Clean project overview fallback
     return [
       {
-        id: 'cat-civil',
-        icon: '🛠️',
-        title: 'งานโยธา',
+        id: 'cat-overview',
+        icon: '🏗️',
+        title: 'สถานะการดำเนินงาน',
         bullets: [
-          'อาคารรับรองและ ห้องน้ำ แล้วเสร็จ 90%',
-          'อาคารไฟฟ้า แล้วเสร็จ 95%',
-          'หลังคาลานอัดประจุ แล้วเสร็จ 100%',
-          'งาน Duct bank 100%',
-          'งานลานคอนกรีต 95%',
-          'งานท่อระบบระบายน้ำ 85%',
-          'งานรั้วคาวบอย 80% งานทางเท้า 30%',
+          `โครงการ: ${project.name || 'โครงการก่อสร้าง'}`,
+          `สถานะปัจจุบัน: ${project.status || 'กำลังดำเนินการ'}`,
+          `ความก้าวหน้าสะสม: ${Number((actualProgress || 0).toFixed(1))}%`,
+          `กำหนดสิ้นสุดสัญญา: ${formatThaiDateShort(currentEndDate)}`,
         ],
       },
       {
-        id: 'cat-elec',
-        icon: '⚡',
-        title: 'งานไฟฟ้า',
+        id: 'cat-details',
+        icon: '📋',
+        title: 'ข้อมูลโครงการ',
         bullets: [
-          'จัดทำ Ground Grid แล้วเสร็จ 100%',
-          'งานสายเคเบิลไฟฟ้าแรงสูง ตู้ RMU ติดตั้งและทดสอบเรียบร้อยแล้ว ติดตั้งมิเตอร์ไฟฟ้า แล้วเสร็จ 100%',
-          'งานสายเคเบิลไฟฟ้าแรงต่ำจ่ายไฟให้ ตู้ชาร์ต ลากสายแล้วเสร็จ',
-          'ตู้ MDB ติดตั้งแล้ว อยู่ระหว่างงานเข้าหัวสาย',
+          `ผู้ควบคุมงาน: ${project.supervisor || 'กลุ่มงานโยธา'}`,
+          `กลุ่มงาน: ${project.work_group || 'งานงบลงทุน'}`,
+          `งบประมาณ: ${new Intl.NumberFormat('th-TH').format(project.opening_pr || project.budget || 0)} บาท`,
+          `วันเริ่มสัญญา: ${formatThaiDateShort(project.start_date)}`,
         ],
       },
     ]
-  }, [tasks])
+  }, [tasks, project, milestones, actualProgress, currentEndDate])
 
   const [categories, setCategories] = useState<WorkCategory[]>(() => autoDraftCategories())
 

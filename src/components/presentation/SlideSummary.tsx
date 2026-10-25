@@ -80,12 +80,20 @@ export function SlideSummary({ projects, tasks = [], milestones = [], amendments
         }
         pvCumulative = totalPV / scheduledTasks.length
         evCumulative = totalEV / scheduledTasks.length
+      } else {
+        // Fallback to real project progress when no WBS tasks entered
+        evCumulative = project.progress || 0
+        if (totalDays > 0 && daysRemaining !== undefined) {
+          const daysUsed = Math.max(0, totalDays - daysRemaining)
+          pvCumulative = Math.min(100, (daysUsed / totalDays) * 100)
+        }
       }
 
       // AC from milestones (same as Dashboard)
       const paidMilestonesAmount = pMilestones.filter(m => m.is_paid).reduce((sum, m) => sum + (Number(m.amount) || 0), 0)
       const acCost = pMilestones.length > 0 ? paidMilestonesAmount : (project.paid_amount || 0)
-      const acPercent = (acCost / (project.budget || 1)) * 100
+      const projectBudget = project.opening_pr || project.budget || 1
+      const acPercent = (acCost / projectBudget) * 100
 
       const SV = evCumulative - pvCumulative
       let svDays = 0

@@ -151,8 +151,42 @@ export function Header({ breadcrumb, title, subtitle, actions, user }: HeaderPro
           )}
         </div>
 
-        {/* Right: actions + theme toggle + user account controls */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Right: actions + Bybang Nav + theme toggle + user account controls */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Bybang Minimalist Architectural Nav */}
+          <nav className="hidden xl:flex items-center gap-2 text-xs font-medium tracking-tight pr-2 select-none">
+            <Link
+              href="/projects"
+              className={`${pathname === '/' || pathname === '/projects' ? 'font-bold text-stone-950 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'} transition-colors`}
+            >
+              home,
+            </Link>
+            <Link
+              href="/projects"
+              className={`${pathname.startsWith('/projects') ? 'font-bold text-stone-950 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'} transition-colors`}
+            >
+              projects,
+            </Link>
+            <Link
+              href="/portfolio"
+              className={`${pathname === '/portfolio' ? 'font-bold text-stone-950 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'} transition-colors`}
+            >
+              portfolio,
+            </Link>
+            <Link
+              href="/presentation"
+              className={`${pathname === '/presentation' ? 'font-bold text-stone-950 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'} transition-colors`}
+            >
+              presentation,
+            </Link>
+            <Link
+              href="/activities"
+              className={`${pathname === '/activities' ? 'font-bold text-stone-950 dark:text-stone-50' : 'text-stone-400 dark:text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'} transition-colors`}
+            >
+              activities.
+            </Link>
+          </nav>
+
           {actions}
 
           {pathname !== '/activities' && (

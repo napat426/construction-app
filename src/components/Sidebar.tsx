@@ -29,14 +29,17 @@ export function Sidebar() {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#FAF8F5]/95 dark:bg-[#0c0c14]/95 backdrop-blur-md border-r border-stone-200/90 dark:border-stone-800 print:hidden">
-      {/* Logo */}
+      {/* Logo: Estudio Bang Signature Glyph */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-stone-200/80 dark:border-stone-800">
-        <div className="w-9 h-9 rounded-xl bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-950 flex items-center justify-center shadow-xs flex-shrink-0">
-          <HardHat size={18} />
+        <div className="w-9 h-9 rounded-xl bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-950 flex items-center justify-center shadow-xs flex-shrink-0 relative">
+          <div className="relative w-4 h-4">
+            <div className="absolute top-0 left-0 w-2 h-2 bg-white dark:bg-stone-950" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 bg-white dark:bg-stone-950" />
+          </div>
         </div>
         <div className="leading-tight">
-          <h1 className="text-sm font-bold text-stone-950 dark:text-stone-50 tracking-tight font-sans">ระบบควบคุม</h1>
-          <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">งานก่อสร้าง</p>
+          <h1 className="text-sm font-bold text-stone-950 dark:text-stone-50 tracking-tight font-sans">estudio.bang</h1>
+          <p className="text-[11px] text-stone-500 dark:text-stone-400 font-mono tracking-wider">ATELIER // SPEC</p>
         </div>
       </div>
 

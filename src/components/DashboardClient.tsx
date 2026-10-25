@@ -340,63 +340,105 @@ export function DashboardClient({ project, tasks, milestones, amendments = [], i
           )}
         </div>
 
-        {/* ── Project Title Podium ── */}
-        <div className="card gallery-podium rounded-2xl p-6 sm:p-7 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center bg-[#FAF8F5]/90 dark:bg-[#14141c]/90 border border-stone-200/90 dark:border-stone-800">
-          <div className="space-y-2.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider bg-stone-200/70 dark:bg-stone-800 text-stone-800 dark:text-stone-200 px-2.5 py-0.5 rounded-full border border-stone-300/60 dark:border-stone-700/60">
-                {project.status}
-              </span>
-              {project.wbs_no && (
-                <span className="text-[11px] font-bold uppercase tracking-wider font-mono bg-stone-200/70 dark:bg-stone-800 text-stone-800 dark:text-stone-200 px-2.5 py-0.5 rounded-full border border-stone-300/60 dark:border-stone-700/60">
-                  WBS: {project.wbs_no}
-                </span>
-              )}
-              {project.location && (
-                <span className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400 font-medium">
-                  <MapPin size={12} /> {project.location}
-                </span>
-              )}
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-950 dark:text-stone-50 leading-tight tracking-tight font-sans">
-              {project.name}
-            </h1>
-            {project.description && (
-              <p className="text-sm text-stone-500 dark:text-stone-400 max-w-2xl leading-relaxed font-sans">
-                {project.description}
-              </p>
-            )}
-            
-            {metrics.ext.isCurrentlySuspended && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg text-xs font-semibold">
-                <AlertTriangle size={15} />
-                ⏸ หยุดงาน — {metrics.ext.currentSuspension?.reason}
-                {' '}
-                ({' '}ตั้งแต่ {formatDate(metrics.ext.currentSuspension?.suspend_date || '')}
-                {metrics.ext.currentSuspension?.resume_date
-                  ? (() => {
-                      const lastStop = new Date(metrics.ext.currentSuspension!.resume_date!)
-                      lastStop.setDate(lastStop.getDate() - 1)
-                      return ` ถึง ${formatDate(lastStop.toISOString())}`
-                    })()
-                  : ' — ยังไม่กำหนดวันกลับ'
-                }
-                {' '})
+        {/* ── Estudio Bang Inspired Architectural Hero & Spec Layout ── */}
+        <div className="card gallery-podium rounded-2xl p-6 sm:p-10 space-y-8 bg-[#FAF8F5]/90 dark:bg-[#121218]/90 border border-stone-200/90 dark:border-stone-800">
+          {/* Top Row: Giant Architectural Title + Clean Header Action Links */}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-stone-200/80 dark:border-stone-800/80 pb-6">
+            <div className="space-y-2 max-w-3xl">
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-stone-400 dark:text-stone-500">
+                <span>ESTUDIO BANG // ATELIER SPEC</span>
+                <span>•</span>
+                <span>{project.status}</span>
               </div>
-            )}
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-stone-950 dark:text-stone-50 leading-tight tracking-tight font-sans">
+                {project.name}
+              </h1>
+            </div>
+
+            {/* Quick Action Links (Estudio Bang style) */}
+            <div className="flex items-center gap-4 text-xs font-bold tracking-wider uppercase font-mono flex-shrink-0 select-none">
+              <button
+                type="button"
+                onClick={() => setIsLineBannerOpen(true)}
+                className="hover:opacity-60 transition-opacity cursor-pointer text-stone-800 dark:text-stone-200"
+              >
+                SHARE
+              </button>
+              {user && (user.role === 'admin' || user.role === 'editor') && (
+                <>
+                  <span className="text-stone-300 dark:text-stone-700">•</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(true)}
+                    className="hover:opacity-60 transition-opacity cursor-pointer text-stone-800 dark:text-stone-200"
+                  >
+                    BASELINE
+                  </button>
+                </>
+              )}
+              <span className="text-stone-300 dark:text-stone-700">•</span>
+              <Link
+                href="/projects"
+                className="text-stone-950 dark:text-stone-100 hover:opacity-60 transition-opacity"
+              >
+                PROJECTS
+              </Link>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-stone-100/80 dark:bg-[#181822] border border-stone-200/80 dark:border-stone-800 p-4 rounded-xl w-full md:w-auto">
-            <div className="w-10 h-10 rounded-lg bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-950 flex items-center justify-center font-bold">
-              <User size={18} />
+          {/* 2-Column Split: Hairline Spec Table + Editorial Scope Narrative */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column: Hairline Spec Table (5 cols) */}
+            <div className="lg:col-span-5 divide-y divide-stone-200/80 dark:divide-stone-800/80 border-y border-stone-200/80 dark:border-stone-800/80 text-xs font-mono">
+              <div className="py-2.5 flex items-center justify-between">
+                <span className="text-[10px] tracking-widest text-stone-400 uppercase">WBS CODE</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">{project.wbs_no || '-'}</span>
+              </div>
+              <div className="py-2.5 flex items-center justify-between">
+                <span className="text-[10px] tracking-widest text-stone-400 uppercase">STATUS</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">{project.status}</span>
+              </div>
+              <div className="py-2.5 flex items-center justify-between">
+                <span className="text-[10px] tracking-widest text-stone-400 uppercase">SUPERVISOR</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">{project.supervisor || '-'}</span>
+              </div>
+              <div className="py-2.5 flex items-center justify-between">
+                <span className="text-[10px] tracking-widest text-stone-400 uppercase">BUDGET</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">฿{Number(project.budget || 0).toLocaleString()} บาท</span>
+              </div>
+              <div className="py-2.5 flex items-center justify-between">
+                <span className="text-[10px] tracking-widest text-stone-400 uppercase">LOCATION</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">{project.location || '-'}</span>
+              </div>
+              <div className="py-2.5 flex items-center justify-between">
+                <span className="text-[10px] tracking-widest text-stone-400 uppercase">TIMELINE</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">{formatDate(project.start_date)} — {formatDate(project.end_date)}</span>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest font-mono">
-                ผู้ควบคุมโครงการ
+
+            {/* Right Column: Editorial Narrative & Description (7 cols) */}
+            <div className="lg:col-span-7 space-y-4">
+              <p className="text-sm sm:text-base text-stone-600 dark:text-stone-300 leading-relaxed font-sans font-normal">
+                {project.description || `${project.name} โครงการก่อสร้างและพัฒนาภายใต้ระบบควบคุมงานก่อสร้าง Estudio Bang Atelier เน้นการกำกับดูแลคุณภาพงานตามมาตรฐานวิศวกรรมและการวางแผนด้วย WBS และ S-Curve`}
               </p>
-              <p className="text-sm font-bold text-stone-900 dark:text-stone-100">
-                {project.supervisor}
-              </p>
+
+              {metrics.ext.isCurrentlySuspended && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg text-xs font-semibold">
+                  <AlertTriangle size={15} />
+                  ⏸ หยุดงาน — {metrics.ext.currentSuspension?.reason}
+                  {' '}
+                  ({' '}ตั้งแต่ {formatDate(metrics.ext.currentSuspension?.suspend_date || '')}
+                  {metrics.ext.currentSuspension?.resume_date
+                    ? (() => {
+                        const lastStop = new Date(metrics.ext.currentSuspension!.resume_date!)
+                        lastStop.setDate(lastStop.getDate() - 1)
+                        return ` ถึง ${formatDate(lastStop.toISOString())}`
+                      })()
+                    : ' — ยังไม่กำหนดวันกลับ'
+                  }
+                  {' '})
+                </div>
+              )}
             </div>
           </div>
         </div>

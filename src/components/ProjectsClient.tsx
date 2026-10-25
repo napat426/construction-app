@@ -75,7 +75,8 @@ export function ProjectsClient({
   const [currentWorkGroups, setCurrentWorkGroups] = useState<string[]>(workGroups)
   const [projectOrder, setProjectOrder] = useState<string[]>(initialProjectOrder)
   const [isReorderMode, setIsReorderMode] = useState(false)
-  const [viewMode, setViewMode] = useState<'grouped' | 'flat'>('grouped')
+  const [viewMode, setViewMode] = useState<'bybang' | 'grouped' | 'flat'>('bybang')
+  const [activeProjectIndex, setActiveProjectIndex] = useState<number>(0)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
   const [isSavingOrder, setIsSavingOrder] = useState(false)
 
@@ -516,6 +517,19 @@ export function ProjectsClient({
           <div className="flex items-center p-1 bg-stone-100/80 dark:bg-[#14141c] border border-stone-200/90 dark:border-stone-800 rounded-xl shadow-2xs">
             <button
               type="button"
+              onClick={() => setViewMode('bybang')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'bybang'
+                  ? 'bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900 shadow-xs'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-stone-100'
+              }`}
+              title="สไตล์ Estudio Bang (bybang.co) — Index List & Interactive Preview"
+            >
+              <Sparkles size={14} />
+              <span>Bybang Index</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setViewMode('grouped')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'grouped'
@@ -538,7 +552,7 @@ export function ProjectsClient({
               title="แสดงโครงการทั้งหมด"
             >
               <LayoutGrid size={14} />
-              <span>รวมทั้งหมด</span>
+              <span>การ์ดทั้งหมด</span>
             </button>
           </div>
 
@@ -625,7 +639,161 @@ export function ProjectsClient({
 
       {/* ── Projects grid ── */}
       {filtered.length > 0 ? (
-        viewMode === 'grouped' ? (
+        viewMode === 'bybang' ? (
+          /* ── Estudio Bang (bybang.co) Architectural Index View ── */
+          <div className="card gallery-podium rounded-2xl p-6 sm:p-10 bg-[#FAF8F5]/90 dark:bg-[#121218]/90 border border-stone-200/90 dark:border-stone-800">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+              {/* Left Column: Architectural Photograph / Rendering Preview (sticky) */}
+              <div className="lg:col-span-5 lg:sticky lg:top-24">
+                {(() => {
+                  const activeProj = sortedFilteredProjects[activeProjectIndex] || sortedFilteredProjects[0]
+                  if (!activeProj) return null
+
+                  const projTasks = initialTasks.filter((t) => t.project_id === activeProj.id)
+                  const actualProgress = computeProjectActualProgress(activeProj, projTasks)
+                  const activeImgUrl = (activeProj as any).image_url
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="relative aspect-[3/4] sm:aspect-[4/5] rounded-2xl overflow-hidden bg-stone-200 dark:bg-stone-800 shadow-md border border-stone-200/80 dark:border-stone-700/80 group">
+                        {activeImgUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={activeImgUrl}
+                            alt={activeProj.name}
+                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-stone-100 to-stone-200 dark:from-stone-900 dark:to-stone-950">
+                            <div className="relative w-14 h-14 mb-4 opacity-30">
+                              <div className="absolute top-0 left-0 w-7 h-7 bg-stone-900 dark:bg-stone-100" />
+                              <div className="absolute bottom-0 right-0 w-7 h-7 bg-stone-900 dark:bg-stone-100" />
+                            </div>
+                            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-stone-400">
+                              ESTUDIO.BANG // ATELIER
+                            </p>
+                            <p className="text-base font-bold text-stone-800 dark:text-stone-200 mt-1 max-w-[220px]">
+                              {activeProj.name}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Bottom spec bar on active image */}
+                        <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-stone-950/85 via-stone-950/50 to-transparent text-white">
+                          <div className="flex items-center justify-between text-xs font-mono tracking-wider mb-1.5">
+                            <span className="text-stone-300">ความก้าวหน้าจริง</span>
+                            <span className="font-bold text-emerald-400 text-sm">{actualProgress.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden mb-3">
+                            <div
+                              className="bg-emerald-400 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, Math.max(0, actualProgress))}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] font-mono text-stone-300">
+                            <span>งบประมาณ</span>
+                            <span className="font-bold text-white">฿{(Number(activeProj.budget || 0) / 1e6).toFixed(2)} ล้านบาท</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action button to open active project */}
+                      <Link
+                        href={`/projects/${activeProj.id}`}
+                        className="w-full py-3 px-4 rounded-xl text-center text-xs font-bold text-white bg-stone-950 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-950 dark:hover:bg-white transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>เปิด Dashboard โครงการ</span>
+                        <span>→</span>
+                      </Link>
+                    </div>
+                  )
+                })()}
+              </div>
+
+              {/* Right Column: Estudio Bang Index List */}
+              <div className="lg:col-span-7 divide-y divide-stone-200/70 dark:divide-stone-800/70">
+                {sortedFilteredProjects.map((project, pIdx) => {
+                  const isSelected = pIdx === activeProjectIndex
+                  const projTasks = initialTasks.filter((t) => t.project_id === project.id)
+                  const progress = computeProjectActualProgress(project, projTasks)
+
+                  return (
+                    <div
+                      key={project.id}
+                      onMouseEnter={() => setActiveProjectIndex(pIdx)}
+                      onClick={() => setActiveProjectIndex(pIdx)}
+                      className="group py-4 sm:py-5 flex flex-col gap-1.5 transition-colors duration-200 cursor-pointer"
+                    >
+                      <div className="flex items-baseline gap-3 sm:gap-4 flex-wrap">
+                        {/* 2-Digit Zero-Padded Index */}
+                        <span className="font-mono text-xs text-stone-400 dark:text-stone-500 group-hover:text-stone-950 dark:group-hover:text-stone-100 transition-colors w-6">
+                          {String(pIdx + 1).padStart(2, '0')}
+                        </span>
+
+                        {/* Project Title (Bold, tightly tracked) */}
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className={`text-xl sm:text-2xl font-bold tracking-tight transition-colors duration-200 ${
+                            isSelected
+                              ? 'text-stone-950 dark:text-stone-50'
+                              : 'text-stone-400 dark:text-stone-500 group-hover:text-stone-900 dark:group-hover:text-stone-200'
+                          }`}
+                        >
+                          {project.name}
+                        </Link>
+
+                        {/* Inline Minimalist Spec Tags */}
+                        <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-stone-400 dark:text-stone-500 flex-wrap">
+                          {project.wbs_no && <span>{project.wbs_no}</span>}
+                          {project.location && (
+                            <>
+                              <span>•</span>
+                              <span>{project.location}</span>
+                            </>
+                          )}
+                          <span>•</span>
+                          <span>฿{(Number(project.budget || 0) / 1e6).toFixed(2)}M</span>
+                          <span>•</span>
+                          <span className={isSelected ? 'text-stone-900 dark:text-stone-100 font-bold' : ''}>
+                            {progress.toFixed(1)}%
+                          </span>
+                          <span>•</span>
+                          <span>{project.status}</span>
+                        </div>
+                      </div>
+
+                      {/* Expanded Action bar on selected item */}
+                      {isSelected && (
+                        <div className="pl-9 pt-1 flex items-center gap-3 text-xs font-mono animate-fade-in">
+                          <Link
+                            href={`/projects/${project.id}`}
+                            className="font-bold text-stone-950 dark:text-stone-100 underline underline-offset-4 hover:opacity-75"
+                          >
+                            เข้าสู่แดชบอร์ด
+                          </Link>
+                          <span className="text-stone-300 dark:text-stone-700">|</span>
+                          <Link
+                            href={`/projects/${project.id}/planning`}
+                            className="text-stone-500 hover:text-stone-950 dark:hover:text-stone-100"
+                          >
+                            แผนงาน WBS / S-Curve
+                          </Link>
+                          <span className="text-stone-300 dark:text-stone-700">|</span>
+                          <Link
+                            href={`/projects/${project.id}/inspections`}
+                            className="text-stone-500 hover:text-stone-950 dark:hover:text-stone-100"
+                          >
+                            รายงานตรวจงาน
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        ) : viewMode === 'grouped' ? (
           /* ── Grouped by Work Category (ตามรูปวาด) ── */
           <div className="space-y-8">
             {groupedSections.map((section, sIdx) => {

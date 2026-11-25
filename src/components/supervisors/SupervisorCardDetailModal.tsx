@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Maximize2,
+  Printer,
 } from 'lucide-react'
 import type { SupervisorTask, SupervisorTaskGroup, Project } from '@/lib/types'
 
@@ -25,6 +26,7 @@ interface Props {
   onClose: () => void
   onEdit: (task: SupervisorTask) => void
   onDelete: (taskId: string) => void
+  onPrintSingle?: (task: SupervisorTask) => void
 }
 
 function formatDate(dateStr?: string | null): string {
@@ -57,6 +59,7 @@ export function SupervisorCardDetailModal({
   onClose,
   onEdit,
   onDelete,
+  onPrintSingle,
 }: Props) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null)
 
@@ -105,7 +108,7 @@ export function SupervisorCardDetailModal({
   const photos = task.photo_urls || []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in overflow-y-auto print:hidden">
       <div className="relative w-full max-w-2xl bg-white dark:bg-[#121226] border border-slate-200 dark:border-[#252548] rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
         {/* Header Bar */}
         <div className="px-5 py-4 border-b border-slate-100 dark:border-[#202042] flex items-start justify-between gap-3 bg-slate-50/70 dark:bg-[#16162e]">
@@ -127,13 +130,24 @@ export function SupervisorCardDetailModal({
               {task.title}
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-[#202042] transition-colors cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => (onPrintSingle ? onPrintSingle(task) : window.print())}
+              className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-[#202042] transition-colors cursor-pointer"
+              title="พิมพ์ผลงานนี้ (A4 แนวตั้ง)"
+            >
+              <Printer size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-[#202042] transition-colors cursor-pointer"
+              title="ปิด"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body (Scrollable) */}
@@ -265,6 +279,16 @@ export function SupervisorCardDetailModal({
             )}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => (onPrintSingle ? onPrintSingle(task) : window.print())}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1e1e3c] dark:hover:bg-[#27274d] text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+              title="พิมพ์เอกสารสรุปผลงานเดี่ยวขนาด A4 แนวตั้ง"
+            >
+              <Printer size={13} />
+              <span>พิมพ์ A4 (แนวตั้ง)</span>
+            </button>
+
             {canEdit && (
               <button
                 type="button"

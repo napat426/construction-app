@@ -210,6 +210,8 @@ export function SupervisorSingleTaskPrintSheet({
                     src={url}
                     alt={`ภาพที่ ${idx + 1}`}
                     className="w-full h-full object-cover"
+                    loading="eager"
+                    decoding="sync"
                   />
                 </div>
                 <div className="py-0.5 px-2 text-center text-[7pt] text-slate-500 bg-white border-t border-slate-200">

@@ -93,17 +93,32 @@ export function SupervisorPortfolioClient({
 
   const handlePrintSingleTask = (task: SupervisorTask) => {
     setPrintingSingleTask(task)
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('printing-single-task-mode')
+    }
+    // Defer printing to ensure DOM is fully rendered and styles applied
     setTimeout(() => {
       window.print()
-    }, 100)
+    }, 250)
   }
 
   useEffect(() => {
     const onAfterPrint = () => {
-      setPrintingSingleTask(null)
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('printing-single-task-mode')
+      }
+      // Delay resetting state to prevent Chromium from unmounting while spooling preview
+      setTimeout(() => {
+        setPrintingSingleTask(null)
+      }, 500)
     }
     window.addEventListener('afterprint', onAfterPrint)
-    return () => window.removeEventListener('afterprint', onAfterPrint)
+    return () => {
+      window.removeEventListener('afterprint', onAfterPrint)
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('printing-single-task-mode')
+      }
+    }
   }, [])
 
   // Collapsed groups state
@@ -504,121 +519,6 @@ export function SupervisorPortfolioClient({
 
   return (
     <div className={`space-y-6 max-w-7xl mx-auto pb-16 print:space-y-4 print:pb-0 print:max-w-none print:w-full ${printingSingleTask ? 'printing-single-task-mode' : ''}`}>
-      {/* ── Print Styles for A4 Portrait ── */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4 portrait;
-            margin: 10mm 10mm 12mm 10mm;
-          }
-
-          /* Mode switcher for single task vs full portfolio print */
-          .printing-single-task-mode .portfolio-full-print {
-            display: none !important;
-          }
-          .printing-single-task-mode .single-task-print-wrapper {
-            display: block !important;
-          }
-          :not(.printing-single-task-mode) .single-task-print-wrapper {
-            display: none !important;
-          }
-
-          html, body {
-            background-color: #ffffff !important;
-            background: #ffffff !important;
-            color: #0f172a !important;
-            font-size: 9.5pt !important;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-            line-height: 1.4 !important;
-          }
-
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-          }
-
-          header, nav, aside, footer,
-          .print\\:hidden,
-          [class*="print:hidden"],
-          button,
-          select {
-            display: none !important;
-          }
-
-          main {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: 100% !important;
-          }
-
-          .card,
-          .print-card {
-            background-color: #ffffff !important;
-            background: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
-            border-radius: 8px !important;
-            box-shadow: none !important;
-            color: #0f172a !important;
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-
-          .print-profile-card {
-            background: #f8fafc !important;
-            border: 1.5px solid #cbd5e1 !important;
-            padding: 12px 14px !important;
-            border-radius: 10px !important;
-            margin-bottom: 12px !important;
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-
-          .print-grid-2 {
-            display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 10px !important;
-          }
-
-          .print-grid-5 {
-            display: grid !important;
-            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-            gap: 6px !important;
-            padding-top: 8px !important;
-          }
-
-          .print-avoid-break {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-
-          .print-avoid-break-after {
-            break-after: avoid !important;
-            page-break-after: avoid !important;
-          }
-
-          .print-task-photo {
-            height: 110px !important;
-            max-height: 110px !important;
-            object-fit: cover !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-          }
-
-          h1, h2, h3, h4 {
-            color: #0f172a !important;
-          }
-
-          a {
-            text-decoration: none !important;
-            color: inherit !important;
-          }
-        }
-      `}</style>
-
       {/* ── Full Portfolio Container (Hidden when printing single task) ── */}
       <div className={`portfolio-full-print space-y-6 print:space-y-4 ${printingSingleTask ? 'print:hidden' : ''}`}>
         {/* ── Official Print Header (Visible only when printed) ── */}
@@ -1550,7 +1450,7 @@ export function SupervisorPortfolioClient({
       {/* Single Task A4 Portrait Printable Sheet                    */}
       {/* ────────────────────────────────────────────────────────── */}
       {printingSingleTask && (
-        <div className="single-task-print-wrapper hidden print:block">
+        <div className="single-task-print-wrapper">
           <SupervisorSingleTaskPrintSheet
             task={printingSingleTask}
             group={groups.find((g) => g.id === printingSingleTask.group_id)}

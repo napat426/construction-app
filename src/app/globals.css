@@ -331,3 +331,103 @@
     page-break-inside: avoid !important;
   }
 }
+
+/* ─── Supervisor Portfolio & Single Task Print Styles ─── */
+.single-task-print-wrapper {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 10mm 12mm 10mm;
+  }
+
+  /* Universal print resets */
+  header, nav, aside, footer,
+  .print\:hidden,
+  [class*="print:hidden"],
+  button,
+  select {
+    display: none !important;
+  }
+
+  /* Single Task Mode Print Visibility */
+  body.printing-single-task-mode .portfolio-full-print,
+  body.printing-single-task-mode .fixed {
+    display: none !important;
+  }
+
+  body.printing-single-task-mode .single-task-print-wrapper {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  body.printing-single-task-mode .single-task-print-wrapper * {
+    visibility: visible !important;
+  }
+
+  body:not(.printing-single-task-mode) .single-task-print-wrapper {
+    display: none !important;
+  }
+
+  /* Cards & Break rules for portfolio printing */
+  .card,
+  .print-card {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    color: #0f172a !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-profile-card {
+    background: #f8fafc !important;
+    border: 1.5px solid #cbd5e1 !important;
+    padding: 12px 14px !important;
+    border-radius: 10px !important;
+    margin-bottom: 12px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-grid-2 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .print-grid-5 {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    padding-top: 8px !important;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-avoid-break-after {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  .print-task-photo {
+    height: 110px !important;
+    max-height: 110px !important;
+    object-fit: cover !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+}
+

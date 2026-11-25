@@ -42,6 +42,7 @@ import {
 import { SupervisorCardDetailModal } from './SupervisorCardDetailModal'
 import { SupervisorTaskModal } from './SupervisorTaskModal'
 import { SupervisorGroupModal } from './SupervisorGroupModal'
+import { SupervisorSingleTaskPrintSheet } from './SupervisorSingleTaskPrintSheet'
 
 interface Props {
   supervisorName: string
@@ -86,6 +87,24 @@ export function SupervisorPortfolioClient({
     isOpen: false,
     group: null,
   })
+
+  // ── Single Task A4 Portrait Printing State ──
+  const [printingSingleTask, setPrintingSingleTask] = useState<SupervisorTask | null>(null)
+
+  const handlePrintSingleTask = (task: SupervisorTask) => {
+    setPrintingSingleTask(task)
+    setTimeout(() => {
+      window.print()
+    }, 100)
+  }
+
+  useEffect(() => {
+    const onAfterPrint = () => {
+      setPrintingSingleTask(null)
+    }
+    window.addEventListener('afterprint', onAfterPrint)
+    return () => window.removeEventListener('afterprint', onAfterPrint)
+  }, [])
 
   // Collapsed groups state
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([])
@@ -484,13 +503,24 @@ export function SupervisorPortfolioClient({
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 print:space-y-4 print:pb-0 print:max-w-none print:w-full">
+    <div className={`space-y-6 max-w-7xl mx-auto pb-16 print:space-y-4 print:pb-0 print:max-w-none print:w-full ${printingSingleTask ? 'printing-single-task-mode' : ''}`}>
       {/* ── Print Styles for A4 Portrait ── */}
       <style jsx global>{`
         @media print {
           @page {
             size: A4 portrait;
             margin: 10mm 10mm 12mm 10mm;
+          }
+
+          /* Mode switcher for single task vs full portfolio print */
+          .printing-single-task-mode .portfolio-full-print {
+            display: none !important;
+          }
+          .printing-single-task-mode .single-task-print-wrapper {
+            display: block !important;
+          }
+          :not(.printing-single-task-mode) .single-task-print-wrapper {
+            display: none !important;
           }
 
           html, body {
@@ -589,8 +619,10 @@ export function SupervisorPortfolioClient({
         }
       `}</style>
 
-      {/* ── Official Print Header (Visible only when printed) ── */}
-      <div className="hidden print:block mb-4 pb-2 border-b-2 border-slate-800 text-center print-avoid-break">
+      {/* ── Full Portfolio Container (Hidden when printing single task) ── */}
+      <div className={`portfolio-full-print space-y-6 print:space-y-4 ${printingSingleTask ? 'print:hidden' : ''}`}>
+        {/* ── Official Print Header (Visible only when printed) ── */}
+        <div className="hidden print:block mb-4 pb-2 border-b-2 border-slate-800 text-center print-avoid-break">
         <div className="flex items-center justify-between pb-1 text-[8.5pt] text-slate-500 font-bold border-b border-slate-200">
           <span>ระบบบริหารจัดการและควบคุมงานก่อสร้าง</span>
           <span>การไฟฟ้าส่วนภูมิภาค (กฟภ.)</span>
@@ -1309,9 +1341,22 @@ export function SupervisorPortfolioClient({
 
                               {/* Card Footer / Reorder helper */}
                               <div className="px-3.5 py-2 border-t border-slate-100 dark:border-[#202042] bg-white/50 dark:bg-[#121226]/50 flex items-center justify-between text-[10px] text-slate-400 print:hidden">
-                                <span className="group-hover:text-primary-600 font-semibold flex items-center gap-1">
-                                  คลิกดูรายละเอียด <Maximize2 size={10} />
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="group-hover:text-primary-600 font-semibold flex items-center gap-1">
+                                    คลิกดูรายละเอียด <Maximize2 size={10} />
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handlePrintSingleTask(t)
+                                    }}
+                                    className="p-1 rounded text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
+                                    title="พิมพ์ผลงานนี้ (A4 แนวตั้ง)"
+                                  >
+                                    <Printer size={12} />
+                                  </button>
+                                </div>
 
                                 {canEdit && (
                                   <div
@@ -1446,9 +1491,22 @@ export function SupervisorPortfolioClient({
                       </div>
 
                       <div className="px-3.5 py-2 border-t border-slate-100 dark:border-[#202042] bg-white/50 dark:bg-[#121226]/50 flex items-center justify-between text-[10px] text-slate-400 print:hidden">
-                        <span className="group-hover:text-amber-600 font-semibold flex items-center gap-1">
-                          คลิกดูรายละเอียด <Maximize2 size={10} />
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="group-hover:text-amber-600 font-semibold flex items-center gap-1">
+                            คลิกดูรายละเอียด <Maximize2 size={10} />
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handlePrintSingleTask(t)
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-[#1e1e38] transition-colors cursor-pointer"
+                            title="พิมพ์ผลงานนี้ (A4 แนวตั้ง)"
+                          >
+                            <Printer size={12} />
+                          </button>
+                        </div>
                         <span
                           className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/40 text-[10px] font-bold text-amber-700 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800/60"
                           title={`ลำดับที่ ${oIdx + 1}`}
@@ -1485,6 +1543,23 @@ export function SupervisorPortfolioClient({
           </div>
         </div>
       </div>
+      {/* ── End of Full Portfolio Container ── */}
+      </div>
+
+      {/* ────────────────────────────────────────────────────────── */}
+      {/* Single Task A4 Portrait Printable Sheet                    */}
+      {/* ────────────────────────────────────────────────────────── */}
+      {printingSingleTask && (
+        <div className="single-task-print-wrapper hidden print:block">
+          <SupervisorSingleTaskPrintSheet
+            task={printingSingleTask}
+            group={groups.find((g) => g.id === printingSingleTask.group_id)}
+            project={projects.find((p) => p.id === printingSingleTask.related_project_id)}
+            supervisorName={supervisorName}
+            avatarUrl={avatarUrl}
+          />
+        </div>
+      )}
 
       {/* ────────────────────────────────────────────────────────── */}
       {/* Detail Modal on Click                                      */}
@@ -1498,6 +1573,7 @@ export function SupervisorPortfolioClient({
           onClose={() => setSelectedTaskForDetail(null)}
           onEdit={(taskToEdit) => setTaskModalState({ isOpen: true, task: taskToEdit })}
           onDelete={handleDeleteTask}
+          onPrintSingle={handlePrintSingleTask}
         />
       )}
 
